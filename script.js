@@ -1136,10 +1136,42 @@ function cleanName(name){
 
 
 
-    return name.replace(
-        /[^a-zA-Z0-9Ā-ž]/g,
-        "_"
-    );
+    const baseName =
+        String(name || "guest")
+            .trim();
+
+
+    if(!baseName){
+
+        return "guest";
+
+    }
+
+
+    const normalized =
+        baseName
+            .normalize(
+                "NFKD"
+            )
+            .replace(
+                /[\u0300-\u036f]/g,
+                ""
+            );
+
+
+    return normalized
+        .replace(
+            /[^a-zA-Z0-9]+/g,
+            "_"
+        )
+        .replace(
+            /^_+|_+$/g,
+            ""
+        )
+        .replace(
+            /_+/g,
+            "_"
+        );
 
 
 
