@@ -6,12 +6,3 @@ functions = "netlify/functions"
 [dev]
 
 functions = "netlify/functions"
-
-
-[[redirects]]
-
-from = "/api/upload"
-
-to = "/.netlify/functions/upload"
-
-status = 200

@@ -305,7 +305,7 @@ async function uploadFile(
 
         const response =
             await fetch(
-                "/api/upload",
+                "/.netlify/functions/upload",
                 {
                     method:"POST",
                     body:formData
