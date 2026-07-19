@@ -39,6 +39,14 @@ const guestDisplay =
 
 
 
+const guestWelcomeName =
+    document.getElementById("guestWelcomeName");
+
+
+const changeGuestButton =
+    document.getElementById("changeGuestButton");
+
+
 const photoButton =
     document.getElementById("photoButton");
 
@@ -256,6 +264,41 @@ function showCameraMode(){
         guestName;
 
 
+    if(guestWelcomeName){
+
+        guestWelcomeName.textContent =
+            guestName;
+
+    }
+
+
+}
+
+
+
+function showGuestSection(){
+
+
+
+    cameraSection.classList.add(
+        "hidden"
+    );
+
+
+    guestSection.classList.remove(
+        "hidden"
+    );
+
+
+    guestInput.value =
+        "";
+
+
+    guestInput.focus();
+
+
+    hideMessages();
+
 
 }
 
@@ -272,6 +315,28 @@ function showCameraMode(){
 // =================================
 // Kameras pogas
 // =================================
+
+
+
+changeGuestButton.addEventListener(
+    "click",
+    () => {
+
+
+        localStorage.removeItem(
+            "guestName"
+        );
+
+
+        guestName =
+            "";
+
+
+        showGuestSection();
+
+
+    }
+);
 
 
 

@@ -229,6 +229,42 @@ button {
 }
 
 
+.camera-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 12px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: #fff5f7;
+}
+
+
+.camera-header__info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    color: #8b5c68;
+    flex-wrap: wrap;
+}
+
+
+.camera-header__icon {
+    font-size: 16px;
+}
+
+
+.text-button {
+    background: transparent;
+    color: #9b5c68;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 0;
+}
+
+
 
 .primary-button {
 
