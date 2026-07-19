@@ -408,112 +408,10 @@ function checkVideo(file){
 
 
 
-
-
-
-    const video =
-        document.createElement(
-            "video"
-        );
-
-
-
-    video.preload =
-        "metadata";
-
-
-
-    video.onloadedmetadata =
-        () => {
-
-
-
-            window.URL.revokeObjectURL(
-                video.src
-            );
-
-
-
-            const duration =
-                video.duration;
-
-
-
-
-
-            if(duration > MAX_VIDEO_DURATION){
-
-
-
-                showError(
-                    "Video pārsniedz 5 minūtes. Lūdzu ieraksti īsāku video ❤️"
-                );
-
-
-
-                resetCamera();
-
-
-                return;
-
-
-            }
-
-
-
-
-
-
-
-            if(duration > WARNING_VIDEO_DURATION){
-
-
-
-                const ok =
-                    confirm(
-                        "Šis video ir garāks par 3 minūtēm. Tas var aizņemt ilgāku laiku nosūtīšanai. Turpināt?"
-                    );
-
-
-
-                if(!ok){
-
-
-                    resetCamera();
-
-
-                    return;
-
-
-                }
-
-
-            }
-
-
-
-
-
-
-            uploadFile(
-                file,
-                "mp4"
-            );
-
-
-
-        };
-
-
-
-
-
-
-    video.src =
-        URL.createObjectURL(
-            file
-        );
-
+    uploadFile(
+        file,
+        "mp4"
+    );
 
 
 }
@@ -715,7 +613,7 @@ async function uploadFile(
 
 
         showError(
-            "Neizdevās nosūtīt kadru. Mēģini vēlreiz ❤️"
+            error.message || "Neizdevās nosūtīt kadru. Mēģini vēlreiz ❤️"
         );
 
 
@@ -1327,3 +1225,4 @@ function hideMessages(){
 
 
 }
+
