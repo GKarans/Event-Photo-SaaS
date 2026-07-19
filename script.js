@@ -491,6 +491,49 @@ async function uploadFile(
 ){
 
 
+    const uploadTimeoutMs =
+        180000;
+
+
+    const fetchWithTimeout =
+        async (url, options = {}) => {
+
+
+            const controller =
+                new AbortController();
+
+
+            const timeoutId =
+                setTimeout(
+                    () => controller.abort(),
+                    uploadTimeoutMs
+                );
+
+
+            try {
+
+                return await fetch(
+                    url,
+                    {
+
+                        ...options,
+
+                        signal:controller.signal
+
+                    }
+                );
+
+            }
+
+            finally {
+
+                clearTimeout(timeoutId);
+
+            }
+
+        };
+
+
 
     hideMessages();
 
@@ -689,9 +732,13 @@ async function uploadFile(
 
 
 
-        showError(
-            error.message || "Neizdevās nosūtīt kadru. Mēģini vēlreiz ❤️"
-        );
+        const message =
+            error.name === "AbortError"
+                ? "Augšupielāde pārtraucaies pēc 3 minūtēm. Mēģini ar īsāku video vai vēlreiz ❤️"
+                : (error.message || "Neizdevās nosūtīt kadru. Mēģini vēlreiz ❤️");
+
+
+        showError(message);
 
 
 
