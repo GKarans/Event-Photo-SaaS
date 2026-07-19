@@ -14,47 +14,59 @@ Client-side JavaScript
 // Elementi
 // =================================
 
+
 const guestSection =
     document.getElementById("guest-section");
 
+
 const cameraSection =
     document.getElementById("camera-section");
+
 
 
 const guestInput =
     document.getElementById("guestName");
 
 
+
 const startButton =
     document.getElementById("startButton");
+
 
 
 const guestDisplay =
     document.getElementById("guestDisplay");
 
 
+
 const photoButton =
     document.getElementById("photoButton");
+
 
 
 const videoButton =
     document.getElementById("videoButton");
 
 
+
 const photoInput =
     document.getElementById("photoInput");
+
 
 
 const videoInput =
     document.getElementById("videoInput");
 
 
+
 const loading =
     document.getElementById("loading");
 
 
+
 const success =
     document.getElementById("success");
+
 
 
 const errorBox =
@@ -64,11 +76,51 @@ const errorBox =
 
 
 
+
+
+// =================================
+// Video drošības limiti
+// =================================
+
+
+// Viesim rādām ieteikumu:
+// līdz 3 minūtēm
+
+const WARNING_VIDEO_DURATION =
+    180;
+
+
+
+// Maksimāli atļauts:
+// 5 minūtes
+
+const MAX_VIDEO_DURATION =
+    300;
+
+
+
+// Maksimālais faila izmērs:
+// 800 MB
+
+const MAX_VIDEO_SIZE =
+    800 * 1024 * 1024;
+
+
+
+
+
+
+
 // =================================
 // Globālie mainīgie
 // =================================
 
+
 let guestName = "";
+
+
+
+
 
 
 
@@ -77,6 +129,7 @@ let guestName = "";
 // =================================
 // Ielādējot lapu
 // =================================
+
 
 window.addEventListener(
     "load",
@@ -89,11 +142,13 @@ window.addEventListener(
             );
 
 
+
         if(savedName){
 
 
             guestName =
                 savedName;
+
 
 
             showCameraMode();
@@ -112,9 +167,11 @@ window.addEventListener(
 
 
 
+
 // =================================
 // Viesa sākšana
 // =================================
+
 
 startButton.addEventListener(
     "click",
@@ -123,6 +180,7 @@ startButton.addEventListener(
 
         const name =
             guestInput.value.trim();
+
 
 
 
@@ -136,7 +194,10 @@ startButton.addEventListener(
 
             return;
 
+
         }
+
+
 
 
 
@@ -145,10 +206,13 @@ startButton.addEventListener(
 
 
 
+
         localStorage.setItem(
             "guestName",
             guestName
         );
+
+
 
 
 
@@ -165,11 +229,15 @@ startButton.addEventListener(
 
 
 
+
+
 // =================================
-// Parādīt kameru
+// Kameras režīms
 // =================================
 
+
 function showCameraMode(){
+
 
 
     guestSection.classList.add(
@@ -177,16 +245,21 @@ function showCameraMode(){
     );
 
 
+
     cameraSection.classList.remove(
         "hidden"
     );
+
 
 
     guestDisplay.textContent =
         guestName;
 
 
+
 }
+
+
 
 
 
@@ -201,6 +274,7 @@ function showCameraMode(){
 // =================================
 
 
+
 photoButton.addEventListener(
     "click",
     () => {
@@ -211,6 +285,7 @@ photoButton.addEventListener(
 
     }
 );
+
 
 
 
@@ -235,9 +310,12 @@ videoButton.addEventListener(
 
 
 
+
+
 // =================================
 // Foto izvēlēts
 // =================================
+
 
 photoInput.addEventListener(
     "change",
@@ -265,9 +343,14 @@ photoInput.addEventListener(
 
 
 
+
+
+
+
 // =================================
 // Video izvēlēts
 // =================================
+
 
 videoInput.addEventListener(
     "change",
@@ -277,9 +360,8 @@ videoInput.addEventListener(
         if(videoInput.files.length){
 
 
-            uploadFile(
-                videoInput.files[0],
-                "mp4"
+            checkVideo(
+                videoInput.files[0]
             );
 
 
@@ -297,14 +379,148 @@ videoInput.addEventListener(
 
 
 
+
+
 // =================================
-// Upload funkcija
-// (turpinājums 2. daļā)
+// Video pārbaude
 // =================================
 
+
+function checkVideo(file){
+
+
+
+    if(file.size > MAX_VIDEO_SIZE){
+
+
+        showError(
+            "Video ir pārāk liels. Lūdzu ieraksti īsāku video ❤️"
+        );
+
+
+        resetCamera();
+
+
+        return;
+
+
+    }
+
+
+
+
+
+
+    const video =
+        document.createElement(
+            "video"
+        );
+
+
+
+    video.preload =
+        "metadata";
+
+
+
+    video.onloadedmetadata =
+        () => {
+
+
+
+            window.URL.revokeObjectURL(
+                video.src
+            );
+
+
+
+            const duration =
+                video.duration;
+
+
+
+
+
+            if(duration > MAX_VIDEO_DURATION){
+
+
+
+                showError(
+                    "Video pārsniedz 5 minūtes. Lūdzu ieraksti īsāku video ❤️"
+                );
+
+
+
+                resetCamera();
+
+
+                return;
+
+
+            }
+
+
+
+
+
+
+
+            if(duration > WARNING_VIDEO_DURATION){
+
+
+
+                const ok =
+                    confirm(
+                        "Šis video ir garāks par 3 minūtēm. Tas var aizņemt ilgāku laiku nosūtīšanai. Turpināt?"
+                    );
+
+
+
+                if(!ok){
+
+
+                    resetCamera();
+
+
+                    return;
+
+
+                }
+
+
+            }
+
+
+
+
+
+
+            uploadFile(
+                file,
+                "mp4"
+            );
+
+
+
+        };
+
+
+
+
+
+
+    video.src =
+        URL.createObjectURL(
+            file
+        );
+
+
+
+}
 // =================================
 // Augšupielāde
 // =================================
+
 
 async function uploadFile(
     file,
@@ -312,12 +528,16 @@ async function uploadFile(
 ){
 
 
+
     hideMessages();
+
 
 
     loading.classList.remove(
         "hidden"
     );
+
+
 
 
 
@@ -330,6 +550,7 @@ async function uploadFile(
 
 
 
+
         const fileName =
             `${cleanName(guestName)}_${timestamp}.${type}`;
 
@@ -337,94 +558,94 @@ async function uploadFile(
 
 
 
-        const formData =
-            new FormData();
 
 
 
-        formData.append(
-            "file",
-            file
-        );
+        // =========================
+        // FOTO
+        // =========================
+
+
+        if(type === "jpg"){
 
 
 
-        formData.append(
-            "filename",
-            fileName
-        );
+            const formData =
+                new FormData();
+
+
+
+            formData.append(
+                "file",
+                file
+            );
+
+
+
+            formData.append(
+                "filename",
+                fileName
+            );
 
 
 
 
 
-        /*
-        FOTO:
-        /.netlify/functions/upload
+            const response =
+                await fetch(
+                    "/.netlify/functions/upload",
+                    {
 
-        VIDEO:
-        /.netlify/functions/video-upload
-        */
+                        method:"POST",
+
+                        body:formData
+
+                    }
+                );
 
 
-        let uploadEndpoint;
 
+
+
+
+            if(!response.ok){
+
+
+                throw new Error(
+                    "Foto augšupielāde neizdevās"
+                );
+
+
+            }
+
+
+
+        }
+
+
+
+
+
+
+
+        // =========================
+        // VIDEO
+        // =========================
 
 
         if(type === "mp4"){
 
 
-            uploadEndpoint =
-                "/.netlify/functions/video-upload";
 
-
-        }
-        else{
-
-
-            uploadEndpoint =
-                "/.netlify/functions/upload";
-
-
-        }
-
-
-
-
-
-
-
-        const response =
-            await fetch(
-                uploadEndpoint,
-                {
-
-                    method:"POST",
-
-                    body:formData
-
-                }
-            );
-
-
-
-
-
-
-        if(!response.ok){
-
-
-            const errorText =
-                await response.text();
-
-
-            throw new Error(
-                errorText ||
-                "Augšupielāde neizdevās"
+            await uploadVideoDirect(
+                file,
+                fileName
             );
 
 
         }
+
+
 
 
 
@@ -438,6 +659,8 @@ async function uploadFile(
 
 
 
+
+
         success.classList.remove(
             "hidden"
         );
@@ -447,9 +670,8 @@ async function uploadFile(
 
 
 
-
         setTimeout(
-            () => {
+            ()=>{
 
 
                 success.classList.add(
@@ -457,12 +679,18 @@ async function uploadFile(
                 );
 
 
+
                 resetCamera();
+
 
 
             },
             2000
         );
+
+
+
+
 
 
 
@@ -487,12 +715,361 @@ async function uploadFile(
 
 
         showError(
-            "Neizdevās nosūtīt kadru. Mēģini vēlreiz."
+            "Neizdevās nosūtīt kadru. Mēģini vēlreiz ❤️"
         );
 
 
 
         resetCamera();
+
+
+
+    }
+
+
+}
+
+
+
+
+
+
+
+
+
+// =================================
+// Tiešais video upload uz Dropbox
+// =================================
+
+
+// =================================
+// Dropbox video upload ar gabaliem
+// =================================
+
+
+async function uploadVideoDirect(
+    file,
+    filename
+){
+
+
+
+    const CHUNK_SIZE =
+        8 * 1024 * 1024; // 8MB
+
+
+
+
+
+    // ===============================
+    // 1. Izveido upload session
+    // ===============================
+
+
+
+    const createResponse =
+        await fetch(
+            "/.netlify/functions/create-upload",
+            {
+
+                method:"POST",
+
+                headers:{
+
+                    "Content-Type":
+                    "application/json"
+
+                },
+
+
+                body:
+                JSON.stringify({
+
+                    filename
+
+                })
+
+
+            }
+        );
+
+
+
+
+
+    const session =
+        await createResponse.json();
+
+
+
+
+
+    if(!session.session_id ||
+       !session.access_token){
+
+
+        throw new Error(
+            "Dropbox session kļūda"
+        );
+
+
+    }
+
+
+
+
+
+
+
+
+
+    let offset = 0;
+
+
+
+
+
+    // ===============================
+    // 2. Sūta gabalus
+    // ===============================
+
+
+    while(offset < file.size){
+
+
+
+        const chunk =
+            file.slice(
+                offset,
+                offset + CHUNK_SIZE
+            );
+
+
+
+
+
+        const isLast =
+            offset + CHUNK_SIZE >= file.size;
+
+
+
+
+
+
+
+        if(isLast){
+
+
+
+            // ==========================
+            // FINISH
+            // ==========================
+
+
+            const response =
+                await fetch(
+
+"https://content.dropboxapi.com/2/files/upload_session/finish",
+
+                {
+
+
+                    method:"POST",
+
+
+                    headers:{
+
+
+                        "Authorization":
+                        `Bearer ${session.access_token}`,
+
+
+
+                        "Content-Type":
+                        "application/octet-stream",
+
+
+
+                        "Dropbox-API-Arg":
+                        JSON.stringify({
+
+                            cursor:{
+
+
+                                session_id:
+                                session.session_id,
+
+
+                                offset:
+                                offset
+
+
+                            },
+
+
+                            commit:{
+
+
+                                path:
+                                `/WeddingCamera/Videos/${filename}`,
+
+
+                                mode:
+                                "add",
+
+
+                                autorename:
+                                true
+
+
+                            }
+
+
+                        })
+
+
+                    },
+
+
+                    body:
+                    chunk
+
+
+                }
+
+
+            );
+
+
+
+
+
+            if(!response.ok){
+
+
+                throw new Error(
+                    "Dropbox finish kļūda"
+                );
+
+
+            }
+
+
+
+
+        }
+
+        else {
+
+
+
+            // ==========================
+            // APPEND
+            // ==========================
+
+
+            const response =
+                await fetch(
+
+"https://content.dropboxapi.com/2/files/upload_session/append_v2",
+
+                {
+
+
+                    method:"POST",
+
+
+                    headers:{
+
+
+                        "Authorization":
+                        `Bearer ${session.access_token}`,
+
+
+
+                        "Content-Type":
+                        "application/octet-stream",
+
+
+
+                        "Dropbox-API-Arg":
+                        JSON.stringify({
+
+                            cursor:{
+
+
+                                session_id:
+                                session.session_id,
+
+
+                                offset:
+                                offset
+
+
+                            }
+
+
+                        })
+
+
+                    },
+
+
+                    body:
+                    chunk
+
+
+                }
+
+
+            );
+
+
+
+
+
+            if(!response.ok){
+
+
+                throw new Error(
+                    "Dropbox chunk upload kļūda"
+                );
+
+
+            }
+
+
+
+        }
+
+
+
+
+
+
+
+        offset +=
+            chunk.size;
+
+
+
+
+
+
+        // ==========================
+        // Progress
+        // ==========================
+
+
+        const percent =
+            Math.round(
+                (offset / file.size) * 100
+            );
+
+
+
+        loading.textContent =
+            `Augšupielāde ${percent}%`;
 
 
 
@@ -509,11 +1086,10 @@ async function uploadFile(
 
 
 
-
-
 // =================================
-// Atgriezties kameras režīmā
+// Atgriezties kamerā
 // =================================
+
 
 function resetCamera(){
 
@@ -521,6 +1097,7 @@ function resetCamera(){
 
     photoInput.value =
         "";
+
 
 
     videoInput.value =
@@ -538,9 +1115,12 @@ function resetCamera(){
 
 
 
+
+
 // =================================
-// Datums un laiks faila vārdam
+// Datums faila vārdam
 // =================================
+
 
 function createTimestamp(){
 
@@ -625,18 +1205,21 @@ function createTimestamp(){
 
 
 
+
 // =================================
-// Drošs vārds failam
+// Drošs faila vārds
 // =================================
+
 
 function cleanName(name){
 
 
-    return name
-        .replace(
-            /[^a-zA-Z0-9Ā-ž]/g,
-            "_"
-        );
+
+    return name.replace(
+        /[^a-zA-Z0-9Ā-ž]/g,
+        "_"
+    );
+
 
 
 }
@@ -649,9 +1232,12 @@ function cleanName(name){
 
 
 
+
+
 // =================================
-// Kļūdu paziņojumi
+// Kļūdas
 // =================================
+
 
 function showError(
     message
@@ -671,7 +1257,7 @@ function showError(
 
 
     setTimeout(
-        () => {
+        ()=>{
 
 
             errorBox.classList.add(
@@ -695,16 +1281,21 @@ function showError(
 
 
 
+
+
 // =================================
-// Notīrīt ziņojumus
+// Ziņojumu tīrīšana
 // =================================
 
+
 function hideMessages(){
+
 
 
     errorBox.classList.add(
         "hidden"
     );
+
 
 
     success.classList.add(
