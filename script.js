@@ -4,31 +4,69 @@ Digitālā Vienreizlietojamā Kamera
 Kāzas 08.10.2026
 
 Client-side JavaScript
+
+1. daļa
 =========================================
 */
 
 
+// =================================
 // Elementi
+// =================================
 
-const guestSection = document.getElementById("guest-section");
-const cameraSection = document.getElementById("camera-section");
+const guestSection =
+    document.getElementById("guest-section");
 
-const guestInput = document.getElementById("guestName");
-const startButton = document.getElementById("startButton");
-
-const guestDisplay = document.getElementById("guestDisplay");
-
-const photoButton = document.getElementById("photoButton");
-const videoButton = document.getElementById("videoButton");
-
-const photoInput = document.getElementById("photoInput");
-const videoInput = document.getElementById("videoInput");
-
-const loading = document.getElementById("loading");
-const success = document.getElementById("success");
-const errorBox = document.getElementById("error");
+const cameraSection =
+    document.getElementById("camera-section");
 
 
+const guestInput =
+    document.getElementById("guestName");
+
+
+const startButton =
+    document.getElementById("startButton");
+
+
+const guestDisplay =
+    document.getElementById("guestDisplay");
+
+
+const photoButton =
+    document.getElementById("photoButton");
+
+
+const videoButton =
+    document.getElementById("videoButton");
+
+
+const photoInput =
+    document.getElementById("photoInput");
+
+
+const videoInput =
+    document.getElementById("videoInput");
+
+
+const loading =
+    document.getElementById("loading");
+
+
+const success =
+    document.getElementById("success");
+
+
+const errorBox =
+    document.getElementById("error");
+
+
+
+
+
+// =================================
+// Globālie mainīgie
+// =================================
 
 let guestName = "";
 
@@ -37,7 +75,7 @@ let guestName = "";
 
 
 // =================================
-// Palaižot lapu
+// Ielādējot lapu
 // =================================
 
 window.addEventListener(
@@ -46,14 +84,20 @@ window.addEventListener(
 
 
         const savedName =
-            localStorage.getItem("guestName");
+            localStorage.getItem(
+                "guestName"
+            );
 
 
         if(savedName){
 
-            guestName = savedName;
+
+            guestName =
+                savedName;
+
 
             showCameraMode();
+
 
         }
 
@@ -67,8 +111,9 @@ window.addEventListener(
 
 
 
+
 // =================================
-// Sākt fotografēšanu
+// Viesa sākšana
 // =================================
 
 startButton.addEventListener(
@@ -83,9 +128,11 @@ startButton.addEventListener(
 
         if(!name){
 
+
             showError(
                 "Lūdzu ievadi savu vārdu ❤️"
             );
+
 
             return;
 
@@ -93,7 +140,9 @@ startButton.addEventListener(
 
 
 
-        guestName = name;
+        guestName =
+            name;
+
 
 
         localStorage.setItem(
@@ -106,6 +155,7 @@ startButton.addEventListener(
         showCameraMode();
 
 
+
     }
 );
 
@@ -114,6 +164,10 @@ startButton.addEventListener(
 
 
 
+
+// =================================
+// Parādīt kameru
+// =================================
 
 function showCameraMode(){
 
@@ -149,7 +203,7 @@ function showCameraMode(){
 
 photoButton.addEventListener(
     "click",
-    ()=>{
+    () => {
 
 
         photoInput.click();
@@ -164,7 +218,7 @@ photoButton.addEventListener(
 
 videoButton.addEventListener(
     "click",
-    ()=>{
+    () => {
 
 
         videoInput.click();
@@ -180,22 +234,24 @@ videoButton.addEventListener(
 
 
 
-// =================================
-// Kad foto/video gatavs
-// =================================
 
+// =================================
+// Foto izvēlēts
+// =================================
 
 photoInput.addEventListener(
     "change",
-    ()=>{
+    () => {
 
 
         if(photoInput.files.length){
+
 
             uploadFile(
                 photoInput.files[0],
                 "jpg"
             );
+
 
         }
 
@@ -207,9 +263,15 @@ photoInput.addEventListener(
 
 
 
+
+
+// =================================
+// Video izvēlēts
+// =================================
+
 videoInput.addEventListener(
     "change",
-    ()=>{
+    () => {
 
 
         if(videoInput.files.length){
@@ -235,11 +297,14 @@ videoInput.addEventListener(
 
 
 
+// =================================
+// Upload funkcija
+// (turpinājums 2. daļā)
+// =================================
 
 // =================================
 // Augšupielāde
 // =================================
-
 
 async function uploadFile(
     file,
@@ -259,18 +324,15 @@ async function uploadFile(
     try {
 
 
+
         const timestamp =
             createTimestamp();
 
 
 
-        const extension =
-            type;
-
-
-
         const fileName =
-            `${cleanName(guestName)}_${timestamp}.${extension}`;
+            `${cleanName(guestName)}_${timestamp}.${type}`;
+
 
 
 
@@ -295,33 +357,77 @@ async function uploadFile(
 
 
 
-        /*
-        Šis URL vēlāk tiks savienots
-        ar Netlify Function
 
-        /api/upload
+        /*
+        FOTO:
+        /.netlify/functions/upload
+
+        VIDEO:
+        /.netlify/functions/video-upload
         */
+
+
+        let uploadEndpoint;
+
+
+
+        if(type === "mp4"){
+
+
+            uploadEndpoint =
+                "/.netlify/functions/video-upload";
+
+
+        }
+        else{
+
+
+            uploadEndpoint =
+                "/.netlify/functions/upload";
+
+
+        }
+
+
+
+
+
 
 
         const response =
             await fetch(
-                "/.netlify/functions/upload",
+                uploadEndpoint,
                 {
+
                     method:"POST",
+
                     body:formData
+
                 }
             );
 
 
 
 
+
+
         if(!response.ok){
 
+
+            const errorText =
+                await response.text();
+
+
             throw new Error(
+                errorText ||
                 "Augšupielāde neizdevās"
             );
 
+
         }
+
+
+
 
 
 
@@ -339,8 +445,11 @@ async function uploadFile(
 
 
 
+
+
+
         setTimeout(
-            ()=>{
+            () => {
 
 
                 success.classList.add(
@@ -359,7 +468,16 @@ async function uploadFile(
 
     }
 
+
+
     catch(error){
+
+
+
+        console.error(
+            error
+        );
+
 
 
         loading.classList.add(
@@ -367,12 +485,15 @@ async function uploadFile(
         );
 
 
+
         showError(
-            error.message
+            "Neizdevās nosūtīt kadru. Mēģini vēlreiz."
         );
 
 
+
         resetCamera();
+
 
 
     }
@@ -391,20 +512,20 @@ async function uploadFile(
 
 
 // =================================
-// Atgriezties fotografēšanā
+// Atgriezties kameras režīmā
 // =================================
-
 
 function resetCamera(){
 
 
-    photoInput.value="";
-    videoInput.value="";
+
+    photoInput.value =
+        "";
 
 
-    cameraSection.classList.remove(
-        "hidden"
-    );
+    videoInput.value =
+        "";
+
 
 
 }
@@ -418,15 +539,16 @@ function resetCamera(){
 
 
 // =================================
-// Datuma/laika formāts
+// Datums un laiks faila vārdam
 // =================================
-
 
 function createTimestamp(){
 
 
+
     const now =
         new Date();
+
 
 
 
@@ -438,35 +560,55 @@ function createTimestamp(){
     const m =
         String(
             now.getMonth()+1
-        ).padStart(2,"0");
+        )
+        .padStart(
+            2,
+            "0"
+        );
 
 
 
     const d =
         String(
             now.getDate()
-        ).padStart(2,"0");
+        )
+        .padStart(
+            2,
+            "0"
+        );
 
 
 
     const h =
         String(
             now.getHours()
-        ).padStart(2,"0");
+        )
+        .padStart(
+            2,
+            "0"
+        );
 
 
 
     const min =
         String(
             now.getMinutes()
-        ).padStart(2,"0");
+        )
+        .padStart(
+            2,
+            "0"
+        );
 
 
 
     const s =
         String(
             now.getSeconds()
-        ).padStart(2,"0");
+        )
+        .padStart(
+            2,
+            "0"
+        );
 
 
 
@@ -480,10 +622,12 @@ function createTimestamp(){
 
 
 
-// =================================
-// Drošs faila vārds
-// =================================
 
+
+
+// =================================
+// Drošs vārds failam
+// =================================
 
 function cleanName(name){
 
@@ -503,16 +647,21 @@ function cleanName(name){
 
 
 
-// =================================
-// Kļūdas
-// =================================
 
 
-function showError(message){
+// =================================
+// Kļūdu paziņojumi
+// =================================
+
+function showError(
+    message
+){
+
 
 
     errorBox.textContent =
         message;
+
 
 
     errorBox.classList.remove(
@@ -520,21 +669,38 @@ function showError(message){
     );
 
 
+
     setTimeout(
-        ()=>{
+        () => {
+
+
             errorBox.classList.add(
                 "hidden"
             );
+
+
         },
         4000
     );
+
 
 
 }
 
 
 
+
+
+
+
+
+
+// =================================
+// Notīrīt ziņojumus
+// =================================
+
 function hideMessages(){
+
 
     errorBox.classList.add(
         "hidden"
@@ -544,5 +710,6 @@ function hideMessages(){
     success.classList.add(
         "hidden"
     );
+
 
 }
