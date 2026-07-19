@@ -795,12 +795,35 @@ async function uploadVideoDirect(
 
 
 
+    if(!createResponse.ok){
+
+        const errorText =
+            await createResponse.text();
+
+        throw new Error(
+            errorText || "Dropbox session kļūda"
+        );
+
+    }
 
 
-    const session =
-        await createResponse.json();
 
+    let session;
 
+    try{
+
+        session =
+            await createResponse.json();
+
+    }
+
+    catch{
+
+        throw new Error(
+            "Dropbox session atbilde nav derīga"
+        );
+
+    }
 
 
 
@@ -809,7 +832,7 @@ async function uploadVideoDirect(
 
 
         throw new Error(
-            "Dropbox session kļūda"
+            session.error || "Dropbox session kļūda"
         );
 
 
