@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="lv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Digitālā Vienreizlietojamā Kamera 💍</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+<div class="background-hearts"></div>
+
+<main class="container">
+
+    <section class="card">
+
+        <div class="logo">
+            💍
+        </div>
+
+        <h1>
+            Mūsu kāzu mirkļi
+        </h1>
+
+        <p class="subtitle">
+            Izveido savu foto un video atmiņu mūsu īpašajai dienai
+        </p>
+
+
+        <!-- Viesa ievade -->
+
+        <div id="guest-section">
+
+            <label for="guestName">
+                Tavs vārds
+            </label>
+
+            <input 
+                id="guestName"
+                type="text"
+                placeholder="Ievadi savu vārdu"
+                autocomplete="off"
+            >
+
+
+            <button 
+                id="startButton"
+                class="primary-button">
+                Sākt fočēt 📸
+            </button>
+
+        </div>
+
+
+
+        <!-- Kamera -->
+
+        <div 
+            id="camera-section"
+            class="hidden">
+
+
+            <p class="welcome">
+                Sveiks, <span id="guestDisplay"></span> ❤️
+            </p>
+
+
+            <button 
+                class="camera-button photo"
+                id="photoButton">
+
+                📷
+                <span>
+                    Uzņemt Foto
+                </span>
+
+            </button>
+
+
+
+            <button 
+                class="camera-button video"
+                id="videoButton">
+
+                🎥
+                <span>
+                    Ierakstīt Video
+                </span>
+
+            </button>
+
+
+
+            <!-- Foto kamera -->
+
+            <input 
+                type="file"
+                id="photoInput"
+                accept="image/*"
+                capture="environment"
+                hidden
+            >
+
+
+
+            <!-- Video kamera -->
+
+            <input 
+                type="file"
+                id="videoInput"
+                accept="video/*"
+                capture="environment"
+                hidden
+            >
+
+
+        </div>
+
+
+
+
+        <!-- Ielāde -->
+
+        <div 
+            id="loading"
+            class="hidden">
+
+            <div class="spinner"></div>
+
+            <p>
+                Saglabājam tavu mirkli...
+            </p>
+
+        </div>
+
+
+
+        <!-- Veiksmes paziņojums -->
+
+        <div 
+            id="success"
+            class="hidden success">
+
+            ❤️ Kadrs notverts! ❤️
+
+        </div>
+
+
+
+
+        <!-- Kļūda -->
+
+        <div 
+            id="error"
+            class="hidden error">
+
+        </div>
+
+
+
+    </section>
+
+
+
+    <footer>
+
+        08.10.2026 💍
+
+    </footer>
+
+
+</main>
+
+
+
+<script src="script.js"></script>
+
+</body>
+</html>

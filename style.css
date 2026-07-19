@@ -1,0 +1,491 @@
+/* =====================================
+   Digitālā Vienreizlietojamā Kamera
+   Kāzas 08.10.2026
+===================================== */
+
+
+* {
+    box-sizing: border-box;
+}
+
+
+body {
+
+    margin: 0;
+
+    min-height: 100vh;
+
+    font-family: 'Montserrat', sans-serif;
+
+    background:
+        linear-gradient(
+            135deg,
+            #fff8f5,
+            #fdecef
+        );
+
+    display: flex;
+
+    justify-content: center;
+
+    align-items: center;
+
+    overflow-x: hidden;
+
+    color: #4b3035;
+
+}
+
+
+
+
+/* Peldošās sirsniņas fonā */
+
+.background-hearts::before {
+
+    content: "♡  ♡  ♡  ♡  ♡";
+
+    position: fixed;
+
+    top: 10%;
+
+    left: 0;
+
+    width: 100%;
+
+    text-align: center;
+
+    font-size: 70px;
+
+    letter-spacing: 30px;
+
+    color: rgba(190,120,130,0.15);
+
+    animation: floatHearts 8s infinite ease-in-out;
+
+    pointer-events: none;
+
+}
+
+
+
+@keyframes floatHearts {
+
+    0% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-30px);
+    }
+
+    100% {
+        transform: translateY(0);
+    }
+
+}
+
+
+
+
+
+.container {
+
+    width: 100%;
+
+    max-width: 450px;
+
+    padding: 20px;
+
+    position: relative;
+
+    z-index: 2;
+
+}
+
+
+
+
+.card {
+
+    background: rgba(255,255,255,0.92);
+
+    backdrop-filter: blur(10px);
+
+    border-radius: 30px;
+
+    padding: 35px 25px;
+
+    text-align: center;
+
+    box-shadow:
+        0 20px 50px rgba(120,70,80,0.15);
+
+}
+
+
+
+
+.logo {
+
+    font-size: 60px;
+
+    margin-bottom: 10px;
+
+}
+
+
+
+
+h1 {
+
+    margin: 0;
+
+    font-family: 'Cormorant Garamond', serif;
+
+    font-size: 42px;
+
+    font-weight: 700;
+
+    color: #9b5c68;
+
+}
+
+
+
+.subtitle {
+
+    margin-top: 10px;
+
+    line-height: 1.5;
+
+    font-size: 15px;
+
+    color: #76545b;
+
+}
+
+
+
+
+
+label {
+
+    display: block;
+
+    text-align: left;
+
+    margin-top: 30px;
+
+    margin-bottom: 8px;
+
+    font-weight: 600;
+
+}
+
+
+
+
+input[type="text"] {
+
+    width: 100%;
+
+    padding: 16px;
+
+    border-radius: 15px;
+
+    border:
+
+        2px solid #ead0d5;
+
+    font-size: 16px;
+
+    outline: none;
+
+    text-align: center;
+
+}
+
+
+
+input[type="text"]:focus {
+
+    border-color: #b77b87;
+
+}
+
+
+
+
+
+button {
+
+    border: none;
+
+    cursor: pointer;
+
+    font-family: inherit;
+
+}
+
+
+
+.primary-button {
+
+    width: 100%;
+
+    margin-top: 20px;
+
+    padding: 18px;
+
+    border-radius: 20px;
+
+    background:
+
+        linear-gradient(
+            135deg,
+            #c98a98,
+            #9b5c68
+        );
+
+    color:white;
+
+    font-size:18px;
+
+    font-weight:600;
+
+    box-shadow:
+
+        0 10px 25px rgba(155,92,104,0.35);
+
+}
+
+
+
+
+
+.camera-button {
+
+    width:100%;
+
+    margin-top:20px;
+
+    min-height:130px;
+
+    border-radius:30px;
+
+    display:flex;
+
+    flex-direction:column;
+
+    justify-content:center;
+
+    align-items:center;
+
+    gap:10px;
+
+    font-size:45px;
+
+    color:white;
+
+    transition:.2s;
+
+}
+
+
+
+.camera-button span {
+
+    font-size:20px;
+
+    font-weight:600;
+
+}
+
+
+
+.camera-button:active {
+
+    transform:scale(.96);
+
+}
+
+
+
+.photo {
+
+    background:
+
+    linear-gradient(
+        135deg,
+        #d89aa6,
+        #b86b7b
+    );
+
+}
+
+
+
+.video {
+
+    background:
+
+    linear-gradient(
+        135deg,
+        #8c7bb8,
+        #625092
+    );
+
+}
+
+
+
+
+.welcome {
+
+    margin-top:25px;
+
+    font-size:18px;
+
+    font-weight:600;
+
+}
+
+
+
+
+
+.hidden {
+
+    display:none !important;
+
+}
+
+
+
+
+
+/* Loading */
+
+#loading {
+
+    padding:40px 0;
+
+}
+
+
+
+.spinner {
+
+    width:60px;
+
+    height:60px;
+
+    border-radius:50%;
+
+    border:
+
+        6px solid #efd9dd;
+
+    border-top-color:#9b5c68;
+
+    animation:
+
+        spin 1s linear infinite;
+
+    margin:auto;
+
+}
+
+
+
+@keyframes spin {
+
+    to {
+
+        transform:rotate(360deg);
+
+    }
+
+}
+
+
+
+.success {
+
+    margin-top:30px;
+
+    padding:25px;
+
+    border-radius:20px;
+
+    background:#f6e7dc;
+
+    color:#8b5963;
+
+    font-size:22px;
+
+    font-weight:600;
+
+}
+
+
+
+.error {
+
+    margin-top:20px;
+
+    padding:15px;
+
+    border-radius:15px;
+
+    background:#ffe5e5;
+
+    color:#a33;
+
+}
+
+
+
+
+footer {
+
+    text-align:center;
+
+    margin-top:20px;
+
+    color:#9b7077;
+
+    font-size:14px;
+
+}
+
+
+
+/* Mazākiem telefoniem */
+
+@media(max-width:360px){
+
+
+    h1 {
+
+        font-size:34px;
+
+    }
+
+
+    .card {
+
+        padding:25px 18px;
+
+    }
+
+
+    .camera-button {
+
+        min-height:110px;
+
+    }
+
+
+}
