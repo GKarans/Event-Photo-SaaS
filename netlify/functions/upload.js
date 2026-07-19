@@ -13,7 +13,12 @@ exports.handler = async function(event) {
 
     try {
 
-        const file = await parseMultipart(event);
+        const contentType = event.headers['content-type'] || event.headers['Content-Type'] || '';
+        const filenameHeader = event.headers['x-filename'] || event.headers['X-Filename'] || '';
+
+        const file = contentType.includes('multipart/form-data')
+            ? await parseMultipart(event)
+            : await parseRaw(event, filenameHeader);
 
         if(!file || !file.filename || !file.buffer){
             throw new Error("Faila saturs nav nolasīts");
@@ -45,6 +50,19 @@ exports.handler = async function(event) {
     }
 
 };
+
+function parseRaw(event, filenameHeader){
+
+    const body = event.body
+        ? (event.isBase64Encoded ? Buffer.from(event.body, "base64") : Buffer.from(event.body))
+        : Buffer.alloc(0);
+
+    return {
+        buffer:body,
+        filename:filenameHeader || "upload.bin"
+    };
+
+}
 
 function parseMultipart(event){
 

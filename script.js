@@ -532,28 +532,6 @@ async function uploadFile(
         if(type === "jpg"){
 
 
-
-            const formData =
-                new FormData();
-
-
-
-            formData.append(
-                "file",
-                file
-            );
-
-
-
-            formData.append(
-                "filename",
-                fileName
-            );
-
-
-
-
-
             const response =
                 await fetch(
                     "/.netlify/functions/upload",
@@ -561,14 +539,22 @@ async function uploadFile(
 
                         method:"POST",
 
-                        body:formData
+                        headers:{
+
+                            "Content-Type":
+                            file.type || "application/octet-stream",
+
+                            "X-Filename":
+                            fileName
+
+                        },
+
+                        body:file,
+
+                        keepalive:true
 
                     }
                 );
-
-
-
-
 
 
             if(!response.ok){
@@ -587,10 +573,6 @@ async function uploadFile(
 
 
 
-
-
-
-
         // =========================
         // VIDEO
         // =========================
@@ -599,11 +581,41 @@ async function uploadFile(
         if(type === "mp4"){
 
 
+            const response =
+                await fetch(
+                    "/.netlify/functions/upload",
+                    {
 
-            await uploadVideoDirect(
-                file,
-                fileName
-            );
+                        method:"POST",
+
+                        headers:{
+
+                            "Content-Type":
+                            file.type || "application/octet-stream",
+
+                            "X-Filename":
+                            fileName
+
+                        },
+
+                        body:file,
+
+                        keepalive:true
+
+                    }
+                );
+
+
+            if(!response.ok){
+
+                const errorText =
+                    await response.text();
+
+                throw new Error(
+                    errorText || "Video augšupielāde neizdevās"
+                );
+
+            }
 
 
         }
@@ -1322,4 +1334,7 @@ function hideMessages(){
 
 
 }
+
+
+
 
