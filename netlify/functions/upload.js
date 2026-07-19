@@ -1,114 +1,74 @@
-/*
-=========================================
-Dropbox Upload Function
-
-Netlify Function
-Digitālā Vienreizlietojamā Kamera
-=========================================
-*/
-
-
 const Busboy = require("busboy");
-
 
 
 exports.handler = async function(event) {
 
-
-    if(event.httpMethod !== "POST"){
-
+    if(event.httpMethod !== "POST") {
 
         return {
-
             statusCode:405,
-
-            body:
-            JSON.stringify({
-                error:"Method not allowed"
-            })
-
+            body:"Method not allowed"
         };
 
     }
 
 
-
-
-
     try {
 
 
-        const fileData =
-            await parseMultipart(
-                event
-            );
+        const file =
+            await parseMultipart(event);
 
 
 
-        const accessToken =
+        const token =
             await getDropboxAccessToken();
 
 
 
-
-        const uploadResult =
-            await uploadToDropbox(
-                accessToken,
-                fileData
+        const result =
+            await uploadDropbox(
+                token,
+                file
             );
-
 
 
 
         return {
 
-
             statusCode:200,
 
-
-            body:
-            JSON.stringify({
+            body:JSON.stringify({
 
                 success:true,
 
-                result:uploadResult
+                result
 
             })
 
-
         };
-
 
 
     }
 
     catch(error){
 
-
         console.error(error);
-
 
 
         return {
 
-
             statusCode:500,
 
+            body:JSON.stringify({
 
-            body:
-            JSON.stringify({
-
-                error:
-                error.message
+                error:error.message
 
             })
 
-
         };
 
-
     }
-
 
 };
 
@@ -116,152 +76,114 @@ exports.handler = async function(event) {
 
 
 
-
-
-
-
-// =====================================
-// Multipart faila nolasīšana
-// =====================================
-
-
 function parseMultipart(event){
 
 
-    return new Promise(
-        (resolve,reject)=>{
+return new Promise((resolve,reject)=>{
 
 
-            const busboy =
-                Busboy({
+const busboy = Busboy({
 
-                    headers:
-                    event.headers
+    headers:event.headers
 
-                });
+});
 
 
+let buffer;
+let filename;
 
-            let fileBuffer;
 
-            let filename;
 
+busboy.on(
+"file",
+(field,file,info)=>{
 
 
-            busboy.on(
-                "file",
-                (
-                    field,
-                    file,
-                    info
-                )=>{
+filename = info.filename;
 
 
-                    filename =
-                        info.filename;
+const chunks=[];
 
 
+file.on(
+"data",
+chunk=>chunks.push(chunk)
+);
 
-                    const chunks=[];
 
+file.on(
+"end",
+()=>{
 
+buffer =
+Buffer.concat(chunks);
 
-                    file.on(
-                        "data",
-                        chunk=>{
 
-                            chunks.push(
-                                chunk
-                            );
+});
 
-                        }
-                    );
 
+});
 
 
-                    file.on(
-                        "end",
-                        ()=>{
 
 
-                            fileBuffer =
-                                Buffer.concat(
-                                    chunks
-                                );
+busboy.on(
+"field",
+(name,value)=>{
 
 
-                        }
-                    );
+if(name==="filename"){
 
+filename=value;
 
-                }
-            );
+}
 
 
+});
 
 
 
-            busboy.on(
-                "field",
-                (
-                    name,
-                    value
-                )=>{
 
 
-                    if(name==="filename"){
+busboy.on(
+"finish",
+()=>{
 
-                        filename =
-                            value;
 
-                    }
+resolve({
 
+buffer,
 
-                }
-            );
+filename
 
+});
 
 
+});
 
 
-            busboy.on(
-                "finish",
-                ()=>{
 
+busboy.on(
+"error",
+reject
+);
 
-                    resolve({
 
-                        buffer:fileBuffer,
 
-                        filename:filename
+const body =
+event.isBase64Encoded
+?
+Buffer.from(event.body,"base64")
+:
+Buffer.from(event.body);
 
-                    });
 
 
-                }
-            );
+busboy.end(body);
 
 
 
-
-
-            busboy.on(
-                "error",
-                reject
-            );
-
-
-
-
-            const buffer = event.isBase64Encoded
-    ? Buffer.from(event.body, "base64")
-    : Buffer.from(event.body);
-
-busboy.end(buffer);
-
-
-        }
-    );
+});
 
 
 }
@@ -272,87 +194,55 @@ busboy.end(buffer);
 
 
 
-
-
-// =====================================
-// Dropbox Access Token iegūšana
-// =====================================
 
 
 async function getDropboxAccessToken(){
 
 
+const response =
+await fetch(
+"https://api.dropboxapi.com/oauth2/token",
+{
 
-    const response =
-        await fetch(
-            "https://api.dropboxapi.com/oauth2/token",
-            {
+method:"POST",
 
+headers:{
 
-                method:"POST",
+"Content-Type":
+"application/x-www-form-urlencoded"
 
-
-                headers:{
-
-
-                    "Content-Type":
-                    "application/x-www-form-urlencoded"
+},
 
 
-                },
+body:new URLSearchParams({
+
+refresh_token:
+process.env.DROPBOX_REFRESH_TOKEN,
 
 
-                body:
-
-                new URLSearchParams({
-
-
-                    refresh_token:
-                    process.env.DROPBOX_REFRESH_TOKEN,
+grant_type:
+"refresh_token",
 
 
-                    grant_type:
-                    "refresh_token",
+client_id:
+process.env.DROPBOX_APP_KEY,
 
 
-                    client_id:
-                    process.env.DROPBOX_APP_KEY,
+client_secret:
+process.env.DROPBOX_APP_SECRET
 
 
-                    client_secret:
-                    process.env.DROPBOX_APP_SECRET
+})
 
 
-                })
+});
 
 
-            }
-
-        );
-
+const data =
+await response.json();
 
 
-
-    const data =
-        await response.json();
-
-
-
-
-    if(!data.access_token){
-
-
-        throw new Error(
-            "Neizdevās iegūt Dropbox token"
-        );
-
-
-    }
-
-
-
-    return data.access_token;
-
+return data.access_token;
 
 
 }
@@ -365,93 +255,190 @@ async function getDropboxAccessToken(){
 
 
 
-// =====================================
-// Faila augšupielāde Dropbox
-// =====================================
-
-
-async function uploadToDropbox(
-    token,
-    file
+async function uploadDropbox(
+token,
+file
 ){
 
 
 
-    const response =
-        await fetch(
-            "https://content.dropboxapi.com/2/files/upload",
-            {
+let folder;
 
 
-                method:"POST",
+if(
+file.filename.endsWith(".mp4")
+){
+
+folder="Videos";
+
+}
+else{
+
+folder="Photos";
+
+}
 
 
-                headers:{
 
-
-                    "Authorization":
-                    `Bearer ${token}`,
-
-
-                    "Content-Type":
-                    "application/octet-stream",
-
-
-                    "Dropbox-API-Arg":
-                    JSON.stringify({
-
-                        path:
-                        `/WeddingCamera/${file.filename}`,
-
-                        mode:
-                        "add",
-
-                        autorename:
-                        true,
-
-                        mute:
-                        true
-
-                    })
-
-
-                },
-
-
-                body:
-                file.buffer
-
-
-            }
-
-        );
+const path =
+`/WeddingCamera/${folder}/${file.filename}`;
 
 
 
 
 
-    const result =
-        await response.json();
+// Mazākiem failiem parastais upload
+
+if(file.buffer.length < 8 * 1024 * 1024){
+
+
+const response =
+await fetch(
+"https://content.dropboxapi.com/2/files/upload",
+{
+
+
+method:"POST",
+
+headers:{
+
+
+Authorization:
+`Bearer ${token}`,
+
+
+"Content-Type":
+"application/octet-stream",
+
+
+"Dropbox-API-Arg":
+JSON.stringify({
+
+path,
+
+mode:"add",
+
+autorename:true
+
+})
+
+
+},
+
+
+body:file.buffer
+
+
+});
+
+
+return await response.json();
+
+
+}
 
 
 
 
-    if(!response.ok){
 
 
-        throw new Error(
-            result.error_summary ||
-            "Dropbox upload kļūda"
-        );
+// Lieliem failiem upload session
 
 
-    }
+const start =
+await fetch(
+
+"https://content.dropboxapi.com/2/files/upload_session/start",
+
+{
+
+method:"POST",
+
+headers:{
+
+
+Authorization:
+`Bearer ${token}`,
+
+
+"Content-Type":
+"application/octet-stream"
+
+
+},
+
+
+body:file.buffer
+
+}
+
+);
 
 
 
+const startData =
+await start.json();
 
-    return result;
 
+
+const finish =
+await fetch(
+
+"https://content.dropboxapi.com/2/files/upload_session/finish",
+
+{
+
+method:"POST",
+
+headers:{
+
+
+Authorization:
+`Bearer ${token}`,
+
+
+"Content-Type":
+"application/octet-stream",
+
+
+"Dropbox-API-Arg":
+JSON.stringify({
+
+cursor:{
+
+session_id:
+startData.session_id,
+
+offset:
+file.buffer.length
+
+},
+
+
+commit:{
+
+path,
+
+mode:"add"
+
+}
+
+})
+
+
+},
+
+
+body:Buffer.alloc(0)
+
+
+}
+
+);
+
+
+
+return await finish.json();
 
 
 }
