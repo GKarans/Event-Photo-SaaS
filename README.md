@@ -18,6 +18,7 @@ Database + Authentication pamats:
 - Izveidots register/login/logout sakuma ekrans.
 - Izveidota pasakuma izveides forma.
 - Dashboarda tiek radits tikai pieslegta organizatora pasakumu saraksts.
+- Katram pasakumam ir detail skats ar guest URL un QR koda lejupieladi.
 - Sagatavota sakotneja SQL shema un RLS politikas: `supabase/schema.sql`.
 
 ## Tehnologijas

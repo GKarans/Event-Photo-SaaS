@@ -67,18 +67,48 @@
             </form>
 
             <section class="events-section" aria-labelledby="events-title">
-                <div class="section-heading">
+                <div class="section-heading" id="events-list-header">
                     <h2 id="events-title">My Events</h2>
                     <p id="events-count">Ielādējam pasākumus...</p>
                 </div>
 
                 <div class="events-list" id="events-list"></div>
+
+                <section class="event-detail hidden" id="event-detail" aria-labelledby="event-detail-title">
+                    <button class="text-action" id="back-to-events-button" type="button">Back to events</button>
+
+                    <div class="section-heading">
+                        <h2 id="event-detail-title"></h2>
+                        <p id="event-detail-date"></p>
+                    </div>
+
+                    <div class="detail-grid">
+                        <div>
+                            <span>Status</span>
+                            <strong id="event-detail-status"></strong>
+                        </div>
+                        <div>
+                            <span>Guest URL</span>
+                            <code id="event-detail-url"></code>
+                        </div>
+                    </div>
+
+                    <div class="qr-panel">
+                        <img id="qr-image" alt="Event QR code">
+                    </div>
+
+                    <div class="action-row">
+                        <button class="secondary-button" id="copy-event-link-button" type="button">Copy Link</button>
+                        <button class="primary-button" id="download-qr-button" type="button">Download QR</button>
+                    </div>
+                </section>
             </section>
         </section>
 
         <div class="message hidden" id="message" role="status"></div>
     </main>
 
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
     <script type="module" src="script.js"></script>
 </body>
 </html>

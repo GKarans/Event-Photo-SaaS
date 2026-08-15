@@ -1,8 +1,7 @@
 [build]
+publish = "."
 
-functions = "netlify/functions"
-
-
-[dev]
-
-functions = "netlify/functions"
+[[redirects]]
+from = "/event/*"
+to = "/index.html"
+status = 200

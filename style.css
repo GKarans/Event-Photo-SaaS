@@ -294,6 +294,67 @@ code {
     color: var(--text);
 }
 
+.event-detail {
+    display: grid;
+    gap: 18px;
+}
+
+.text-action {
+    width: fit-content;
+    min-height: 36px;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: var(--accent);
+    cursor: pointer;
+    font-weight: 800;
+}
+
+.detail-grid {
+    display: grid;
+    gap: 10px;
+}
+
+.detail-grid > div {
+    display: grid;
+    gap: 6px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.detail-grid span {
+    color: var(--muted);
+    font-size: 0.86rem;
+    font-weight: 700;
+}
+
+.qr-panel {
+    display: grid;
+    place-items: center;
+    padding: 18px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+}
+
+#qr-image {
+    width: 240px;
+    height: 240px;
+    max-width: 100%;
+    image-rendering: pixelated;
+}
+
+.action-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.open-event-button {
+    width: 100%;
+}
+
 .message {
     border-radius: 8px;
     padding: 12px 14px;
@@ -324,5 +385,9 @@ code {
     .auth-panel,
     .dashboard-panel {
         padding: 20px;
+    }
+
+    .action-row {
+        grid-template-columns: 1fr;
     }
 }

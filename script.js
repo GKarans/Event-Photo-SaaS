@@ -27,15 +27,31 @@ const eventDateInput = document.getElementById("event-date");
 const createEventButton = document.getElementById("create-event-button");
 const eventsList = document.getElementById("events-list");
 const eventsCount = document.getElementById("events-count");
+const eventsListHeader = document.getElementById("events-list-header");
+const eventDetail = document.getElementById("event-detail");
+const backToEventsButton = document.getElementById("back-to-events-button");
+const eventDetailTitle = document.getElementById("event-detail-title");
+const eventDetailDate = document.getElementById("event-detail-date");
+const eventDetailStatus = document.getElementById("event-detail-status");
+const eventDetailUrl = document.getElementById("event-detail-url");
+const qrImage = document.getElementById("qr-image");
+const copyEventLinkButton = document.getElementById("copy-event-link-button");
+const downloadQrButton = document.getElementById("download-qr-button");
 
 let authMode = "login";
 let currentSession = null;
+let currentEvents = [];
+let selectedEvent = null;
 
 loginTab.addEventListener("click", () => setAuthMode("login"));
 registerTab.addEventListener("click", () => setAuthMode("register"));
 authForm.addEventListener("submit", handleAuthSubmit);
 logoutButton.addEventListener("click", handleLogout);
 eventForm.addEventListener("submit", handleCreateEvent);
+eventsList.addEventListener("click", handleEventsListClick);
+backToEventsButton.addEventListener("click", showEventsList);
+copyEventLinkButton.addEventListener("click", handleCopyEventLink);
+downloadQrButton.addEventListener("click", handleDownloadQr);
 
 supabase.auth.onAuthStateChange((_event, session) => {
     renderSession(session);
@@ -116,7 +132,10 @@ function renderSession(session) {
     if (isLoggedIn) {
         loadEvents();
     } else {
+        currentEvents = [];
+        selectedEvent = null;
         renderEvents([]);
+        showEventsList();
     }
 }
 
@@ -192,6 +211,7 @@ function renderEvents(events) {
     }
 
     eventsList.innerHTML = "";
+    currentEvents = events;
 
     if (!currentSession?.user) {
         eventsCount.textContent = "";
@@ -229,16 +249,102 @@ function renderEvents(events) {
                 <span class="status-pill"></span>
                 <code></code>
             </div>
+            <button class="secondary-button open-event-button" type="button"></button>
         `;
 
+        card.dataset.eventId = event.id;
         card.querySelector("h3").textContent = event.name;
         card.querySelector("p").textContent = eventDate;
         card.querySelector(".status-pill").textContent = event.status;
         card.querySelector("code").textContent = eventUrl;
+        card.querySelector(".open-event-button").textContent = "Open";
         fragment.appendChild(card);
     }
 
     eventsList.appendChild(fragment);
+}
+
+function handleEventsListClick(event) {
+    const button = event.target.closest(".open-event-button");
+
+    if (!button) {
+        return;
+    }
+
+    const card = button.closest(".event-card");
+    const eventData = currentEvents.find(item => item.id === card?.dataset.eventId);
+
+    if (!eventData) {
+        showMessage("Pasākumu neizdevās atrast sarakstā.", "error");
+        return;
+    }
+
+    showEventDetail(eventData);
+}
+
+async function showEventDetail(eventData) {
+    selectedEvent = eventData;
+    const eventUrl = getEventUrl(eventData);
+
+    eventsListHeader.classList.add("hidden");
+    eventsList.classList.add("hidden");
+    eventForm.classList.add("hidden");
+    eventDetail.classList.remove("hidden");
+
+    eventDetailTitle.textContent = eventData.name;
+    eventDetailDate.textContent = eventData.date ? formatDate(eventData.date) : "Datums nav norādīts";
+    eventDetailStatus.textContent = eventData.status;
+    eventDetailUrl.textContent = eventUrl;
+
+    await renderQrCode(eventUrl);
+}
+
+function showEventsList() {
+    selectedEvent = null;
+    eventDetail.classList.add("hidden");
+    eventForm.classList.remove("hidden");
+    eventsListHeader.classList.remove("hidden");
+    eventsList.classList.remove("hidden");
+}
+
+async function renderQrCode(value) {
+    const createQrCode = window.qrcode;
+
+    if (!createQrCode) {
+        showMessage("QR bibliotēku neizdevās ielādēt. Pārbaudi interneta savienojumu.", "error");
+        return;
+    }
+
+    const qr = createQrCode(0, "M");
+    qr.addData(value);
+    qr.make();
+    qrImage.src = qr.createDataURL(8, 10);
+}
+
+async function handleCopyEventLink() {
+    if (!selectedEvent) {
+        return;
+    }
+
+    const eventUrl = getEventUrl(selectedEvent);
+
+    try {
+        await navigator.clipboard.writeText(eventUrl);
+        showMessage("Event saite nokopēta.", "success");
+    } catch (_error) {
+        showMessage("Neizdevās nokopēt saiti. Iezīmē un nokopē URL manuāli.", "error");
+    }
+}
+
+function handleDownloadQr() {
+    if (!selectedEvent) {
+        return;
+    }
+
+    const link = document.createElement("a");
+    link.download = `${selectedEvent.slug}-qr.png`;
+    link.href = qrImage.src;
+    link.click();
 }
 
 function showMessage(text, type) {
@@ -298,6 +404,10 @@ function createSlug(name) {
 
     const suffix = Math.random().toString(36).slice(2, 8);
     return `${base || "event"}-${suffix}`;
+}
+
+function getEventUrl(eventData) {
+    return `${window.location.origin}/event/${eventData.slug}`;
 }
 
 function formatDate(dateValue) {
