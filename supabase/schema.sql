@@ -71,6 +71,11 @@ create trigger on_auth_user_created
 after insert on auth.users
 for each row execute function public.handle_new_user();
 
+insert into public.users (id, email)
+select id, coalesce(email, '')
+from auth.users
+on conflict (id) do update set email = excluded.email;
+
 drop policy if exists "Users can read own profile" on public.users;
 create policy "Users can read own profile"
 on public.users for select

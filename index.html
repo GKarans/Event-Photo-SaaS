@@ -40,24 +40,40 @@
         </section>
 
         <section class="dashboard-panel hidden" id="dashboard-panel">
-            <div>
-                <p class="eyebrow">Organizer dashboard</p>
-                <h1>Sveiks!</h1>
-                <p class="subtitle" id="user-email"></p>
+            <div class="dashboard-header">
+                <div>
+                    <p class="eyebrow">Organizer dashboard</p>
+                    <h1>Sveiks!</h1>
+                    <p class="subtitle" id="user-email"></p>
+                </div>
+                <button class="icon-button" id="logout-button" type="button" aria-label="Logout" title="Logout">
+                    <span aria-hidden="true">⎋</span>
+                </button>
             </div>
 
-            <div class="status-list">
-                <div>
-                    <span>Supabase Auth</span>
-                    <strong>Connected</strong>
+            <form class="event-form" id="event-form">
+                <div class="section-heading">
+                    <h2>Create Event</h2>
+                    <p>Izveido pasākumu, kuram vēlāk pieslēgsim QR saiti.</p>
                 </div>
-                <div>
-                    <span>Nākamais solis</span>
-                    <strong>Event management</strong>
-                </div>
-            </div>
 
-            <button class="secondary-button" id="logout-button" type="button">Logout</button>
+                <label for="event-name">Pasākuma nosaukums</label>
+                <input id="event-name" type="text" autocomplete="off" maxlength="80" required>
+
+                <label for="event-date">Datums</label>
+                <input id="event-date" type="date">
+
+                <button class="primary-button" id="create-event-button" type="submit">Create Event</button>
+            </form>
+
+            <section class="events-section" aria-labelledby="events-title">
+                <div class="section-heading">
+                    <h2 id="events-title">My Events</h2>
+                    <p id="events-count">Ielādējam pasākumus...</p>
+                </div>
+
+                <div class="events-list" id="events-list"></div>
+            </section>
         </section>
 
         <div class="message hidden" id="message" role="status"></div>

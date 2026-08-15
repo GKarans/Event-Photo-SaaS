@@ -16,6 +16,8 @@ Database + Authentication pamats:
 
 - Supabase projekts pieslegts frontenda.
 - Izveidots register/login/logout sakuma ekrans.
+- Izveidota pasakuma izveides forma.
+- Dashboarda tiek radits tikai pieslegta organizatora pasakumu saraksts.
 - Sagatavota sakotneja SQL shema un RLS politikas: `supabase/schema.sql`.
 
 ## Tehnologijas

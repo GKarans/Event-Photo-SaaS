@@ -30,7 +30,7 @@ input {
 }
 
 .app-shell {
-    width: min(100%, 480px);
+    width: min(100%, 720px);
     min-height: 100vh;
     margin: 0 auto;
     padding: 24px;
@@ -52,6 +52,13 @@ input {
 .brand,
 .dashboard-panel > div:first-child {
     margin-bottom: 24px;
+}
+
+.dashboard-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
 }
 
 .eyebrow {
@@ -103,10 +110,35 @@ h1 {
     box-shadow: 0 1px 3px rgba(23, 33, 29, 0.12);
 }
 
-.auth-form {
+.auth-form,
+.event-form {
     display: grid;
     gap: 10px;
     margin-bottom: 14px;
+}
+
+.event-form {
+    margin-bottom: 28px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--line);
+}
+
+.section-heading {
+    display: grid;
+    gap: 4px;
+    margin-bottom: 8px;
+}
+
+.section-heading h2 {
+    margin: 0;
+    font-size: 1.2rem;
+    line-height: 1.2;
+}
+
+.section-heading p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.45;
 }
 
 label {
@@ -131,7 +163,8 @@ input:focus {
 }
 
 .primary-button,
-.secondary-button {
+.secondary-button,
+.icon-button {
     min-height: 48px;
     border: 0;
     border-radius: 8px;
@@ -154,6 +187,14 @@ input:focus {
     width: 100%;
     background: var(--surface-muted);
     color: var(--text);
+}
+
+.icon-button {
+    width: 48px;
+    flex: 0 0 48px;
+    background: var(--surface-muted);
+    color: var(--text);
+    font-size: 1.35rem;
 }
 
 button:disabled {
@@ -180,6 +221,77 @@ button:disabled {
 
 .status-list span {
     color: var(--muted);
+}
+
+.events-section {
+    display: grid;
+    gap: 14px;
+}
+
+.events-list {
+    display: grid;
+    gap: 10px;
+}
+
+.event-card,
+.empty-state {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 14px;
+    background: #fff;
+}
+
+.event-card {
+    display: grid;
+    gap: 12px;
+}
+
+.event-card h3 {
+    margin: 0 0 4px;
+    font-size: 1rem;
+    line-height: 1.25;
+}
+
+.event-card p {
+    margin: 0;
+    color: var(--muted);
+}
+
+.event-meta {
+    display: grid;
+    gap: 8px;
+}
+
+.status-pill {
+    width: fit-content;
+    border-radius: 999px;
+    padding: 4px 10px;
+    background: rgba(31, 122, 90, 0.1);
+    color: var(--accent-dark);
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+code {
+    display: block;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    border-radius: 6px;
+    padding: 8px;
+    background: var(--surface-muted);
+    color: var(--muted);
+    font-size: 0.82rem;
+}
+
+.empty-state {
+    display: grid;
+    gap: 4px;
+    color: var(--muted);
+}
+
+.empty-state strong {
+    color: var(--text);
 }
 
 .message {
