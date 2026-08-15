@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Event Photo SaaS</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="/style.css">
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 </head>
@@ -105,10 +105,30 @@
             </section>
         </section>
 
+        <section class="guest-panel hidden" id="guest-panel">
+            <div class="brand">
+                <p class="eyebrow">Event photos</p>
+                <h1 id="guest-event-title">Pasākums</h1>
+                <p class="subtitle" id="guest-event-date"></p>
+            </div>
+
+            <form class="guest-form" id="guest-form">
+                <label for="guest-name">Tavs vārds</label>
+                <input id="guest-name" type="text" autocomplete="name" maxlength="80" required>
+
+                <button class="primary-button" id="guest-start-button" type="submit">Start</button>
+            </form>
+
+            <div class="empty-state hidden" id="guest-ready">
+                <strong>Sveiks, <span id="guest-display-name"></span>!</strong>
+                <span>Nākamajā solī šeit pieslēgsim telefona kameru un foto augšupielādi.</span>
+            </div>
+        </section>
+
         <div class="message hidden" id="message" role="status"></div>
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
-    <script type="module" src="script.js"></script>
+    <script type="module" src="/script.js"></script>
 </body>
 </html>

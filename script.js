@@ -37,11 +37,19 @@ const eventDetailUrl = document.getElementById("event-detail-url");
 const qrImage = document.getElementById("qr-image");
 const copyEventLinkButton = document.getElementById("copy-event-link-button");
 const downloadQrButton = document.getElementById("download-qr-button");
+const guestPanel = document.getElementById("guest-panel");
+const guestEventTitle = document.getElementById("guest-event-title");
+const guestEventDate = document.getElementById("guest-event-date");
+const guestForm = document.getElementById("guest-form");
+const guestNameInput = document.getElementById("guest-name");
+const guestReady = document.getElementById("guest-ready");
+const guestDisplayName = document.getElementById("guest-display-name");
 
 let authMode = "login";
 let currentSession = null;
 let currentEvents = [];
 let selectedEvent = null;
+const activeEventSlug = getEventSlugFromPath();
 
 loginTab.addEventListener("click", () => setAuthMode("login"));
 registerTab.addEventListener("click", () => setAuthMode("register"));
@@ -52,13 +60,22 @@ eventsList.addEventListener("click", handleEventsListClick);
 backToEventsButton.addEventListener("click", showEventsList);
 copyEventLinkButton.addEventListener("click", handleCopyEventLink);
 downloadQrButton.addEventListener("click", handleDownloadQr);
+guestForm.addEventListener("submit", handleGuestStart);
 
 supabase.auth.onAuthStateChange((_event, session) => {
+    if (activeEventSlug) {
+        return;
+    }
+
     renderSession(session);
 });
 
-const { data: initialSessionData } = await supabase.auth.getSession();
-renderSession(initialSessionData.session);
+if (activeEventSlug) {
+    await renderGuestRoute(activeEventSlug);
+} else {
+    const { data: initialSessionData } = await supabase.auth.getSession();
+    renderSession(initialSessionData.session);
+}
 
 function setAuthMode(mode) {
     authMode = mode;
@@ -137,6 +154,56 @@ function renderSession(session) {
         renderEvents([]);
         showEventsList();
     }
+}
+
+async function renderGuestRoute(slug) {
+    authPanel.classList.add("hidden");
+    dashboardPanel.classList.add("hidden");
+    guestPanel.classList.remove("hidden");
+    hideMessage();
+
+    guestEventTitle.textContent = "Ielādējam pasākumu...";
+    guestEventDate.textContent = "";
+
+    const { data, error } = await supabase
+        .from("events")
+        .select("id,name,date,slug,status")
+        .eq("slug", slug)
+        .eq("status", "active")
+        .maybeSingle();
+
+    if (error) {
+        guestEventTitle.textContent = "Neizdevās ielādēt pasākumu";
+        showMessage(toFriendlyDatabaseError(error.message), "error");
+        return;
+    }
+
+    if (!data) {
+        guestEventTitle.textContent = "Pasākums nav atrasts";
+        guestEventDate.textContent = "Pārbaudi QR kodu vai saiti.";
+        guestForm.classList.add("hidden");
+        return;
+    }
+
+    selectedEvent = data;
+    guestEventTitle.textContent = data.name;
+    guestEventDate.textContent = data.date ? formatDate(data.date) : "Foto augšupielāde viesiem";
+}
+
+function handleGuestStart(event) {
+    event.preventDefault();
+
+    const guestName = guestNameInput.value.trim();
+
+    if (!guestName) {
+        showMessage("Ievadi savu vārdu.", "error");
+        return;
+    }
+
+    guestDisplayName.textContent = guestName;
+    guestForm.classList.add("hidden");
+    guestReady.classList.remove("hidden");
+    showMessage("Viesa sākuma solis sagatavots.", "success");
 }
 
 async function handleCreateEvent(event) {
@@ -408,6 +475,11 @@ function createSlug(name) {
 
 function getEventUrl(eventData) {
     return `${window.location.origin}/event/${eventData.slug}`;
+}
+
+function getEventSlugFromPath() {
+    const match = window.location.pathname.match(/^\/event\/([^/]+)\/?$/);
+    return match ? decodeURIComponent(match[1]) : "";
 }
 
 function formatDate(dateValue) {

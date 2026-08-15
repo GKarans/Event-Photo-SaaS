@@ -41,7 +41,8 @@ input {
 }
 
 .auth-panel,
-.dashboard-panel {
+.dashboard-panel,
+.guest-panel {
     background: var(--surface);
     border: 1px solid var(--line);
     border-radius: 8px;
@@ -111,7 +112,8 @@ h1 {
 }
 
 .auth-form,
-.event-form {
+.event-form,
+.guest-form {
     display: grid;
     gap: 10px;
     margin-bottom: 14px;
