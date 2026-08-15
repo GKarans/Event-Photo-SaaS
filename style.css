@@ -1,527 +1,216 @@
-/* =====================================
-   Digitālā Vienreizlietojamā Kamera
-   Kāzas 08.10.2026
-===================================== */
-
+:root {
+    color-scheme: light;
+    --bg: #f4f7f5;
+    --surface: #ffffff;
+    --surface-muted: #edf2ef;
+    --text: #17211d;
+    --muted: #5d6b64;
+    --line: #d8e1dc;
+    --accent: #1f7a5a;
+    --accent-dark: #155b43;
+    --danger: #b42318;
+    --success: #087443;
+}
 
 * {
     box-sizing: border-box;
 }
 
-
 body {
-
     margin: 0;
-
     min-height: 100vh;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+}
 
-    font-family: 'Montserrat', sans-serif;
+button,
+input {
+    font: inherit;
+}
 
-    background:
-        linear-gradient(
-            135deg,
-            #fff8f5,
-            #fdecef
-        );
-
+.app-shell {
+    width: min(100%, 480px);
+    min-height: 100vh;
+    margin: 0 auto;
+    padding: 24px;
     display: flex;
-
+    flex-direction: column;
     justify-content: center;
-
-    align-items: center;
-
-    overflow-x: hidden;
-
-    color: #4b3035;
-
+    gap: 16px;
 }
 
-
-
-
-/* Peldošās sirsniņas fonā */
-
-.background-hearts::before {
-
-    content: "♡  ♡  ♡  ♡  ♡";
-
-    position: fixed;
-
-    top: 10%;
-
-    left: 0;
-
-    width: 100%;
-
-    text-align: center;
-
-    font-size: 70px;
-
-    letter-spacing: 30px;
-
-    color: rgba(190,120,130,0.15);
-
-    animation: floatHearts 8s infinite ease-in-out;
-
-    pointer-events: none;
-
+.auth-panel,
+.dashboard-panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 24px;
+    box-shadow: 0 16px 40px rgba(23, 33, 29, 0.08);
 }
 
-
-
-@keyframes floatHearts {
-
-    0% {
-        transform: translateY(0);
-    }
-
-    50% {
-        transform: translateY(-30px);
-    }
-
-    100% {
-        transform: translateY(0);
-    }
-
+.brand,
+.dashboard-panel > div:first-child {
+    margin-bottom: 24px;
 }
 
-
-
-
-
-.container {
-
-    width: 100%;
-
-    max-width: 450px;
-
-    padding: 20px;
-
-    position: relative;
-
-    z-index: 2;
-
+.eyebrow {
+    margin: 0 0 8px;
+    color: var(--accent);
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
 }
-
-
-
-
-.card {
-
-    background: rgba(255,255,255,0.92);
-
-    backdrop-filter: blur(10px);
-
-    border-radius: 30px;
-
-    padding: 35px 25px;
-
-    text-align: center;
-
-    box-shadow:
-        0 20px 50px rgba(120,70,80,0.15);
-
-}
-
-
-
-
-.logo {
-
-    font-size: 60px;
-
-    margin-bottom: 10px;
-
-}
-
-
-
 
 h1 {
+    margin: 0 0 10px;
+    font-size: clamp(2rem, 9vw, 3rem);
+    line-height: 1;
+    letter-spacing: 0;
+}
 
+.subtitle,
+.form-hint {
     margin: 0;
+    color: var(--muted);
+    line-height: 1.55;
+}
 
-    font-family: 'Cormorant Garamond', serif;
+.mode-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    padding: 4px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    background: var(--surface-muted);
+}
 
-    font-size: 42px;
-
+.mode-tab {
+    min-height: 42px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
     font-weight: 700;
-
-    color: #9b5c68;
-
 }
 
-
-
-.subtitle {
-
-    margin-top: 10px;
-
-    line-height: 1.5;
-
-    font-size: 15px;
-
-    color: #76545b;
-
+.mode-tab.is-active {
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: 0 1px 3px rgba(23, 33, 29, 0.12);
 }
 
-
-
-
+.auth-form {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 14px;
+}
 
 label {
-
-    display: block;
-
-    text-align: left;
-
-    margin-top: 30px;
-
-    margin-bottom: 8px;
-
-    font-weight: 600;
-
+    color: var(--muted);
+    font-size: 0.9rem;
+    font-weight: 700;
 }
 
-
-
-
-input[type="text"] {
-
+input {
     width: 100%;
-
-    padding: 16px;
-
-    border-radius: 15px;
-
-    border:
-
-        2px solid #ead0d5;
-
-    font-size: 16px;
-
-    outline: none;
-
-    text-align: center;
-
+    min-height: 48px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 0 12px;
+    background: #fff;
+    color: var(--text);
 }
 
-
-
-input[type="text"]:focus {
-
-    border-color: #b77b87;
-
+input:focus {
+    border-color: var(--accent);
+    outline: 3px solid rgba(31, 122, 90, 0.14);
 }
 
-
-
-
-
-button {
-
-    border: none;
-
+.primary-button,
+.secondary-button {
+    min-height: 48px;
+    border: 0;
+    border-radius: 8px;
+    padding: 0 16px;
     cursor: pointer;
-
-    font-family: inherit;
-
+    font-weight: 800;
 }
 
+.primary-button {
+    margin-top: 8px;
+    background: var(--accent);
+    color: #fff;
+}
 
-.camera-header {
+.primary-button:hover {
+    background: var(--accent-dark);
+}
+
+.secondary-button {
+    width: 100%;
+    background: var(--surface-muted);
+    color: var(--text);
+}
+
+button:disabled {
+    cursor: wait;
+    opacity: 0.72;
+}
+
+.status-list {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.status-list div {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 10px;
-    margin-bottom: 12px;
-    padding: 10px 12px;
-    border-radius: 14px;
-    background: #fff5f7;
+    gap: 16px;
+    min-height: 52px;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
 }
 
-
-.camera-header__info {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 14px;
-    color: #8b5c68;
-    flex-wrap: wrap;
+.status-list span {
+    color: var(--muted);
 }
 
-
-.camera-header__icon {
-    font-size: 16px;
+.message {
+    border-radius: 8px;
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    line-height: 1.4;
 }
 
-
-.text-button {
-    background: transparent;
-    color: #9b5c68;
-    font-weight: 600;
-    font-size: 14px;
-    padding: 0;
+.message.error {
+    border-color: rgba(180, 35, 24, 0.28);
+    color: var(--danger);
 }
 
-
-
-.primary-button {
-
-    width: 100%;
-
-    margin-top: 20px;
-
-    padding: 18px;
-
-    border-radius: 20px;
-
-    background:
-
-        linear-gradient(
-            135deg,
-            #c98a98,
-            #9b5c68
-        );
-
-    color:white;
-
-    font-size:18px;
-
-    font-weight:600;
-
-    box-shadow:
-
-        0 10px 25px rgba(155,92,104,0.35);
-
+.message.success {
+    border-color: rgba(8, 116, 67, 0.28);
+    color: var(--success);
 }
-
-
-
-
-
-.camera-button {
-
-    width:100%;
-
-    margin-top:20px;
-
-    min-height:130px;
-
-    border-radius:30px;
-
-    display:flex;
-
-    flex-direction:column;
-
-    justify-content:center;
-
-    align-items:center;
-
-    gap:10px;
-
-    font-size:45px;
-
-    color:white;
-
-    transition:.2s;
-
-}
-
-
-
-.camera-button span {
-
-    font-size:20px;
-
-    font-weight:600;
-
-}
-
-
-
-.camera-button:active {
-
-    transform:scale(.96);
-
-}
-
-
-
-.photo {
-
-    background:
-
-    linear-gradient(
-        135deg,
-        #d89aa6,
-        #b86b7b
-    );
-
-}
-
-
-
-.video {
-
-    background:
-
-    linear-gradient(
-        135deg,
-        #8c7bb8,
-        #625092
-    );
-
-}
-
-
-
-
-.welcome {
-
-    margin-top:25px;
-
-    font-size:18px;
-
-    font-weight:600;
-
-}
-
-
-
-
 
 .hidden {
-
-    display:none !important;
-
+    display: none;
 }
 
-
-
-
-
-/* Loading */
-
-#loading {
-
-    padding:40px 0;
-
-}
-
-
-
-.spinner {
-
-    width:60px;
-
-    height:60px;
-
-    border-radius:50%;
-
-    border:
-
-        6px solid #efd9dd;
-
-    border-top-color:#9b5c68;
-
-    animation:
-
-        spin 1s linear infinite;
-
-    margin:auto;
-
-}
-
-
-
-@keyframes spin {
-
-    to {
-
-        transform:rotate(360deg);
-
+@media (max-width: 420px) {
+    .app-shell {
+        padding: 16px;
     }
 
-}
-
-
-
-.success {
-
-    margin-top:30px;
-
-    padding:25px;
-
-    border-radius:20px;
-
-    background:#f6e7dc;
-
-    color:#8b5963;
-
-    font-size:22px;
-
-    font-weight:600;
-
-}
-
-
-
-.error {
-
-    margin-top:20px;
-
-    padding:15px;
-
-    border-radius:15px;
-
-    background:#ffe5e5;
-
-    color:#a33;
-
-}
-
-
-
-
-footer {
-
-    text-align:center;
-
-    margin-top:20px;
-
-    color:#9b7077;
-
-    font-size:14px;
-
-}
-
-
-
-/* Mazākiem telefoniem */
-
-@media(max-width:360px){
-
-
-    h1 {
-
-        font-size:34px;
-
+    .auth-panel,
+    .dashboard-panel {
+        padding: 20px;
     }
-
-
-    .card {
-
-        padding:25px 18px;
-
-    }
-
-
-    .camera-button {
-
-        min-height:110px;
-
-    }
-
-
 }

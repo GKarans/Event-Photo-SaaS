@@ -1,15 +1,12 @@
 {
-  "name": "digitalweddingcamera",
+  "name": "event-photo-saas",
   "version": "1.0.0",
-  "description": "",
+  "description": "Photo-only event gallery SaaS MVP",
   "main": "script.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "busboy": "^1.6.0"
-  }
+  "license": "ISC"
 }

@@ -1,24 +1,35 @@
-# 💍 Digitālā Vienreizlietojamā Kamera
+# Event Photo SaaS
 
-Kāzu foto/video kamera viesiem.
+Photo-only SaaS MVP pasakumu kopigai foto apkopošanai.
 
-Datums:
-**08.10.2026**
+## MVP virziens
 
----
+- Organizators registrejas un piesledzas.
+- Organizators izveido pasakumu un sanem unikalu saiti/QR kodu.
+- Viesis bez konta atver QR saiti, ievada vardu un uznem foto.
+- Foto tiek glabati Supabase Storage.
+- Galeriju redz tikai pasakuma organizators.
 
-## Funkcionalitāte
+## Pašreizējais posms
 
-- Viesis noskenē QR kodu
-- Ievada savu vārdu
-- Nospiež "Sākt fočēt"
-- Izvēlas:
-  - 📷 Uzņemt Foto
-  - 🎥 Ierakstīt Video
-- Telefons atver kameru
-- Kadrs automātiski tiek nosūtīts uz Dropbox
-- Viesis redz tikai savu darbību
+Database + Authentication pamats:
 
----
+- Supabase projekts pieslegts frontenda.
+- Izveidots register/login/logout sakuma ekrans.
+- Sagatavota sakotneja SQL shema un RLS politikas: `supabase/schema.sql`.
 
-# Projekta struktūra
+## Tehnologijas
+
+- Frontend: HTML, CSS, JavaScript
+- Auth/Database/Storage: Supabase
+- Hosting: Netlify
+
+## Lokala palaišana
+
+Ši versija ir statiska un neprasa build soli.
+
+```bash
+npx netlify dev
+```
+
+vai atver projektu ar jebkuru lokalu static serveri.

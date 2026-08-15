@@ -3,209 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>Digitālā Vienreizlietojamā Kamera 💍</title>
-
+    <title>Event Photo SaaS</title>
     <link rel="stylesheet" href="style.css">
-
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
-
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 </head>
-
 <body>
-
-<div class="background-hearts"></div>
-
-<main class="container">
-
-    <section class="card">
-
-        <div class="logo">
-            💍
-        </div>
-
-        <h1>
-            Mūsu kāzu mirkļi
-        </h1>
-
-        <p class="subtitle">
-            Izveido savu foto un video atmiņu mūsu īpašajai dienai
-        </p>
-
-
-        <!-- Viesa ievade -->
-
-        <div id="guest-section">
-
-            <label for="guestName">
-                Tavs vārds
-            </label>
-
-            <input 
-                id="guestName"
-                type="text"
-                placeholder="Ievadi savu vārdu"
-                autocomplete="off"
-            >
-
-
-            <button 
-                id="startButton"
-                class="primary-button">
-                Sākt fočēt 📸
-            </button>
-
-        </div>
-
-
-
-        <!-- Kamera -->
-
-        <div 
-            id="camera-section"
-            class="hidden">
-
-
-            <div class="camera-header">
-
-                <div class="camera-header__info">
-                    <span class="camera-header__icon">📷</span>
-                    <span>
-                        Fotografē:
-                    </span>
-                    <strong id="guestDisplay"></strong>
-                </div>
-
-                <button
-                    id="changeGuestButton"
-                    class="text-button"
-                    type="button">
-                    Mainīt
-                </button>
-
+    <main class="app-shell">
+        <section class="auth-panel" id="auth-panel">
+            <div class="brand">
+                <p class="eyebrow">Photo-only MVP</p>
+                <h1>Event Photo SaaS</h1>
+                <p class="subtitle">
+                    Organizators izveido pasākumu, viesi augšupielādē foto ar QR saiti.
+                </p>
             </div>
 
+            <div class="mode-tabs" role="tablist" aria-label="Autentifikācijas režīms">
+                <button class="mode-tab is-active" id="login-tab" type="button">Login</button>
+                <button class="mode-tab" id="register-tab" type="button">Register</button>
+            </div>
 
-            <p class="welcome">
-                Sveiks, <span id="guestWelcomeName"></span> ❤️
+            <form class="auth-form" id="auth-form">
+                <label for="email">E-pasts</label>
+                <input id="email" type="email" autocomplete="email" required>
+
+                <label for="password">Parole</label>
+                <input id="password" type="password" autocomplete="current-password" minlength="6" required>
+
+                <button class="primary-button" id="submit-button" type="submit">Login</button>
+            </form>
+
+            <p class="form-hint" id="form-hint">
+                Pieslēdzies kā organizators, lai vēlāk pārvaldītu savus pasākumus.
             </p>
+        </section>
 
+        <section class="dashboard-panel hidden" id="dashboard-panel">
+            <div>
+                <p class="eyebrow">Organizer dashboard</p>
+                <h1>Sveiks!</h1>
+                <p class="subtitle" id="user-email"></p>
+            </div>
 
-            <button 
-                class="camera-button photo"
-                id="photoButton">
+            <div class="status-list">
+                <div>
+                    <span>Supabase Auth</span>
+                    <strong>Connected</strong>
+                </div>
+                <div>
+                    <span>Nākamais solis</span>
+                    <strong>Event management</strong>
+                </div>
+            </div>
 
-                📷
-                <span>
-                    Uzņemt Foto
-                </span>
+            <button class="secondary-button" id="logout-button" type="button">Logout</button>
+        </section>
 
-            </button>
+        <div class="message hidden" id="message" role="status"></div>
+    </main>
 
-
-
-            <button 
-                class="camera-button video"
-                id="videoButton">
-
-                🎥
-                <span>
-                    Ierakstīt Video
-                    <small>ieteicams līdz 3 min.</small>
-                </span>
-
-            </button>
-
-
-
-            <!-- Foto kamera -->
-
-            <input 
-                type="file"
-                id="photoInput"
-                accept="image/*"
-                capture="environment"
-                hidden
-            >
-
-
-
-            <!-- Video kamera -->
-
-            <input 
-                type="file"
-                id="videoInput"
-                accept="video/*"
-                capture="environment"
-                hidden
-            >
-
-
-        </div>
-
-
-
-
-        <!-- Ielāde -->
-
-        <div 
-            id="loading"
-            class="hidden">
-
-            <div class="spinner"></div>
-
-            <p>
-                Saglabājam tavu mirkli...
-            </p>
-
-        </div>
-
-
-
-        <!-- Veiksmes paziņojums -->
-
-        <div 
-            id="success"
-            class="hidden success">
-
-            ❤️ Kadrs notverts! ❤️
-
-        </div>
-
-
-
-
-        <!-- Kļūda -->
-
-        <div 
-            id="error"
-            class="hidden error">
-
-        </div>
-
-
-
-    </section>
-
-
-
-    <footer>
-
-        08.10.2026 💍
-
-    </footer>
-
-
-</main>
-
-
-
-<script src="script.js"></script>
-
+    <script type="module" src="script.js"></script>
 </body>
 </html>
