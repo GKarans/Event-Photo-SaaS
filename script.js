@@ -41,6 +41,7 @@ const copyEventLinkButton = document.getElementById("copy-event-link-button");
 const downloadQrButton = document.getElementById("download-qr-button");
 const galleryGrid = document.getElementById("gallery-grid");
 const galleryCount = document.getElementById("gallery-count");
+const downloadGalleryButton = document.getElementById("download-gallery-button");
 const photoDialog = document.getElementById("photo-dialog");
 const closePreviewButton = document.getElementById("close-preview-button");
 const previewPrevButton = document.getElementById("preview-prev-button");
@@ -80,6 +81,7 @@ eventsList.addEventListener("click", handleEventsListClick);
 backToEventsButton.addEventListener("click", showEventsList);
 copyEventLinkButton.addEventListener("click", handleCopyEventLink);
 downloadQrButton.addEventListener("click", handleDownloadQr);
+downloadGalleryButton.addEventListener("click", handleDownloadGallery);
 galleryGrid.addEventListener("click", handleGalleryClick);
 closePreviewButton.addEventListener("click", closePhotoPreview);
 previewPrevButton.addEventListener("click", () => showAdjacentPhoto(-1));
@@ -522,6 +524,7 @@ function showEventsList() {
     currentPreviewIndex = -1;
     galleryGrid.innerHTML = "";
     galleryCount.textContent = "";
+    downloadGalleryButton.disabled = true;
     eventDetail.classList.add("hidden");
     eventForm.classList.remove("hidden");
     eventsListHeader.classList.remove("hidden");
@@ -532,6 +535,7 @@ async function loadGallery(eventId) {
     galleryCount.textContent = "Ielādējam foto...";
     galleryGrid.innerHTML = "";
     currentGalleryPhotos = [];
+    downloadGalleryButton.disabled = true;
 
     const { data, error } = await supabase
         .from("media")
@@ -606,21 +610,19 @@ function renderGallery(photos, unavailableCount = 0) {
     galleryGrid.innerHTML = "";
 
     if (!photos.length) {
-        galleryCount.textContent = unavailableCount
-            ? "Nav pieejamu foto."
-            : "Šim pasākumam vēl nav foto.";
+        galleryCount.textContent = "Šim pasākumam vēl nav foto.";
+        downloadGalleryButton.disabled = true;
         galleryGrid.innerHTML = `
             <div class="empty-state gallery-empty">
                 <strong>Nav pieejamu foto</strong>
-                <span>${unavailableCount ? "Daži media ieraksti atsaucas uz failiem, kas vairs nav Storage." : "Kad viesi augšupielādēs foto, tie parādīsies šeit."}</span>
+                <span>Kad viesi augšupielādēs foto, tie parādīsies šeit.</span>
             </div>
         `;
         return;
     }
 
-    galleryCount.textContent = unavailableCount
-        ? `${photos.length} foto · ${unavailableCount} nepieejams paslēpts`
-        : `${photos.length} foto`;
+    galleryCount.textContent = `${photos.length} foto`;
+    downloadGalleryButton.disabled = false;
 
     const fragment = document.createDocumentFragment();
 
@@ -651,6 +653,53 @@ function renderGallery(photos, unavailableCount = 0) {
     }
 
     galleryGrid.appendChild(fragment);
+}
+
+async function handleDownloadGallery() {
+    if (!currentGalleryPhotos.length) {
+        showMessage("Galerijā vēl nav foto lejupielādei.", "error");
+        return;
+    }
+
+    const ZipLibrary = window.JSZip;
+
+    if (!ZipLibrary) {
+        showMessage("ZIP bibliotēku neizdevās ielādēt. Pārbaudi interneta savienojumu.", "error");
+        return;
+    }
+
+    const zip = new ZipLibrary();
+    const usedNames = new Set();
+    downloadGalleryButton.disabled = true;
+
+    try {
+        for (const [index, photo] of currentGalleryPhotos.entries()) {
+            downloadGalleryButton.textContent = `Zipping ${index + 1}/${currentGalleryPhotos.length}`;
+
+            const response = await fetch(photo.signedUrl);
+
+            if (!response.ok) {
+                throw new Error(`Download failed with status ${response.status}`);
+            }
+
+            const blob = await response.blob();
+            const zipPath = getUniqueZipPath(photo.storage_path, usedNames);
+            zip.file(zipPath, blob);
+        }
+
+        downloadGalleryButton.textContent = "Preparing ZIP...";
+        const zipBlob = await zip.generateAsync({ type: "blob" });
+        const objectUrl = URL.createObjectURL(zipBlob);
+        triggerDownload(objectUrl, getGalleryZipFileName());
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+        showMessage("Galerijas ZIP lejupielāde sākta.", "success");
+    } catch (error) {
+        console.error("Gallery download error", error);
+        showMessage("Galerijas ZIP neizdevās sagatavot. Pamēģini vēlreiz pēc brīža.", "error");
+    } finally {
+        downloadGalleryButton.disabled = !currentGalleryPhotos.length;
+        downloadGalleryButton.textContent = "Download All";
+    }
 }
 
 function handleGalleryClick(event) {
@@ -1123,6 +1172,34 @@ function formatFileSize(bytes) {
 
 function getStorageFileName(storagePath) {
     return storagePath?.split("/").filter(Boolean).pop() || "event-photo.jpg";
+}
+
+function getUniqueZipPath(storagePath, usedNames) {
+    const cleanPath = storagePath?.split("/").filter(Boolean).join("/") || "event-photo.jpg";
+
+    if (!usedNames.has(cleanPath)) {
+        usedNames.add(cleanPath);
+        return cleanPath;
+    }
+
+    const lastDotIndex = cleanPath.lastIndexOf(".");
+    const baseName = lastDotIndex > 0 ? cleanPath.slice(0, lastDotIndex) : cleanPath;
+    const extension = lastDotIndex > 0 ? cleanPath.slice(lastDotIndex) : "";
+    let counter = 2;
+    let candidate = `${baseName}-${counter}${extension}`;
+
+    while (usedNames.has(candidate)) {
+        counter += 1;
+        candidate = `${baseName}-${counter}${extension}`;
+    }
+
+    usedNames.add(candidate);
+    return candidate;
+}
+
+function getGalleryZipFileName() {
+    const eventSlug = selectedEvent?.slug || "event-gallery";
+    return `${eventSlug}-photos.zip`;
 }
 
 function triggerDownload(url, fileName) {

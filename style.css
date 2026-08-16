@@ -143,6 +143,12 @@ h1 {
     line-height: 1.45;
 }
 
+.gallery-heading {
+    grid-template-columns: 1fr auto;
+    align-items: end;
+    gap: 12px;
+}
+
 .field-hint {
     margin: -4px 0 4px;
     color: var(--muted);
@@ -197,6 +203,12 @@ input:focus {
     width: 100%;
     background: var(--surface-muted);
     color: var(--text);
+}
+
+.compact-button {
+    width: auto;
+    min-height: 40px;
+    padding: 0 14px;
 }
 
 .danger-button {
@@ -569,6 +581,14 @@ code {
 
     .action-row {
         grid-template-columns: 1fr;
+    }
+
+    .gallery-heading {
+        grid-template-columns: 1fr;
+    }
+
+    .compact-button {
+        width: 100%;
     }
 
     .preview-nav {

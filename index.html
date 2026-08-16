@@ -103,9 +103,12 @@
                     </div>
 
                     <section class="gallery-section" aria-labelledby="gallery-title">
-                        <div class="section-heading">
-                            <h2 id="gallery-title">Gallery</h2>
-                            <p id="gallery-count">Ielādējam foto...</p>
+                        <div class="section-heading gallery-heading">
+                            <div>
+                                <h2 id="gallery-title">Gallery</h2>
+                                <p id="gallery-count">Ielādējam foto...</p>
+                            </div>
+                            <button class="secondary-button compact-button" id="download-gallery-button" type="button" disabled>Download All</button>
                         </div>
 
                         <div class="gallery-grid" id="gallery-grid"></div>
@@ -177,6 +180,7 @@
     </dialog>
 
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <script type="module" src="/script.js"></script>
 </body>
 </html>
