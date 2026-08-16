@@ -755,34 +755,37 @@ async function handleDeletePhoto() {
     deletePhotoButton.disabled = true;
     deletePhotoButton.textContent = "Deleting...";
 
-    const { error: mediaError } = await supabase
-        .from("media")
-        .update({ status: "deleted" })
-        .eq("id", photo.id);
-
-    if (mediaError) {
-        deletePhotoButton.disabled = false;
-        deletePhotoButton.textContent = "Delete Photo";
-        showMessage(toFriendlyDatabaseError(mediaError.message), "error");
-        return;
-    }
-
     const { error: storageError } = await supabase
         .storage
         .from(PHOTO_BUCKET)
         .remove([photo.storage_path]);
 
-    deletePhotoButton.disabled = false;
-    deletePhotoButton.textContent = "Delete Photo";
-    closePhotoPreview();
-
     if (storageError) {
         console.error("Storage delete error", storageError);
-        showMessage("Foto paslēpts no galerijas, bet Storage failu neizdevās izdzēst.", "error");
-    } else {
-        showMessage("Foto izdzēsts.", "success");
+        deletePhotoButton.disabled = false;
+        deletePhotoButton.textContent = "Delete Photo";
+        showMessage(`Storage failu neizdevās izdzēst: ${storageError.message}`, "error");
+        return;
     }
 
+    const { error: mediaError } = await supabase
+        .from("media")
+        .update({ status: "deleted" })
+        .eq("id", photo.id);
+
+    deletePhotoButton.disabled = false;
+    deletePhotoButton.textContent = "Delete Photo";
+
+    if (mediaError) {
+        console.error("Media delete error", mediaError);
+        closePhotoPreview();
+        showMessage("Storage fails izdzēsts, bet media statusu neizdevās atjaunot.", "error");
+        await loadGallery(selectedEvent.id);
+        return;
+    }
+
+    closePhotoPreview();
+    showMessage("Foto izdzēsts.", "success");
     await loadGallery(selectedEvent.id);
 }
 
