@@ -206,15 +206,7 @@ drop policy if exists "Guests can upload event photos" on storage.objects;
 create policy "Guests can upload event photos"
 on storage.objects for insert
 to anon, authenticated
-with check (
-    bucket_id = 'event-photos'
-    and exists (
-        select 1
-        from public.events
-        where events.id::text = (storage.foldername(name))[1]
-          and events.status = 'active'
-    )
-);
+with check (bucket_id = 'event-photos');
 
 drop policy if exists "Organizers can read own event photos" on storage.objects;
 create policy "Organizers can read own event photos"

@@ -302,6 +302,7 @@ async function handlePhotoSelected() {
         });
 
     if (uploadError) {
+        console.error("Storage upload error", uploadError);
         takePhotoButton.disabled = false;
         showUploadState("Upload neizdevās.");
         showMessage(toFriendlyStorageError(uploadError.message), "error");
@@ -322,6 +323,7 @@ async function handlePhotoSelected() {
     takePhotoButton.disabled = false;
 
     if (mediaError) {
+        console.error("Media insert error", mediaError);
         showUploadState("Foto saglabāts storage, bet metadata ieraksts neizdevās.");
         showMessage(toFriendlyDatabaseError(mediaError.message), "error");
         return;
@@ -675,7 +677,7 @@ function toFriendlyStorageError(message) {
     const normalized = message.toLowerCase();
 
     if (normalized.includes("row-level security") || normalized.includes("unauthorized")) {
-        return "Storage drošības noteikumi neļāva augšupielādi. Pārbaudi, vai Supabase SQL shēma ir palaista.";
+        return `Storage drošības noteikumi neļāva augšupielādi: ${message}`;
     }
 
     if (normalized.includes("exceeded") || normalized.includes("too large")) {
