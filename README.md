@@ -20,6 +20,7 @@ Database + Authentication pamats:
 - Dashboarda tiek radits tikai pieslegta organizatora pasakumu saraksts.
 - Katram pasakumam ir detail skats ar guest URL un QR koda lejupieladi.
 - Guest URL `/event/{slug}` atver viesa sakuma skatu ar pasakuma nosaukumu un varda ievadi.
+- Viesis var saglabat vardu, mainit vardu, uznemt foto un augšupieladet to Supabase Storage.
 - Sagatavota sakotneja SQL shema un RLS politikas: `supabase/schema.sql`.
 
 ## Tehnologijas

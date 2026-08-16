@@ -119,9 +119,26 @@
                 <button class="primary-button" id="guest-start-button" type="submit">Start</button>
             </form>
 
-            <div class="empty-state hidden" id="guest-ready">
-                <strong>Sveiks, <span id="guest-display-name"></span>!</strong>
-                <span>Nākamajā solī šeit pieslēgsim telefona kameru un foto augšupielādi.</span>
+            <div class="photo-panel hidden" id="photo-panel">
+                <div class="guest-toolbar">
+                    <div>
+                        <span>Fotografē:</span>
+                        <strong id="guest-display-name"></strong>
+                    </div>
+                    <button class="text-action" id="change-guest-button" type="button">Change</button>
+                </div>
+
+                <button class="primary-button capture-button" id="take-photo-button" type="button">Take Photo</button>
+
+                <input
+                    id="photo-input"
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    hidden
+                >
+
+                <div class="upload-state hidden" id="upload-state"></div>
             </div>
         </section>
 

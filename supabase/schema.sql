@@ -201,3 +201,31 @@ on conflict (id) do update
 set public = excluded.public,
     file_size_limit = excluded.file_size_limit,
     allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "Guests can upload event photos" on storage.objects;
+create policy "Guests can upload event photos"
+on storage.objects for insert
+to anon, authenticated
+with check (
+    bucket_id = 'event-photos'
+    and exists (
+        select 1
+        from public.events
+        where events.id::text = (storage.foldername(name))[1]
+          and events.status = 'active'
+    )
+);
+
+drop policy if exists "Organizers can read own event photos" on storage.objects;
+create policy "Organizers can read own event photos"
+on storage.objects for select
+to authenticated
+using (
+    bucket_id = 'event-photos'
+    and exists (
+        select 1
+        from public.events
+        where events.id::text = (storage.foldername(name))[1]
+          and events.owner_id = auth.uid()
+    )
+);

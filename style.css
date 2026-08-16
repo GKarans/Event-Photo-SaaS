@@ -357,6 +357,46 @@ code {
     width: 100%;
 }
 
+.photo-panel {
+    display: grid;
+    gap: 16px;
+}
+
+.guest-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.guest-toolbar div {
+    display: grid;
+    gap: 2px;
+}
+
+.guest-toolbar span {
+    color: var(--muted);
+    font-size: 0.86rem;
+    font-weight: 700;
+}
+
+.capture-button {
+    min-height: 64px;
+    font-size: 1.12rem;
+}
+
+.upload-state {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px 14px;
+    background: var(--surface-muted);
+    color: var(--muted);
+    line-height: 1.45;
+}
+
 .message {
     border-radius: 8px;
     padding: 12px 14px;
@@ -385,7 +425,8 @@ code {
     }
 
     .auth-panel,
-    .dashboard-panel {
+    .dashboard-panel,
+    .guest-panel {
         padding: 20px;
     }
 

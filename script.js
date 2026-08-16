@@ -2,6 +2,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = "https://ojcvnsbhphvijmzjfenl.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_5tHxxBuBgQJagyqIKuVVyg_2ZtruZ6J";
+const PHOTO_BUCKET = "event-photos";
+const MAX_PHOTO_SIZE = 10 * 1024 * 1024;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     auth: {
@@ -42,13 +44,18 @@ const guestEventTitle = document.getElementById("guest-event-title");
 const guestEventDate = document.getElementById("guest-event-date");
 const guestForm = document.getElementById("guest-form");
 const guestNameInput = document.getElementById("guest-name");
-const guestReady = document.getElementById("guest-ready");
+const photoPanel = document.getElementById("photo-panel");
 const guestDisplayName = document.getElementById("guest-display-name");
+const changeGuestButton = document.getElementById("change-guest-button");
+const takePhotoButton = document.getElementById("take-photo-button");
+const photoInput = document.getElementById("photo-input");
+const uploadState = document.getElementById("upload-state");
 
 let authMode = "login";
 let currentSession = null;
 let currentEvents = [];
 let selectedEvent = null;
+let currentGuest = null;
 const activeEventSlug = getEventSlugFromPath();
 
 loginTab.addEventListener("click", () => setAuthMode("login"));
@@ -61,6 +68,9 @@ backToEventsButton.addEventListener("click", showEventsList);
 copyEventLinkButton.addEventListener("click", handleCopyEventLink);
 downloadQrButton.addEventListener("click", handleDownloadQr);
 guestForm.addEventListener("submit", handleGuestStart);
+changeGuestButton.addEventListener("click", handleChangeGuest);
+takePhotoButton.addEventListener("click", () => photoInput.click());
+photoInput.addEventListener("change", handlePhotoSelected);
 
 supabase.auth.onAuthStateChange((_event, session) => {
     if (activeEventSlug) {
@@ -188,9 +198,16 @@ async function renderGuestRoute(slug) {
     selectedEvent = data;
     guestEventTitle.textContent = data.name;
     guestEventDate.textContent = data.date ? formatDate(data.date) : "Foto augšupielāde viesiem";
+
+    const savedGuest = loadSavedGuest(data.slug);
+
+    if (savedGuest?.event_id === data.id) {
+        currentGuest = savedGuest;
+        showPhotoPanel(savedGuest.name);
+    }
 }
 
-function handleGuestStart(event) {
+async function handleGuestStart(event) {
     event.preventDefault();
 
     const guestName = guestNameInput.value.trim();
@@ -200,10 +217,118 @@ function handleGuestStart(event) {
         return;
     }
 
-    guestDisplayName.textContent = guestName;
-    guestForm.classList.add("hidden");
-    guestReady.classList.remove("hidden");
-    showMessage("Viesa sākuma solis sagatavots.", "success");
+    if (!selectedEvent?.id) {
+        showMessage("Pasākums nav ielādēts. Atsvaidzini lapu un mēģini vēlreiz.", "error");
+        return;
+    }
+
+    const startButton = document.getElementById("guest-start-button");
+    startButton.disabled = true;
+    startButton.textContent = "Sagatavojam...";
+
+    const guestId = createClientId();
+
+    const { error } = await supabase
+        .from("guests")
+        .insert({
+            id: guestId,
+            event_id: selectedEvent.id,
+            name: guestName
+        });
+
+    startButton.disabled = false;
+    startButton.textContent = "Start";
+
+    if (error) {
+        showMessage(toFriendlyDatabaseError(error.message), "error");
+        return;
+    }
+
+    currentGuest = {
+        id: guestId,
+        event_id: selectedEvent.id,
+        name: guestName
+    };
+    saveGuest(selectedEvent.slug, currentGuest);
+    showPhotoPanel(currentGuest.name);
+    showMessage("Vari sākt uzņemt foto.", "success");
+}
+
+function handleChangeGuest() {
+    if (selectedEvent?.slug) {
+        localStorage.removeItem(getGuestStorageKey(selectedEvent.slug));
+    }
+
+    currentGuest = null;
+    photoPanel.classList.add("hidden");
+    guestForm.classList.remove("hidden");
+    guestNameInput.focus();
+    hideUploadState();
+    hideMessage();
+}
+
+async function handlePhotoSelected() {
+    const file = photoInput.files?.[0];
+    photoInput.value = "";
+
+    if (!file) {
+        return;
+    }
+
+    if (!selectedEvent?.id || !currentGuest?.id) {
+        showMessage("Pirms foto uzņemšanas ievadi savu vārdu.", "error");
+        return;
+    }
+
+    const validationError = validatePhoto(file);
+
+    if (validationError) {
+        showMessage(validationError, "error");
+        return;
+    }
+
+    takePhotoButton.disabled = true;
+    showUploadState("Augšupielādējam foto...");
+
+    const storagePath = createStoragePath(file);
+
+    const { error: uploadError } = await supabase
+        .storage
+        .from(PHOTO_BUCKET)
+        .upload(storagePath, file, {
+            cacheControl: "3600",
+            contentType: file.type,
+            upsert: false
+        });
+
+    if (uploadError) {
+        takePhotoButton.disabled = false;
+        showUploadState("Upload neizdevās.");
+        showMessage(toFriendlyStorageError(uploadError.message), "error");
+        return;
+    }
+
+    const { error: mediaError } = await supabase
+        .from("media")
+        .insert({
+            event_id: selectedEvent.id,
+            guest_id: currentGuest.id,
+            storage_path: storagePath,
+            file_type: file.type,
+            file_size: file.size,
+            status: "uploaded"
+        });
+
+    takePhotoButton.disabled = false;
+
+    if (mediaError) {
+        showUploadState("Foto saglabāts storage, bet metadata ieraksts neizdevās.");
+        showMessage(toFriendlyDatabaseError(mediaError.message), "error");
+        return;
+    }
+
+    showUploadState("Photo uploaded! Vari uzņemt nākamo foto.");
+    showMessage("Photo uploaded!", "success");
 }
 
 async function handleCreateEvent(event) {
@@ -414,6 +539,92 @@ function handleDownloadQr() {
     link.click();
 }
 
+function showPhotoPanel(guestName) {
+    guestDisplayName.textContent = guestName;
+    guestNameInput.value = guestName;
+    guestForm.classList.add("hidden");
+    photoPanel.classList.remove("hidden");
+    hideUploadState();
+}
+
+function validatePhoto(file) {
+    if (!file.type.startsWith("image/")) {
+        return "Atļauti tikai foto faili.";
+    }
+
+    if (file.size > MAX_PHOTO_SIZE) {
+        return "Foto ir pārāk liels. Maksimālais izmērs ir 10 MB.";
+    }
+
+    return "";
+}
+
+function createStoragePath(file) {
+    const extension = getFileExtension(file);
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const randomPart = Math.random().toString(36).slice(2, 8);
+    return `${selectedEvent.id}/${currentGuest.id}/${timestamp}-${randomPart}.${extension}`;
+}
+
+function getFileExtension(file) {
+    const extensionFromName = file.name.split(".").pop()?.toLowerCase();
+
+    if (extensionFromName && /^[a-z0-9]{2,5}$/.test(extensionFromName)) {
+        return extensionFromName;
+    }
+
+    const extensionByType = {
+        "image/jpeg": "jpg",
+        "image/png": "png",
+        "image/webp": "webp",
+        "image/gif": "gif",
+        "image/heic": "heic",
+        "image/heif": "heif"
+    };
+
+    return extensionByType[file.type] || "jpg";
+}
+
+function saveGuest(slug, guest) {
+    localStorage.setItem(
+        getGuestStorageKey(slug),
+        JSON.stringify({
+            id: guest.id,
+            event_id: guest.event_id,
+            name: guest.name
+        })
+    );
+}
+
+function loadSavedGuest(slug) {
+    try {
+        const value = localStorage.getItem(getGuestStorageKey(slug));
+        const guest = value ? JSON.parse(value) : null;
+
+        if (!guest?.id || !guest?.name) {
+            return null;
+        }
+
+        return guest;
+    } catch (_error) {
+        return null;
+    }
+}
+
+function getGuestStorageKey(slug) {
+    return `event-photo-saas:guest:${slug}`;
+}
+
+function showUploadState(text) {
+    uploadState.textContent = text;
+    uploadState.classList.remove("hidden");
+}
+
+function hideUploadState() {
+    uploadState.textContent = "";
+    uploadState.classList.add("hidden");
+}
+
 function showMessage(text, type) {
     messageBox.textContent = text;
     messageBox.className = `message ${type}`;
@@ -460,6 +671,20 @@ function toFriendlyDatabaseError(message) {
     return "Datu saglabāšana neizdevās. Pārbaudi Supabase konfigurāciju un mēģini vēlreiz.";
 }
 
+function toFriendlyStorageError(message) {
+    const normalized = message.toLowerCase();
+
+    if (normalized.includes("row-level security") || normalized.includes("unauthorized")) {
+        return "Storage drošības noteikumi neļāva augšupielādi. Pārbaudi, vai Supabase SQL shēma ir palaista.";
+    }
+
+    if (normalized.includes("exceeded") || normalized.includes("too large")) {
+        return "Foto ir pārāk liels. Maksimālais izmērs ir 10 MB.";
+    }
+
+    return "Foto augšupielāde neizdevās. Pārbaudi interneta savienojumu un mēģini vēlreiz.";
+}
+
 function createSlug(name) {
     const base = name
         .toLowerCase()
@@ -471,6 +696,16 @@ function createSlug(name) {
 
     const suffix = Math.random().toString(36).slice(2, 8);
     return `${base || "event"}-${suffix}`;
+}
+
+function createClientId() {
+    if (crypto.randomUUID) {
+        return crypto.randomUUID();
+    }
+
+    return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, char =>
+        (Number(char) ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> Number(char) / 4).toString(16)
+    );
 }
 
 function getEventUrl(eventData) {
