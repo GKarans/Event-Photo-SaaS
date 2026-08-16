@@ -48,6 +48,7 @@ const previewNextButton = document.getElementById("preview-next-button");
 const previewImage = document.getElementById("preview-image");
 const previewTitle = document.getElementById("preview-title");
 const previewSubtitle = document.getElementById("preview-subtitle");
+const downloadPhotoButton = document.getElementById("download-photo-button");
 const deletePhotoButton = document.getElementById("delete-photo-button");
 const guestPanel = document.getElementById("guest-panel");
 const guestEventTitle = document.getElementById("guest-event-title");
@@ -83,6 +84,7 @@ galleryGrid.addEventListener("click", handleGalleryClick);
 closePreviewButton.addEventListener("click", closePhotoPreview);
 previewPrevButton.addEventListener("click", () => showAdjacentPhoto(-1));
 previewNextButton.addEventListener("click", () => showAdjacentPhoto(1));
+downloadPhotoButton.addEventListener("click", handleDownloadPhoto);
 deletePhotoButton.addEventListener("click", handleDeletePhoto);
 photoDialog.addEventListener("click", handlePreviewBackdropClick);
 document.addEventListener("keydown", handlePreviewKeydown);
@@ -738,6 +740,40 @@ function handlePreviewKeydown(event) {
     }
 }
 
+async function handleDownloadPhoto() {
+    const photo = currentGalleryPhotos[currentPreviewIndex];
+
+    if (!photo?.signedUrl) {
+        showMessage("Lejupielādējamo foto neizdevās atrast.", "error");
+        return;
+    }
+
+    const fileName = getStorageFileName(photo.storage_path);
+    downloadPhotoButton.disabled = true;
+    downloadPhotoButton.textContent = "Downloading...";
+
+    try {
+        const response = await fetch(photo.signedUrl);
+
+        if (!response.ok) {
+            throw new Error(`Download failed with status ${response.status}`);
+        }
+
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        triggerDownload(objectUrl, fileName);
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+        showMessage("Foto lejupielāde sākta.", "success");
+    } catch (error) {
+        console.error("Photo download error", error);
+        triggerDownload(photo.signedUrl, fileName);
+        showMessage("Atvērām foto lejupielādei. Ja pārlūks to atver jaunā skatā, saglabā no turienes.", "success");
+    } finally {
+        downloadPhotoButton.disabled = false;
+        downloadPhotoButton.textContent = "Download Photo";
+    }
+}
+
 async function handleDeletePhoto() {
     const photo = currentGalleryPhotos[currentPreviewIndex];
 
@@ -1083,4 +1119,18 @@ function formatFileSize(bytes) {
     }
 
     return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function getStorageFileName(storagePath) {
+    return storagePath?.split("/").filter(Boolean).pop() || "event-photo.jpg";
+}
+
+function triggerDownload(url, fileName) {
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    link.rel = "noopener";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
 }
