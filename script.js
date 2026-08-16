@@ -247,7 +247,8 @@ async function handleGuestStart(event) {
     currentGuest = {
         id: guestId,
         event_id: selectedEvent.id,
-        name: guestName
+        name: guestName,
+        folder_suffix: createNumericSuffix()
     };
     saveGuest(selectedEvent.slug, currentGuest);
     showPhotoPanel(currentGuest.name);
@@ -563,9 +564,17 @@ function validatePhoto(file) {
 
 function createStoragePath(file) {
     const extension = getFileExtension(file);
-    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-    const randomPart = Math.random().toString(36).slice(2, 8);
-    return `${selectedEvent.id}/${currentGuest.id}/${timestamp}-${randomPart}.${extension}`;
+    const eventFolder = `${createStorageFolderName(selectedEvent.name)}-${createDeterministicSuffix(selectedEvent.id)}`;
+    const guestBaseName = createStorageFolderName(currentGuest.name);
+    const guestSuffix = currentGuest.folder_suffix || createNumericSuffix();
+    currentGuest.folder_suffix = guestSuffix;
+    saveGuest(selectedEvent.slug, currentGuest);
+
+    const guestFolder = `${guestBaseName}-${guestSuffix}`;
+    const timestamp = createReadableTimestamp();
+    const filename = `${guestBaseName}_${timestamp}.${extension}`;
+
+    return `${eventFolder}/${guestFolder}/${filename}`;
 }
 
 function getFileExtension(file) {
@@ -593,7 +602,8 @@ function saveGuest(slug, guest) {
         JSON.stringify({
             id: guest.id,
             event_id: guest.event_id,
-            name: guest.name
+            name: guest.name,
+            folder_suffix: guest.folder_suffix || createNumericSuffix()
         })
     );
 }
@@ -698,6 +708,45 @@ function createSlug(name) {
 
     const suffix = Math.random().toString(36).slice(2, 8);
     return `${base || "event"}-${suffix}`;
+}
+
+function createStorageFolderName(value) {
+    return value
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 40) || "event";
+}
+
+function createNumericSuffix() {
+    return String(Math.floor(Math.random() * 9000) + 1000);
+}
+
+function createDeterministicSuffix(value) {
+    let total = 0;
+
+    for (const char of value) {
+        total = (total + char.charCodeAt(0)) % 9000;
+    }
+
+    return String(total + 1000).padStart(4, "0");
+}
+
+function createReadableTimestamp() {
+    const now = new Date();
+    const pad = value => String(value).padStart(2, "0");
+
+    return [
+        now.getFullYear(),
+        pad(now.getMonth() + 1),
+        pad(now.getDate())
+    ].join("-") + "_" + [
+        pad(now.getHours()),
+        pad(now.getMinutes()),
+        pad(now.getSeconds())
+    ].join("-");
 }
 
 function createClientId() {
