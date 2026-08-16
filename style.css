@@ -173,6 +173,7 @@ input:focus {
 
 .primary-button,
 .secondary-button,
+.danger-button,
 .icon-button {
     min-height: 48px;
     border: 0;
@@ -196,6 +197,12 @@ input:focus {
     width: 100%;
     background: var(--surface-muted);
     color: var(--text);
+}
+
+.danger-button {
+    width: 100%;
+    background: var(--danger);
+    color: #fff;
 }
 
 .icon-button {
@@ -478,6 +485,10 @@ code {
 
 .preview-meta span {
     color: var(--muted);
+}
+
+.preview-actions {
+    padding-top: 12px;
 }
 
 .photo-panel {

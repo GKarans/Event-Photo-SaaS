@@ -223,3 +223,18 @@ using (
           and media.status = 'uploaded'
     )
 );
+
+drop policy if exists "Organizers can delete own event photos" on storage.objects;
+create policy "Organizers can delete own event photos"
+on storage.objects for delete
+to authenticated
+using (
+    bucket_id = 'event-photos'
+    and exists (
+        select 1
+        from public.media
+        join public.events on events.id = media.event_id
+        where media.storage_path = storage.objects.name
+          and events.owner_id = auth.uid()
+    )
+);

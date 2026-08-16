@@ -48,6 +48,7 @@ const previewNextButton = document.getElementById("preview-next-button");
 const previewImage = document.getElementById("preview-image");
 const previewTitle = document.getElementById("preview-title");
 const previewSubtitle = document.getElementById("preview-subtitle");
+const deletePhotoButton = document.getElementById("delete-photo-button");
 const guestPanel = document.getElementById("guest-panel");
 const guestEventTitle = document.getElementById("guest-event-title");
 const guestEventDate = document.getElementById("guest-event-date");
@@ -82,6 +83,7 @@ galleryGrid.addEventListener("click", handleGalleryClick);
 closePreviewButton.addEventListener("click", closePhotoPreview);
 previewPrevButton.addEventListener("click", () => showAdjacentPhoto(-1));
 previewNextButton.addEventListener("click", () => showAdjacentPhoto(1));
+deletePhotoButton.addEventListener("click", handleDeletePhoto);
 photoDialog.addEventListener("click", handlePreviewBackdropClick);
 document.addEventListener("keydown", handlePreviewKeydown);
 guestForm.addEventListener("submit", handleGuestStart);
@@ -734,6 +736,54 @@ function handlePreviewKeydown(event) {
     if (event.key === "ArrowRight") {
         showAdjacentPhoto(1);
     }
+}
+
+async function handleDeletePhoto() {
+    const photo = currentGalleryPhotos[currentPreviewIndex];
+
+    if (!photo || !selectedEvent?.id) {
+        showMessage("Dzēšamo foto neizdevās atrast.", "error");
+        return;
+    }
+
+    const confirmed = window.confirm("Dzēst šo foto no galerijas?");
+
+    if (!confirmed) {
+        return;
+    }
+
+    deletePhotoButton.disabled = true;
+    deletePhotoButton.textContent = "Deleting...";
+
+    const { error: mediaError } = await supabase
+        .from("media")
+        .update({ status: "deleted" })
+        .eq("id", photo.id);
+
+    if (mediaError) {
+        deletePhotoButton.disabled = false;
+        deletePhotoButton.textContent = "Delete Photo";
+        showMessage(toFriendlyDatabaseError(mediaError.message), "error");
+        return;
+    }
+
+    const { error: storageError } = await supabase
+        .storage
+        .from(PHOTO_BUCKET)
+        .remove([photo.storage_path]);
+
+    deletePhotoButton.disabled = false;
+    deletePhotoButton.textContent = "Delete Photo";
+    closePhotoPreview();
+
+    if (storageError) {
+        console.error("Storage delete error", storageError);
+        showMessage("Foto paslēpts no galerijas, bet Storage failu neizdevās izdzēst.", "error");
+    } else {
+        showMessage("Foto izdzēsts.", "success");
+    }
+
+    await loadGallery(selectedEvent.id);
 }
 
 async function renderQrCode(value) {
