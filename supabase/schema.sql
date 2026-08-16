@@ -216,8 +216,10 @@ using (
     bucket_id = 'event-photos'
     and exists (
         select 1
-        from public.events
-        where events.id::text = (storage.foldername(name))[1]
+        from public.media
+        join public.events on events.id = media.event_id
+        where media.storage_path = storage.objects.name
           and events.owner_id = auth.uid()
+          and media.status = 'uploaded'
     )
 );

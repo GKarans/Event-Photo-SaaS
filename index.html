@@ -101,6 +101,15 @@
                         <button class="secondary-button" id="copy-event-link-button" type="button">Copy Link</button>
                         <button class="primary-button" id="download-qr-button" type="button">Download QR</button>
                     </div>
+
+                    <section class="gallery-section" aria-labelledby="gallery-title">
+                        <div class="section-heading">
+                            <h2 id="gallery-title">Gallery</h2>
+                            <p id="gallery-count">Ielādējam foto...</p>
+                        </div>
+
+                        <div class="gallery-grid" id="gallery-grid"></div>
+                    </section>
                 </section>
             </section>
         </section>
@@ -145,6 +154,17 @@
 
         <div class="message hidden" id="message" role="status"></div>
     </main>
+
+    <dialog class="photo-dialog" id="photo-dialog">
+        <button class="icon-button dialog-close" id="close-preview-button" type="button" aria-label="Close preview">
+            <span aria-hidden="true">×</span>
+        </button>
+        <img id="preview-image" alt="">
+        <div class="preview-meta">
+            <strong id="preview-title"></strong>
+            <span id="preview-subtitle"></span>
+        </div>
+    </dialog>
 
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
     <script type="module" src="/script.js"></script>

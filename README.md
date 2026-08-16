@@ -22,6 +22,7 @@ Database + Authentication pamats:
 - Guest URL `/event/{slug}` atver viesa sakuma skatu ar pasakuma nosaukumu un varda ievadi.
 - Viesis var saglabat vardu, mainit vardu, uznemt foto un augšupieladet to Supabase Storage.
 - Storage faili tiek kartoti lasami: `event-name-1234/guest-name-5678/guest-name_yyyy-mm-dd_hh-mm-ss.jpg`.
+- Organizatora event detail skata ir Gallery ar foto grid, signed URLs un preview.
 - Sagatavota sakotneja SQL shema un RLS politikas: `supabase/schema.sql`.
 
 ## Tehnologijas

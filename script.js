@@ -39,6 +39,13 @@ const eventDetailUrl = document.getElementById("event-detail-url");
 const qrImage = document.getElementById("qr-image");
 const copyEventLinkButton = document.getElementById("copy-event-link-button");
 const downloadQrButton = document.getElementById("download-qr-button");
+const galleryGrid = document.getElementById("gallery-grid");
+const galleryCount = document.getElementById("gallery-count");
+const photoDialog = document.getElementById("photo-dialog");
+const closePreviewButton = document.getElementById("close-preview-button");
+const previewImage = document.getElementById("preview-image");
+const previewTitle = document.getElementById("preview-title");
+const previewSubtitle = document.getElementById("preview-subtitle");
 const guestPanel = document.getElementById("guest-panel");
 const guestEventTitle = document.getElementById("guest-event-title");
 const guestEventDate = document.getElementById("guest-event-date");
@@ -56,6 +63,7 @@ let currentSession = null;
 let currentEvents = [];
 let selectedEvent = null;
 let currentGuest = null;
+let currentGalleryPhotos = [];
 const activeEventSlug = getEventSlugFromPath();
 
 loginTab.addEventListener("click", () => setAuthMode("login"));
@@ -67,6 +75,9 @@ eventsList.addEventListener("click", handleEventsListClick);
 backToEventsButton.addEventListener("click", showEventsList);
 copyEventLinkButton.addEventListener("click", handleCopyEventLink);
 downloadQrButton.addEventListener("click", handleDownloadQr);
+galleryGrid.addEventListener("click", handleGalleryClick);
+closePreviewButton.addEventListener("click", closePhotoPreview);
+photoDialog.addEventListener("click", handlePreviewBackdropClick);
 guestForm.addEventListener("submit", handleGuestStart);
 changeGuestButton.addEventListener("click", handleChangeGuest);
 takePhotoButton.addEventListener("click", () => photoInput.click());
@@ -492,14 +503,178 @@ async function showEventDetail(eventData) {
     eventDetailUrl.textContent = eventUrl;
 
     await renderQrCode(eventUrl);
+    await loadGallery(eventData.id);
 }
 
 function showEventsList() {
     selectedEvent = null;
+    currentGalleryPhotos = [];
+    galleryGrid.innerHTML = "";
+    galleryCount.textContent = "";
     eventDetail.classList.add("hidden");
     eventForm.classList.remove("hidden");
     eventsListHeader.classList.remove("hidden");
     eventsList.classList.remove("hidden");
+}
+
+async function loadGallery(eventId) {
+    galleryCount.textContent = "Ielādējam foto...";
+    galleryGrid.innerHTML = "";
+    currentGalleryPhotos = [];
+
+    const { data, error } = await supabase
+        .from("media")
+        .select(`
+            id,
+            storage_path,
+            file_type,
+            file_size,
+            created_at,
+            guests (
+                name
+            )
+        `)
+        .eq("event_id", eventId)
+        .eq("status", "uploaded")
+        .order("created_at", { ascending: false });
+
+    if (error) {
+        galleryCount.textContent = "Foto neizdevās ielādēt.";
+        showMessage(toFriendlyDatabaseError(error.message), "error");
+        return;
+    }
+
+    if (!data?.length) {
+        galleryCount.textContent = "Šim pasākumam vēl nav foto.";
+        galleryGrid.innerHTML = `
+            <div class="empty-state gallery-empty">
+                <strong>Nav foto</strong>
+                <span>Kad viesi augšupielādēs foto, tie parādīsies šeit.</span>
+            </div>
+        `;
+        return;
+    }
+
+    const signedPhotos = await createSignedGalleryPhotos(data);
+    currentGalleryPhotos = signedPhotos;
+    renderGallery(signedPhotos);
+}
+
+async function createSignedGalleryPhotos(photos) {
+    const signedPhotos = [];
+
+    for (const photo of photos) {
+        const { data, error } = await supabase
+            .storage
+            .from(PHOTO_BUCKET)
+            .createSignedUrl(photo.storage_path, 60 * 10);
+
+        if (error) {
+            console.error("Signed URL error", error);
+            signedPhotos.push({
+                ...photo,
+                signedUrl: "",
+                signedUrlError: error.message
+            });
+            continue;
+        }
+
+        signedPhotos.push({
+            ...photo,
+            signedUrl: data.signedUrl,
+            signedUrlError: ""
+        });
+    }
+
+    return signedPhotos;
+}
+
+function renderGallery(photos) {
+    galleryGrid.innerHTML = "";
+    galleryCount.textContent = `${photos.length} foto`;
+
+    const fragment = document.createDocumentFragment();
+
+    for (const photo of photos) {
+        const button = document.createElement("button");
+        button.className = "gallery-item";
+        button.type = "button";
+        button.dataset.photoId = photo.id;
+        button.disabled = !photo.signedUrl;
+
+        const guestName = photo.guests?.name || "Nezināms viesis";
+        const uploadedAt = formatDateTime(photo.created_at);
+
+        button.innerHTML = `
+            <div class="thumb-wrap"></div>
+            <span></span>
+        `;
+
+        const thumbWrap = button.querySelector(".thumb-wrap");
+
+        if (photo.signedUrl) {
+            const image = document.createElement("img");
+            image.src = photo.signedUrl;
+            image.alt = `${guestName} foto`;
+            image.loading = "lazy";
+            thumbWrap.appendChild(image);
+        } else {
+            thumbWrap.textContent = "Nav pieejams";
+        }
+
+        button.querySelector("span").textContent = `${guestName} · ${uploadedAt}`;
+        fragment.appendChild(button);
+    }
+
+    galleryGrid.appendChild(fragment);
+}
+
+function handleGalleryClick(event) {
+    const item = event.target.closest(".gallery-item");
+
+    if (!item) {
+        return;
+    }
+
+    const photo = currentGalleryPhotos.find(entry => entry.id === item.dataset.photoId);
+
+    if (!photo?.signedUrl) {
+        showMessage("Foto priekšskatījums nav pieejams.", "error");
+        return;
+    }
+
+    openPhotoPreview(photo);
+}
+
+function openPhotoPreview(photo) {
+    const guestName = photo.guests?.name || "Nezināms viesis";
+
+    previewImage.src = photo.signedUrl;
+    previewImage.alt = `${guestName} foto`;
+    previewTitle.textContent = guestName;
+    previewSubtitle.textContent = `${formatDateTime(photo.created_at)} · ${formatFileSize(photo.file_size)}`;
+
+    if (photoDialog.showModal) {
+        photoDialog.showModal();
+    } else {
+        photoDialog.setAttribute("open", "");
+    }
+}
+
+function closePhotoPreview() {
+    if (photoDialog.close) {
+        photoDialog.close();
+    } else {
+        photoDialog.removeAttribute("open");
+    }
+
+    previewImage.src = "";
+}
+
+function handlePreviewBackdropClick(event) {
+    if (event.target === photoDialog) {
+        closePhotoPreview();
+    }
 }
 
 async function renderQrCode(value) {
@@ -774,4 +949,26 @@ function formatDate(dateValue) {
         month: "long",
         day: "numeric"
     }).format(new Date(`${dateValue}T00:00:00`));
+}
+
+function formatDateTime(dateValue) {
+    return new Intl.DateTimeFormat("lv-LV", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit"
+    }).format(new Date(dateValue));
+}
+
+function formatFileSize(bytes) {
+    if (!Number.isFinite(bytes)) {
+        return "";
+    }
+
+    if (bytes < 1024 * 1024) {
+        return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+    }
+
+    return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
