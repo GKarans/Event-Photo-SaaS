@@ -43,6 +43,8 @@ const galleryGrid = document.getElementById("gallery-grid");
 const galleryCount = document.getElementById("gallery-count");
 const photoDialog = document.getElementById("photo-dialog");
 const closePreviewButton = document.getElementById("close-preview-button");
+const previewPrevButton = document.getElementById("preview-prev-button");
+const previewNextButton = document.getElementById("preview-next-button");
 const previewImage = document.getElementById("preview-image");
 const previewTitle = document.getElementById("preview-title");
 const previewSubtitle = document.getElementById("preview-subtitle");
@@ -64,6 +66,7 @@ let currentEvents = [];
 let selectedEvent = null;
 let currentGuest = null;
 let currentGalleryPhotos = [];
+let currentPreviewIndex = -1;
 const activeEventSlug = getEventSlugFromPath();
 
 loginTab.addEventListener("click", () => setAuthMode("login"));
@@ -77,7 +80,10 @@ copyEventLinkButton.addEventListener("click", handleCopyEventLink);
 downloadQrButton.addEventListener("click", handleDownloadQr);
 galleryGrid.addEventListener("click", handleGalleryClick);
 closePreviewButton.addEventListener("click", closePhotoPreview);
+previewPrevButton.addEventListener("click", () => showAdjacentPhoto(-1));
+previewNextButton.addEventListener("click", () => showAdjacentPhoto(1));
 photoDialog.addEventListener("click", handlePreviewBackdropClick);
+document.addEventListener("keydown", handlePreviewKeydown);
 guestForm.addEventListener("submit", handleGuestStart);
 changeGuestButton.addEventListener("click", handleChangeGuest);
 takePhotoButton.addEventListener("click", () => photoInput.click());
@@ -509,6 +515,7 @@ async function showEventDetail(eventData) {
 function showEventsList() {
     selectedEvent = null;
     currentGalleryPhotos = [];
+    currentPreviewIndex = -1;
     galleryGrid.innerHTML = "";
     galleryCount.textContent = "";
     eventDetail.classList.add("hidden");
@@ -556,8 +563,10 @@ async function loadGallery(eventId) {
     }
 
     const signedPhotos = await createSignedGalleryPhotos(data);
-    currentGalleryPhotos = signedPhotos;
-    renderGallery(signedPhotos);
+    const availablePhotos = signedPhotos.filter(photo => photo.signedUrl);
+    const unavailableCount = signedPhotos.length - availablePhotos.length;
+    currentGalleryPhotos = availablePhotos;
+    renderGallery(availablePhotos, unavailableCount);
 }
 
 async function createSignedGalleryPhotos(photos) {
@@ -589,18 +598,34 @@ async function createSignedGalleryPhotos(photos) {
     return signedPhotos;
 }
 
-function renderGallery(photos) {
+function renderGallery(photos, unavailableCount = 0) {
     galleryGrid.innerHTML = "";
-    galleryCount.textContent = `${photos.length} foto`;
+
+    if (!photos.length) {
+        galleryCount.textContent = unavailableCount
+            ? "Nav pieejamu foto."
+            : "Šim pasākumam vēl nav foto.";
+        galleryGrid.innerHTML = `
+            <div class="empty-state gallery-empty">
+                <strong>Nav pieejamu foto</strong>
+                <span>${unavailableCount ? "Daži media ieraksti atsaucas uz failiem, kas vairs nav Storage." : "Kad viesi augšupielādēs foto, tie parādīsies šeit."}</span>
+            </div>
+        `;
+        return;
+    }
+
+    galleryCount.textContent = unavailableCount
+        ? `${photos.length} foto · ${unavailableCount} nepieejams paslēpts`
+        : `${photos.length} foto`;
 
     const fragment = document.createDocumentFragment();
 
-    for (const photo of photos) {
+    for (const [index, photo] of photos.entries()) {
         const button = document.createElement("button");
         button.className = "gallery-item";
         button.type = "button";
         button.dataset.photoId = photo.id;
-        button.disabled = !photo.signedUrl;
+        button.dataset.photoIndex = String(index);
 
         const guestName = photo.guests?.name || "Nezināms viesis";
         const uploadedAt = formatDateTime(photo.created_at);
@@ -611,16 +636,11 @@ function renderGallery(photos) {
         `;
 
         const thumbWrap = button.querySelector(".thumb-wrap");
-
-        if (photo.signedUrl) {
-            const image = document.createElement("img");
-            image.src = photo.signedUrl;
-            image.alt = `${guestName} foto`;
-            image.loading = "lazy";
-            thumbWrap.appendChild(image);
-        } else {
-            thumbWrap.textContent = "Nav pieejams";
-        }
+        const image = document.createElement("img");
+        image.src = photo.signedUrl;
+        image.alt = `${guestName} foto`;
+        image.loading = "lazy";
+        thumbWrap.appendChild(image);
 
         button.querySelector("span").textContent = `${guestName} · ${uploadedAt}`;
         fragment.appendChild(button);
@@ -636,29 +656,53 @@ function handleGalleryClick(event) {
         return;
     }
 
-    const photo = currentGalleryPhotos.find(entry => entry.id === item.dataset.photoId);
+    const photoIndex = Number(item.dataset.photoIndex);
+    const photo = currentGalleryPhotos[photoIndex];
 
     if (!photo?.signedUrl) {
         showMessage("Foto priekšskatījums nav pieejams.", "error");
         return;
     }
 
-    openPhotoPreview(photo);
+    openPhotoPreview(photoIndex);
 }
 
-function openPhotoPreview(photo) {
+function openPhotoPreview(photoIndex) {
+    const photo = currentGalleryPhotos[photoIndex];
+
+    if (!photo) {
+        return;
+    }
+
+    currentPreviewIndex = photoIndex;
     const guestName = photo.guests?.name || "Nezināms viesis";
 
     previewImage.src = photo.signedUrl;
     previewImage.alt = `${guestName} foto`;
     previewTitle.textContent = guestName;
     previewSubtitle.textContent = `${formatDateTime(photo.created_at)} · ${formatFileSize(photo.file_size)}`;
+    updatePreviewNavigation();
 
-    if (photoDialog.showModal) {
+    if (!photoDialog.open && photoDialog.showModal) {
         photoDialog.showModal();
-    } else {
+    } else if (!photoDialog.open) {
         photoDialog.setAttribute("open", "");
     }
+}
+
+function showAdjacentPhoto(direction) {
+    if (!currentGalleryPhotos.length) {
+        return;
+    }
+
+    const nextIndex = (currentPreviewIndex + direction + currentGalleryPhotos.length) % currentGalleryPhotos.length;
+    openPhotoPreview(nextIndex);
+}
+
+function updatePreviewNavigation() {
+    const hasMultiplePhotos = currentGalleryPhotos.length > 1;
+    previewPrevButton.classList.toggle("hidden", !hasMultiplePhotos);
+    previewNextButton.classList.toggle("hidden", !hasMultiplePhotos);
 }
 
 function closePhotoPreview() {
@@ -669,11 +713,26 @@ function closePhotoPreview() {
     }
 
     previewImage.src = "";
+    currentPreviewIndex = -1;
 }
 
 function handlePreviewBackdropClick(event) {
     if (event.target === photoDialog) {
         closePhotoPreview();
+    }
+}
+
+function handlePreviewKeydown(event) {
+    if (!photoDialog.open) {
+        return;
+    }
+
+    if (event.key === "ArrowLeft") {
+        showAdjacentPhoto(-1);
+    }
+
+    if (event.key === "ArrowRight") {
+        showAdjacentPhoto(1);
     }
 }
 

@@ -454,6 +454,22 @@ code {
     background: rgba(255, 255, 255, 0.92);
 }
 
+.preview-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.92);
+    font-size: 2rem;
+}
+
+.preview-prev {
+    left: 10px;
+}
+
+.preview-next {
+    right: 10px;
+}
+
 .preview-meta {
     display: grid;
     gap: 4px;
@@ -539,5 +555,11 @@ code {
 
     .action-row {
         grid-template-columns: 1fr;
+    }
+
+    .preview-nav {
+        width: 44px;
+        min-height: 44px;
+        padding: 0;
     }
 }
