@@ -98,7 +98,7 @@ using (owner_id = auth.uid());
 drop policy if exists "Guests can read active event landing pages" on public.events;
 create policy "Guests can read active event landing pages"
 on public.events for select
-to anon, authenticated
+to anon
 using (status = 'active');
 
 drop policy if exists "Organizers can create own events" on public.events;

@@ -412,6 +412,7 @@ async function loadEvents() {
     const { data, error } = await supabase
         .from("events")
         .select("id,name,date,slug,status,created_at")
+        .eq("owner_id", currentSession.user.id)
         .order("created_at", { ascending: false });
 
     if (error) {
