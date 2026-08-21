@@ -5,3 +5,8 @@ publish = "."
 from = "/event/*"
 to = "/index.html"
 status = 200
+
+[[redirects]]
+from = "/auth/*"
+to = "/index.html"
+status = 200

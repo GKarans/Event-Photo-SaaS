@@ -6,8 +6,16 @@ create extension if not exists pgcrypto;
 create table if not exists public.users (
     id uuid primary key references auth.users(id) on delete cascade,
     email text not null,
+    first_name text,
+    last_name text,
     created_at timestamptz not null default now()
 );
+
+alter table public.users
+add column if not exists first_name text;
+
+alter table public.users
+add column if not exists last_name text;
 
 create table if not exists public.events (
     id uuid primary key default gen_random_uuid(),
@@ -58,9 +66,17 @@ security definer
 set search_path = public
 as $$
 begin
-    insert into public.users (id, email)
-    values (new.id, coalesce(new.email, ''))
-    on conflict (id) do update set email = excluded.email;
+    insert into public.users as target (id, email, first_name, last_name)
+    values (
+        new.id,
+        coalesce(new.email, ''),
+        nullif(trim(coalesce(new.raw_user_meta_data->>'first_name', '')), ''),
+        nullif(trim(coalesce(new.raw_user_meta_data->>'last_name', '')), '')
+    )
+    on conflict (id) do update
+    set email = excluded.email,
+        first_name = coalesce(excluded.first_name, target.first_name),
+        last_name = coalesce(excluded.last_name, target.last_name);
 
     return new;
 end;
@@ -71,10 +87,17 @@ create trigger on_auth_user_created
 after insert on auth.users
 for each row execute function public.handle_new_user();
 
-insert into public.users (id, email)
-select id, coalesce(email, '')
+insert into public.users as target (id, email, first_name, last_name)
+select
+    id,
+    coalesce(email, ''),
+    nullif(trim(coalesce(raw_user_meta_data->>'first_name', '')), ''),
+    nullif(trim(coalesce(raw_user_meta_data->>'last_name', '')), '')
 from auth.users
-on conflict (id) do update set email = excluded.email;
+on conflict (id) do update
+set email = excluded.email,
+    first_name = coalesce(excluded.first_name, target.first_name),
+    last_name = coalesce(excluded.last_name, target.last_name);
 
 drop policy if exists "Users can read own profile" on public.users;
 create policy "Users can read own profile"

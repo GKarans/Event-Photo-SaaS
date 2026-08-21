@@ -14,13 +14,19 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
 });
 
 const authPanel = document.getElementById("auth-panel");
+const authConfirmationPanel = document.getElementById("auth-confirmation-panel");
 const dashboardPanel = document.getElementById("dashboard-panel");
 const authForm = document.getElementById("auth-form");
+const registerFields = document.getElementById("register-fields");
+const firstNameInput = document.getElementById("first-name");
+const lastNameInput = document.getElementById("last-name");
 const loginTab = document.getElementById("login-tab");
 const registerTab = document.getElementById("register-tab");
 const submitButton = document.getElementById("submit-button");
 const formHint = document.getElementById("form-hint");
+const goToLoginButton = document.getElementById("go-to-login-button");
 const logoutButton = document.getElementById("logout-button");
+const dashboardTitle = document.getElementById("dashboard-title");
 const userEmail = document.getElementById("user-email");
 const messageBox = document.getElementById("message");
 const eventForm = document.getElementById("event-form");
@@ -71,9 +77,11 @@ let currentGuest = null;
 let currentGalleryPhotos = [];
 let currentPreviewIndex = -1;
 const activeEventSlug = getEventSlugFromPath();
+const isAuthConfirmationRoute = window.location.pathname === "/auth/confirmed";
 
 loginTab.addEventListener("click", () => setAuthMode("login"));
 registerTab.addEventListener("click", () => setAuthMode("register"));
+goToLoginButton.addEventListener("click", handleGoToLogin);
 authForm.addEventListener("submit", handleAuthSubmit);
 logoutButton.addEventListener("click", handleLogout);
 eventForm.addEventListener("submit", handleCreateEvent);
@@ -96,14 +104,16 @@ takePhotoButton.addEventListener("click", () => photoInput.click());
 photoInput.addEventListener("change", handlePhotoSelected);
 
 supabase.auth.onAuthStateChange((_event, session) => {
-    if (activeEventSlug) {
+    if (activeEventSlug || isAuthConfirmationRoute) {
         return;
     }
 
     renderSession(session);
 });
 
-if (activeEventSlug) {
+if (isAuthConfirmationRoute) {
+    await renderAuthConfirmationRoute();
+} else if (activeEventSlug) {
     await renderGuestRoute(activeEventSlug);
 } else {
     const { data: initialSessionData } = await supabase.auth.getSession();
@@ -116,6 +126,9 @@ function setAuthMode(mode) {
 
     loginTab.classList.toggle("is-active", isLogin);
     registerTab.classList.toggle("is-active", !isLogin);
+    registerFields.classList.toggle("hidden", isLogin);
+    firstNameInput.required = !isLogin;
+    lastNameInput.required = !isLogin;
     submitButton.textContent = isLogin ? "Login" : "Register";
     formHint.textContent = isLogin
         ? "Log in as an organizer to manage your events and photo galleries."
@@ -127,8 +140,15 @@ function setAuthMode(mode) {
 async function handleAuthSubmit(event) {
     event.preventDefault();
 
+    const firstName = firstNameInput.value.trim();
+    const lastName = lastNameInput.value.trim();
     const email = document.getElementById("email").value.trim();
     const password = document.getElementById("password").value;
+
+    if (authMode === "register" && (!firstName || !lastName)) {
+        showMessage("Enter your first and last name.", "error");
+        return;
+    }
 
     if (!email || !password) {
         showMessage("Enter your email and password.", "error");
@@ -141,7 +161,18 @@ async function handleAuthSubmit(event) {
     try {
         const { data, error } = authMode === "login"
             ? await supabase.auth.signInWithPassword({ email, password })
-            : await supabase.auth.signUp({ email, password });
+            : await supabase.auth.signUp({
+                email,
+                password,
+                options: {
+                    emailRedirectTo: `${window.location.origin}/auth/confirmed`,
+                    data: {
+                        first_name: firstName,
+                        last_name: lastName,
+                        full_name: `${firstName} ${lastName}`.trim()
+                    }
+                }
+            });
 
         if (error) {
             showMessage(toFriendlyAuthError(error.message), "error");
@@ -160,6 +191,44 @@ async function handleAuthSubmit(event) {
     } finally {
         setButtonLoading(submitButton, false, defaultText);
     }
+}
+
+async function renderAuthConfirmationRoute() {
+    authPanel.classList.add("hidden");
+    dashboardPanel.classList.add("hidden");
+    guestPanel.classList.add("hidden");
+    authConfirmationPanel.classList.remove("hidden");
+    hideMessage();
+
+    const confirmationCode = new URLSearchParams(window.location.search).get("code");
+
+    try {
+        if (confirmationCode) {
+            const { error } = await supabase.auth.exchangeCodeForSession(confirmationCode);
+
+            if (error) {
+                throw error;
+            }
+
+            history.replaceState({}, "", "/auth/confirmed");
+            return;
+        }
+
+        await supabase.auth.getSession();
+    } catch (error) {
+        console.error("Email confirmation session error", error);
+        showMessage("Email was confirmed, but the session could not be opened automatically. Use the login form.", "error");
+    }
+}
+
+function handleGoToLogin() {
+    history.replaceState({}, "", "/");
+    authConfirmationPanel.classList.add("hidden");
+    dashboardPanel.classList.add("hidden");
+    guestPanel.classList.add("hidden");
+    authPanel.classList.remove("hidden");
+    setAuthMode("login");
+    hideMessage();
 }
 
 async function handleLogout() {
@@ -187,10 +256,13 @@ function renderSession(session) {
     currentSession = session;
 
     authPanel.classList.toggle("hidden", isLoggedIn);
+    authConfirmationPanel.classList.add("hidden");
     dashboardPanel.classList.toggle("hidden", !isLoggedIn);
+    dashboardTitle.textContent = "Welcome!";
     userEmail.textContent = isLoggedIn ? session.user.email : "";
 
     if (isLoggedIn) {
+        loadOrganizerProfile(session.user);
         loadEvents();
     } else {
         currentEvents = [];
@@ -200,8 +272,40 @@ function renderSession(session) {
     }
 }
 
+async function loadOrganizerProfile(user) {
+    const fallbackName = user.user_metadata?.full_name
+        || [user.user_metadata?.first_name, user.user_metadata?.last_name].filter(Boolean).join(" ")
+        || "";
+
+    if (fallbackName) {
+        dashboardTitle.textContent = `Welcome, ${fallbackName}`;
+    }
+
+    const { data, error } = await supabase
+        .from("users")
+        .select("first_name,last_name,email")
+        .eq("id", user.id)
+        .maybeSingle();
+
+    if (error) {
+        console.error("Profile load error", error);
+        return;
+    }
+
+    const profileName = [data?.first_name, data?.last_name].filter(Boolean).join(" ");
+
+    if (profileName) {
+        dashboardTitle.textContent = `Welcome, ${profileName}`;
+    }
+
+    if (data?.email) {
+        userEmail.textContent = data.email;
+    }
+}
+
 async function renderGuestRoute(slug) {
     authPanel.classList.add("hidden");
+    authConfirmationPanel.classList.add("hidden");
     dashboardPanel.classList.add("hidden");
     guestPanel.classList.remove("hidden");
     hideMessage();
@@ -1095,7 +1199,7 @@ function toFriendlyAuthError(message) {
     const normalized = message.toLowerCase();
 
     if (normalized.includes("invalid login")) {
-        return "Nepareizs e-pasts vai parole.";
+        return "Incorrect email or password.";
     }
 
     if (normalized.includes("password")) {

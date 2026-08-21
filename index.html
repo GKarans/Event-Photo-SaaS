@@ -25,6 +25,14 @@
             </div>
 
             <form class="auth-form" id="auth-form">
+                <div class="register-fields hidden" id="register-fields">
+                    <label for="first-name">First name</label>
+                    <input id="first-name" type="text" autocomplete="given-name" maxlength="60">
+
+                    <label for="last-name">Last name</label>
+                    <input id="last-name" type="text" autocomplete="family-name" maxlength="60">
+                </div>
+
                 <label for="email">Email</label>
                 <input id="email" type="email" autocomplete="email" required>
 
@@ -39,11 +47,21 @@
             </p>
         </section>
 
+        <section class="auth-confirmation-panel hidden" id="auth-confirmation-panel">
+            <div class="brand">
+                <p class="eyebrow">Email confirmed</p>
+                <h1>Your account is ready.</h1>
+                <p class="subtitle">You can now log in and create your first event.</p>
+            </div>
+
+            <button class="primary-button" id="go-to-login-button" type="button">Go to login</button>
+        </section>
+
         <section class="dashboard-panel hidden" id="dashboard-panel">
             <div class="dashboard-header">
                 <div>
                     <p class="eyebrow">Organizer dashboard</p>
-                    <h1>Welcome!</h1>
+                    <h1 id="dashboard-title">Welcome!</h1>
                     <p class="subtitle" id="user-email"></p>
                 </div>
                 <button class="icon-button" id="logout-button" type="button" aria-label="Logout" title="Logout">

@@ -119,6 +119,11 @@ h1 {
     margin-bottom: 14px;
 }
 
+.register-fields {
+    display: grid;
+    gap: 10px;
+}
+
 .event-form {
     margin-bottom: 28px;
     padding-bottom: 24px;
