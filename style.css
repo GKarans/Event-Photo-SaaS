@@ -186,6 +186,10 @@ input:focus {
     border-radius: 8px;
     padding: 0 16px;
     cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     font-weight: 800;
 }
 
@@ -226,8 +230,23 @@ input:focus {
 }
 
 button:disabled {
-    cursor: wait;
+    cursor: not-allowed;
     opacity: 0.72;
+}
+
+button.is-loading {
+    cursor: wait;
+}
+
+button.is-loading::before,
+.upload-state.loading::before {
+    content: "";
+    width: 14px;
+    height: 14px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.75s linear infinite;
 }
 
 .status-list {
@@ -538,12 +557,25 @@ code {
 }
 
 .upload-state {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     border: 1px solid var(--line);
     border-radius: 8px;
     padding: 12px 14px;
     background: var(--surface-muted);
     color: var(--muted);
     line-height: 1.45;
+}
+
+.upload-state.success {
+    border-color: rgba(8, 116, 67, 0.28);
+    color: var(--success);
+}
+
+.upload-state.error {
+    border-color: rgba(180, 35, 24, 0.28);
+    color: var(--danger);
 }
 
 .message {
@@ -566,6 +598,12 @@ code {
 
 .hidden {
     display: none;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 @media (max-width: 420px) {

@@ -135,40 +135,51 @@ async function handleAuthSubmit(event) {
         return;
     }
 
-    submitButton.disabled = true;
-    submitButton.textContent = authMode === "login" ? "Pieslēdzam..." : "Reģistrējam...";
+    const defaultText = authMode === "login" ? "Login" : "Register";
+    setButtonLoading(submitButton, true, authMode === "login" ? "Pieslēdzam..." : "Reģistrējam...");
 
-    const { data, error } = authMode === "login"
-        ? await supabase.auth.signInWithPassword({ email, password })
-        : await supabase.auth.signUp({ email, password });
+    try {
+        const { data, error } = authMode === "login"
+            ? await supabase.auth.signInWithPassword({ email, password })
+            : await supabase.auth.signUp({ email, password });
 
-    submitButton.disabled = false;
-    submitButton.textContent = authMode === "login" ? "Login" : "Register";
+        if (error) {
+            showMessage(toFriendlyAuthError(error.message), "error");
+            return;
+        }
 
-    if (error) {
-        showMessage(toFriendlyAuthError(error.message), "error");
-        return;
+        if (authMode === "register" && !data.session) {
+            showMessage("Konts izveidots. Pārbaudi e-pastu un apstiprini reģistrāciju.", "success");
+            return;
+        }
+
+        showMessage("Autentifikācija izdevās.", "success");
+    } catch (error) {
+        console.error("Auth request error", error);
+        showMessage("Neizdevās sazināties ar autentifikācijas servisu. Pārbaudi internetu un mēģini vēlreiz.", "error");
+    } finally {
+        setButtonLoading(submitButton, false, defaultText);
     }
-
-    if (authMode === "register" && !data.session) {
-        showMessage("Konts izveidots. Pārbaudi e-pastu un apstiprini reģistrāciju.", "success");
-        return;
-    }
-
-    showMessage("Autentifikācija izdevās.", "success");
 }
 
 async function handleLogout() {
-    logoutButton.disabled = true;
-    const { error } = await supabase.auth.signOut();
-    logoutButton.disabled = false;
+    setButtonLoading(logoutButton, true, "...");
 
-    if (error) {
-        showMessage("Neizdevās izrakstīties. Mēģini vēlreiz.", "error");
-        return;
+    try {
+        const { error } = await supabase.auth.signOut();
+
+        if (error) {
+            showMessage("Neizdevās izrakstīties. Mēģini vēlreiz.", "error");
+            return;
+        }
+
+        showMessage("Tu esi izrakstījies.", "success");
+    } catch (error) {
+        console.error("Logout request error", error);
+        showMessage("Izrakstīšanās neizdevās interneta savienojuma dēļ.", "error");
+    } finally {
+        setButtonLoading(logoutButton, false, "⎋");
     }
-
-    showMessage("Tu esi izrakstījies.", "success");
 }
 
 function renderSession(session) {
@@ -246,36 +257,39 @@ async function handleGuestStart(event) {
     }
 
     const startButton = document.getElementById("guest-start-button");
-    startButton.disabled = true;
-    startButton.textContent = "Sagatavojam...";
+    setButtonLoading(startButton, true, "Sagatavojam...");
 
-    const guestId = createClientId();
+    try {
+        const guestId = createClientId();
 
-    const { error } = await supabase
-        .from("guests")
-        .insert({
+        const { error } = await supabase
+            .from("guests")
+            .insert({
+                id: guestId,
+                event_id: selectedEvent.id,
+                name: guestName
+            });
+
+        if (error) {
+            showMessage(toFriendlyDatabaseError(error.message), "error");
+            return;
+        }
+
+        currentGuest = {
             id: guestId,
             event_id: selectedEvent.id,
-            name: guestName
-        });
-
-    startButton.disabled = false;
-    startButton.textContent = "Start";
-
-    if (error) {
-        showMessage(toFriendlyDatabaseError(error.message), "error");
-        return;
+            name: guestName,
+            folder_suffix: createNumericSuffix()
+        };
+        saveGuest(selectedEvent.slug, currentGuest);
+        showPhotoPanel(currentGuest.name);
+        showMessage("Vari sākt uzņemt foto.", "success");
+    } catch (error) {
+        console.error("Guest start error", error);
+        showMessage("Neizdevās sagatavot viesa sesiju. Pārbaudi internetu un mēģini vēlreiz.", "error");
+    } finally {
+        setButtonLoading(startButton, false, "Start");
     }
-
-    currentGuest = {
-        id: guestId,
-        event_id: selectedEvent.id,
-        name: guestName,
-        folder_suffix: createNumericSuffix()
-    };
-    saveGuest(selectedEvent.slug, currentGuest);
-    showPhotoPanel(currentGuest.name);
-    showMessage("Vari sākt uzņemt foto.", "success");
 }
 
 function handleChangeGuest() {
@@ -311,50 +325,57 @@ async function handlePhotoSelected() {
         return;
     }
 
-    takePhotoButton.disabled = true;
-    showUploadState("Augšupielādējam foto...");
+    setButtonLoading(takePhotoButton, true, "Augšupielādējam...");
+    showUploadState("Augšupielādējam foto...", "loading");
 
-    const storagePath = createStoragePath(file);
+    try {
+        const storagePath = createStoragePath(file);
 
-    const { error: uploadError } = await supabase
-        .storage
-        .from(PHOTO_BUCKET)
-        .upload(storagePath, file, {
-            cacheControl: "3600",
-            contentType: file.type,
-            upsert: false
-        });
+        const { error: uploadError } = await supabase
+            .storage
+            .from(PHOTO_BUCKET)
+            .upload(storagePath, file, {
+                cacheControl: "3600",
+                contentType: file.type,
+                upsert: false
+            });
 
-    if (uploadError) {
-        console.error("Storage upload error", uploadError);
-        takePhotoButton.disabled = false;
-        showUploadState("Upload neizdevās.");
-        showMessage(toFriendlyStorageError(uploadError.message), "error");
-        return;
+        if (uploadError) {
+            console.error("Storage upload error", uploadError);
+            showUploadState("Upload neizdevās.", "error");
+            showMessage(toFriendlyStorageError(uploadError.message), "error");
+            return;
+        }
+
+        showUploadState("Foto augšupielādēts. Saglabājam metadatus...", "loading");
+
+        const { error: mediaError } = await supabase
+            .from("media")
+            .insert({
+                event_id: selectedEvent.id,
+                guest_id: currentGuest.id,
+                storage_path: storagePath,
+                file_type: file.type,
+                file_size: file.size,
+                status: "uploaded"
+            });
+
+        if (mediaError) {
+            console.error("Media insert error", mediaError);
+            showUploadState("Foto fails saglabāts, bet galerijas ierakstu neizdevās izveidot.", "error");
+            showMessage(toFriendlyDatabaseError(mediaError.message), "error");
+            return;
+        }
+
+        showUploadState("Photo uploaded! Vari uzņemt nākamo foto.", "success");
+        showMessage("Photo uploaded!", "success");
+    } catch (error) {
+        console.error("Photo upload request error", error);
+        showUploadState("Upload neizdevās.", "error");
+        showMessage("Foto augšupielāde pārtrūka. Pārbaudi internetu un mēģini vēlreiz.", "error");
+    } finally {
+        setButtonLoading(takePhotoButton, false, "Take Photo");
     }
-
-    const { error: mediaError } = await supabase
-        .from("media")
-        .insert({
-            event_id: selectedEvent.id,
-            guest_id: currentGuest.id,
-            storage_path: storagePath,
-            file_type: file.type,
-            file_size: file.size,
-            status: "uploaded"
-        });
-
-    takePhotoButton.disabled = false;
-
-    if (mediaError) {
-        console.error("Media insert error", mediaError);
-        showUploadState("Foto saglabāts storage, bet metadata ieraksts neizdevās.");
-        showMessage(toFriendlyDatabaseError(mediaError.message), "error");
-        return;
-    }
-
-    showUploadState("Photo uploaded! Vari uzņemt nākamo foto.");
-    showMessage("Photo uploaded!", "success");
 }
 
 async function handleCreateEvent(event) {
@@ -373,32 +394,35 @@ async function handleCreateEvent(event) {
         return;
     }
 
-    createEventButton.disabled = true;
-    createEventButton.textContent = "Saglabājam...";
+    setButtonLoading(createEventButton, true, "Saglabājam...");
 
-    const slug = createSlug(name);
+    try {
+        const slug = createSlug(name);
 
-    const { error } = await supabase
-        .from("events")
-        .insert({
-            owner_id: currentSession.user.id,
-            name,
-            date,
-            slug,
-            status: "active"
-        });
+        const { error } = await supabase
+            .from("events")
+            .insert({
+                owner_id: currentSession.user.id,
+                name,
+                date,
+                slug,
+                status: "active"
+            });
 
-    createEventButton.disabled = false;
-    createEventButton.textContent = "Create Event";
+        if (error) {
+            showMessage(toFriendlyDatabaseError(error.message), "error");
+            return;
+        }
 
-    if (error) {
-        showMessage(toFriendlyDatabaseError(error.message), "error");
-        return;
+        eventForm.reset();
+        showMessage("Pasākums izveidots.", "success");
+        await loadEvents();
+    } catch (error) {
+        console.error("Create event error", error);
+        showMessage("Pasākumu neizdevās izveidot. Pārbaudi internetu un mēģini vēlreiz.", "error");
+    } finally {
+        setButtonLoading(createEventButton, false, "Create Event");
     }
-
-    eventForm.reset();
-    showMessage("Pasākums izveidots.", "success");
-    await loadEvents();
 }
 
 async function loadEvents() {
@@ -799,8 +823,7 @@ async function handleDownloadPhoto() {
     }
 
     const fileName = getStorageFileName(photo.storage_path);
-    downloadPhotoButton.disabled = true;
-    downloadPhotoButton.textContent = "Downloading...";
+    setButtonLoading(downloadPhotoButton, true, "Downloading...");
 
     try {
         const response = await fetch(photo.signedUrl);
@@ -819,8 +842,7 @@ async function handleDownloadPhoto() {
         triggerDownload(photo.signedUrl, fileName);
         showMessage("Atvērām foto lejupielādei. Ja pārlūks to atver jaunā skatā, saglabā no turienes.", "success");
     } finally {
-        downloadPhotoButton.disabled = false;
-        downloadPhotoButton.textContent = "Download Photo";
+        setButtonLoading(downloadPhotoButton, false, "Download Photo");
     }
 }
 
@@ -838,41 +860,42 @@ async function handleDeletePhoto() {
         return;
     }
 
-    deletePhotoButton.disabled = true;
-    deletePhotoButton.textContent = "Deleting...";
+    setButtonLoading(deletePhotoButton, true, "Deleting...");
 
-    const { error: storageError } = await supabase
-        .storage
-        .from(PHOTO_BUCKET)
-        .remove([photo.storage_path]);
+    try {
+        const { error: storageError } = await supabase
+            .storage
+            .from(PHOTO_BUCKET)
+            .remove([photo.storage_path]);
 
-    if (storageError) {
-        console.error("Storage delete error", storageError);
-        deletePhotoButton.disabled = false;
-        deletePhotoButton.textContent = "Delete Photo";
-        showMessage(`Storage failu neizdevās izdzēst: ${storageError.message}`, "error");
-        return;
-    }
+        if (storageError) {
+            console.error("Storage delete error", storageError);
+            showMessage(toFriendlyStorageDeleteError(storageError.message), "error");
+            return;
+        }
 
-    const { error: mediaError } = await supabase
-        .from("media")
-        .update({ status: "deleted" })
-        .eq("id", photo.id);
+        const { error: mediaError } = await supabase
+            .from("media")
+            .update({ status: "deleted" })
+            .eq("id", photo.id);
 
-    deletePhotoButton.disabled = false;
-    deletePhotoButton.textContent = "Delete Photo";
+        if (mediaError) {
+            console.error("Media delete error", mediaError);
+            closePhotoPreview();
+            showMessage("Storage fails izdzēsts, bet galerijas statusu neizdevās atjaunot.", "error");
+            await loadGallery(selectedEvent.id);
+            return;
+        }
 
-    if (mediaError) {
-        console.error("Media delete error", mediaError);
         closePhotoPreview();
-        showMessage("Storage fails izdzēsts, bet media statusu neizdevās atjaunot.", "error");
+        showMessage("Foto izdzēsts.", "success");
         await loadGallery(selectedEvent.id);
-        return;
+    } catch (error) {
+        console.error("Photo delete request error", error);
+        showMessage("Foto dzēšana neizdevās. Pārbaudi internetu un mēģini vēlreiz.", "error");
+    } finally {
+        setButtonLoading(deletePhotoButton, false, "Delete Photo");
     }
-
-    closePhotoPreview();
-    showMessage("Foto izdzēsts.", "success");
-    await loadGallery(selectedEvent.id);
 }
 
 async function renderQrCode(value) {
@@ -1000,9 +1023,9 @@ function getGuestStorageKey(slug) {
     return `event-photo-saas:guest:${slug}`;
 }
 
-function showUploadState(text) {
+function showUploadState(text, type = "info") {
     uploadState.textContent = text;
-    uploadState.classList.remove("hidden");
+    uploadState.className = `upload-state ${type}`;
 }
 
 function hideUploadState() {
@@ -1010,9 +1033,20 @@ function hideUploadState() {
     uploadState.classList.add("hidden");
 }
 
+function setButtonLoading(button, isLoading, text) {
+    button.disabled = isLoading;
+    button.classList.toggle("is-loading", isLoading);
+    button.setAttribute("aria-busy", String(isLoading));
+
+    if (text) {
+        button.textContent = text;
+    }
+}
+
 function showMessage(text, type) {
     messageBox.textContent = text;
     messageBox.className = `message ${type}`;
+    messageBox.setAttribute("role", type === "error" ? "alert" : "status");
 }
 
 function hideMessage() {
@@ -1060,7 +1094,7 @@ function toFriendlyStorageError(message) {
     const normalized = message.toLowerCase();
 
     if (normalized.includes("row-level security") || normalized.includes("unauthorized")) {
-        return `Storage drošības noteikumi neļāva augšupielādi: ${message}`;
+        return "Storage drošības noteikumi neļāva augšupielādi. Pārbaudi, vai Supabase SQL shēma ir atjaunota.";
     }
 
     if (normalized.includes("exceeded") || normalized.includes("too large")) {
@@ -1068,6 +1102,16 @@ function toFriendlyStorageError(message) {
     }
 
     return "Foto augšupielāde neizdevās. Pārbaudi interneta savienojumu un mēģini vēlreiz.";
+}
+
+function toFriendlyStorageDeleteError(message) {
+    const normalized = message.toLowerCase();
+
+    if (normalized.includes("row-level security") || normalized.includes("unauthorized")) {
+        return "Storage drošības noteikumi neļāva dzēst šo foto. Pārbaudi Supabase Storage politikas.";
+    }
+
+    return "Storage failu neizdevās izdzēst. Pārbaudi internetu un mēģini vēlreiz.";
 }
 
 function createSlug(name) {
