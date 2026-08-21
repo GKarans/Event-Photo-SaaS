@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = "https://ojcvnsbhphvijmzjfenl.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_5tHxxBuBgQJagyqIKuVVyg_2ZtruZ6J";
+const APP_URL = "https://event-photo-saas.netlify.app";
 const PHOTO_BUCKET = "event-photos";
 const MAX_PHOTO_SIZE = 10 * 1024 * 1024;
 
@@ -165,7 +166,7 @@ async function handleAuthSubmit(event) {
                 email,
                 password,
                 options: {
-                    emailRedirectTo: `${window.location.origin}/auth/confirmed`,
+                    emailRedirectTo: `${APP_URL}/auth/confirmed`,
                     data: {
                         first_name: firstName,
                         last_name: lastName,
