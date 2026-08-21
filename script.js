@@ -221,7 +221,8 @@ async function renderAuthConfirmationRoute() {
     }
 }
 
-function handleGoToLogin() {
+async function handleGoToLogin() {
+    await supabase.auth.signOut();
     history.replaceState({}, "", "/");
     authConfirmationPanel.classList.add("hidden");
     dashboardPanel.classList.add("hidden");
