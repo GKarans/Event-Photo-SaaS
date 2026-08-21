@@ -30,10 +30,15 @@ const logoutButton = document.getElementById("logout-button");
 const dashboardTitle = document.getElementById("dashboard-title");
 const userEmail = document.getElementById("user-email");
 const messageBox = document.getElementById("message");
+const openCreateEventButton = document.getElementById("open-create-event-button");
+const createEventModal = document.getElementById("create-event-modal");
 const eventForm = document.getElementById("event-form");
 const eventNameInput = document.getElementById("event-name");
-const eventDateInput = document.getElementById("event-date");
+const eventStartDateInput = document.getElementById("event-start-date");
+const eventEndDateInput = document.getElementById("event-end-date");
 const createEventButton = document.getElementById("create-event-button");
+const closeCreateEventButton = document.getElementById("close-create-event-button");
+const cancelCreateEventButton = document.getElementById("cancel-create-event-button");
 const eventsList = document.getElementById("events-list");
 const eventsCount = document.getElementById("events-count");
 const eventsListHeader = document.getElementById("events-list-header");
@@ -85,7 +90,11 @@ registerTab.addEventListener("click", () => setAuthMode("register"));
 goToLoginButton.addEventListener("click", handleGoToLogin);
 authForm.addEventListener("submit", handleAuthSubmit);
 logoutButton.addEventListener("click", handleLogout);
+openCreateEventButton.addEventListener("click", openCreateEventModal);
+closeCreateEventButton.addEventListener("click", closeCreateEventModal);
+cancelCreateEventButton.addEventListener("click", closeCreateEventModal);
 eventForm.addEventListener("submit", handleCreateEvent);
+eventStartDateInput.addEventListener("change", handleEventStartDateChange);
 eventsList.addEventListener("click", handleEventsListClick);
 backToEventsButton.addEventListener("click", showEventsList);
 copyEventLinkButton.addEventListener("click", handleCopyEventLink);
@@ -117,6 +126,7 @@ if (isAuthConfirmationRoute) {
 } else if (activeEventSlug) {
     await renderGuestRoute(activeEventSlug);
 } else {
+    setEventDateLimits();
     const { data: initialSessionData } = await supabase.auth.getSession();
     renderSession(initialSessionData.session);
 }
@@ -317,9 +327,8 @@ async function renderGuestRoute(slug) {
 
     const { data, error } = await supabase
         .from("events")
-        .select("id,name,date,slug,status")
+        .select("id,name,date,start_date,end_date,slug,status,storage_folder")
         .eq("slug", slug)
-        .eq("status", "active")
         .maybeSingle();
 
     if (error) {
@@ -328,16 +337,17 @@ async function renderGuestRoute(slug) {
         return;
     }
 
-    if (!data) {
+    if (!data || !isEventOpenForGuests(data)) {
         guestEventTitle.textContent = "Event not found";
-        guestEventDate.textContent = "Check the QR code or link.";
+        guestEventDate.textContent = "This event link is not available for photo upload.";
         guestForm.classList.add("hidden");
+        photoPanel.classList.add("hidden");
         return;
     }
 
     selectedEvent = data;
     guestEventTitle.textContent = data.name;
-    guestEventDate.textContent = data.date ? formatDate(data.date) : "Guest photo upload";
+    guestEventDate.textContent = formatEventDateRange(data);
 
     const savedGuest = loadSavedGuest(data.slug);
 
@@ -411,6 +421,104 @@ function handleChangeGuest() {
     hideMessage();
 }
 
+function openCreateEventModal() {
+    setEventDateLimits();
+    hideMessage();
+
+    if (!eventStartDateInput.value) {
+        const today = getIsoDate(new Date());
+        eventStartDateInput.value = today;
+        eventEndDateInput.value = today;
+    }
+
+    if (createEventModal.showModal) {
+        createEventModal.showModal();
+    } else {
+        createEventModal.setAttribute("open", "");
+    }
+
+    eventNameInput.focus();
+}
+
+function closeCreateEventModal() {
+    if (createEventModal.close) {
+        createEventModal.close();
+    } else {
+        createEventModal.removeAttribute("open");
+    }
+
+    setButtonLoading(createEventButton, false, "Create Event");
+}
+
+function setEventDateLimits() {
+    const today = getIsoDate(new Date());
+    eventStartDateInput.min = today;
+    eventEndDateInput.min = today;
+}
+
+function handleEventStartDateChange() {
+    eventEndDateInput.min = eventStartDateInput.value || getIsoDate(new Date());
+
+    if (!eventEndDateInput.value || eventEndDateInput.value < eventEndDateInput.min) {
+        eventEndDateInput.value = eventEndDateInput.min;
+    }
+}
+
+function validateEventPeriod(startDate, endDate) {
+    if (!startDate || !endDate) {
+        return "Choose the event start and end date.";
+    }
+
+    const today = getIsoDate(new Date());
+
+    if (startDate < today || endDate < today) {
+        return "Past dates are not allowed.";
+    }
+
+    if (endDate < startDate) {
+        return "End date cannot be before start date.";
+    }
+
+    const durationInDays = getDateDiffInDays(startDate, endDate) + 1;
+
+    if (durationInDays > 3) {
+        return "The event period can be a maximum of 3 days.";
+    }
+
+    return "";
+}
+
+async function syncExpiredEvents() {
+    if (!currentSession?.user) {
+        return;
+    }
+
+    const today = getIsoDate(new Date());
+    const deleteBeforeDate = getIsoDate(addDays(new Date(), -3));
+
+    const { error: inactiveError } = await supabase
+        .from("events")
+        .update({ status: "inactive" })
+        .eq("owner_id", currentSession.user.id)
+        .eq("status", "active")
+        .lt("end_date", today);
+
+    if (inactiveError) {
+        console.error("Expired event sync error", inactiveError);
+    }
+
+    const { error: deletedError } = await supabase
+        .from("events")
+        .update({ status: "deleted" })
+        .eq("owner_id", currentSession.user.id)
+        .in("status", ["active", "inactive"])
+        .lt("end_date", deleteBeforeDate);
+
+    if (deletedError) {
+        console.error("Old event cleanup error", deletedError);
+    }
+}
+
 async function handlePhotoSelected() {
     const file = photoInput.files?.[0];
     photoInput.value = "";
@@ -421,6 +529,13 @@ async function handlePhotoSelected() {
 
     if (!selectedEvent?.id || !currentGuest?.id) {
         showMessage("Enter your name before taking photos.", "error");
+        return;
+    }
+
+    if (!isEventOpenForGuests(selectedEvent)) {
+        showMessage("Photo upload is closed for this event.", "error");
+        photoPanel.classList.add("hidden");
+        guestForm.classList.add("hidden");
         return;
     }
 
@@ -493,10 +608,18 @@ async function handleCreateEvent(event) {
     }
 
     const name = eventNameInput.value.trim();
-    const date = eventDateInput.value || null;
+    const startDate = eventStartDateInput.value;
+    const endDate = eventEndDateInput.value;
 
     if (!name) {
         showMessage("Enter an event name.", "error");
+        return;
+    }
+
+    const dateValidationError = validateEventPeriod(startDate, endDate);
+
+    if (dateValidationError) {
+        showMessage(dateValidationError, "error");
         return;
     }
 
@@ -504,14 +627,18 @@ async function handleCreateEvent(event) {
 
     try {
         const slug = createSlug(name);
+        const storageFolder = `${createStorageFolderName(name)}-${createNumericSuffix()}`;
 
         const { error } = await supabase
             .from("events")
             .insert({
                 owner_id: currentSession.user.id,
                 name,
-                date,
+                date: startDate,
+                start_date: startDate,
+                end_date: endDate,
                 slug,
+                storage_folder: storageFolder,
                 status: "active"
             });
 
@@ -521,6 +648,7 @@ async function handleCreateEvent(event) {
         }
 
         eventForm.reset();
+        closeCreateEventModal();
         showMessage("Event created.", "success");
         await loadEvents();
     } catch (error) {
@@ -538,12 +666,14 @@ async function loadEvents() {
 
     eventsCount.textContent = "Loading events...";
     eventsList.innerHTML = "";
+    await syncExpiredEvents();
 
     const { data, error } = await supabase
         .from("events")
-        .select("id,name,date,slug,status,created_at")
+        .select("id,name,date,start_date,end_date,slug,status,storage_folder,created_at")
         .eq("owner_id", currentSession.user.id)
         .neq("status", "deleted")
+        .gte("end_date", getIsoDate(addDays(new Date(), -3)))
         .order("created_at", { ascending: false });
 
     if (error) {
@@ -587,7 +717,8 @@ function renderEvents(events) {
         const card = document.createElement("article");
         card.className = "event-card";
 
-        const eventDate = event.date ? formatDate(event.date) : "No date set";
+        const eventDate = formatEventDateRange(event);
+        const displayStatus = getDisplayEventStatus(event);
 
         card.innerHTML = `
             <div class="event-card-info">
@@ -604,7 +735,8 @@ function renderEvents(events) {
         card.dataset.eventId = event.id;
         card.querySelector("h3").textContent = event.name;
         card.querySelector("p").textContent = eventDate;
-        card.querySelector(".status-pill").textContent = formatStatus(event.status);
+        card.querySelector(".status-pill").textContent = formatStatus(displayStatus);
+        card.querySelector(".status-pill").classList.toggle("is-inactive", displayStatus !== "active");
         card.querySelector(".open-event-button").textContent = "Open";
         card.querySelector(".delete-event-button").textContent = "Delete";
         fragment.appendChild(card);
@@ -674,12 +806,11 @@ async function showEventDetail(eventData) {
 
     eventsListHeader.classList.add("hidden");
     eventsList.classList.add("hidden");
-    eventForm.classList.add("hidden");
     eventDetail.classList.remove("hidden");
 
     eventDetailTitle.textContent = eventData.name;
-    eventDetailDate.textContent = eventData.date ? formatDate(eventData.date) : "No date set";
-    eventDetailStatus.textContent = formatStatus(eventData.status);
+    eventDetailDate.textContent = formatEventDateRange(eventData);
+    eventDetailStatus.textContent = formatStatus(getDisplayEventStatus(eventData));
     eventDetailUrl.textContent = eventUrl;
 
     await renderQrCode(eventUrl);
@@ -694,7 +825,6 @@ function showEventsList() {
     galleryCount.textContent = "";
     downloadGalleryButton.disabled = true;
     eventDetail.classList.add("hidden");
-    eventForm.classList.remove("hidden");
     eventsListHeader.classList.remove("hidden");
     eventsList.classList.remove("hidden");
 }
@@ -1103,7 +1233,7 @@ function validatePhoto(file) {
 
 function createStoragePath(file) {
     const extension = getFileExtension(file);
-    const eventFolder = `${createStorageFolderName(selectedEvent.name)}-${createDeterministicSuffix(selectedEvent.id)}`;
+    const eventFolder = selectedEvent.storage_folder || `${createStorageFolderName(selectedEvent.name)}-${createDeterministicSuffix(selectedEvent.id)}`;
     const guestBaseName = createStorageFolderName(currentGuest.name);
     const guestSuffix = currentGuest.folder_suffix || createNumericSuffix();
     currentGuest.folder_suffix = guestSuffix;
@@ -1336,6 +1466,41 @@ function formatDate(dateValue) {
     }).format(new Date(`${dateValue}T00:00:00`));
 }
 
+function formatEventDateRange(eventData) {
+    const startDate = eventData.start_date || eventData.date;
+    const endDate = eventData.end_date || eventData.date || startDate;
+
+    if (!startDate) {
+        return "No date set";
+    }
+
+    if (!endDate || startDate === endDate) {
+        return formatDate(startDate);
+    }
+
+    return `${formatDate(startDate)} - ${formatDate(endDate)}`;
+}
+
+function isEventOpenForGuests(eventData) {
+    if (eventData.status !== "active") {
+        return false;
+    }
+
+    const today = getIsoDate(new Date());
+    const startDate = eventData.start_date || eventData.date;
+    const endDate = eventData.end_date || eventData.date || startDate;
+
+    return Boolean(startDate && endDate && today >= startDate && today <= endDate);
+}
+
+function getDisplayEventStatus(eventData) {
+    if (eventData.status === "deleted") {
+        return "deleted";
+    }
+
+    return isEventOpenForGuests(eventData) ? "active" : "inactive";
+}
+
 function formatDateTime(dateValue) {
     return new Intl.DateTimeFormat("en-GB", {
         year: "numeric",
@@ -1351,7 +1516,32 @@ function formatStatus(status) {
         return "Unknown";
     }
 
-    return status.charAt(0).toUpperCase() + status.slice(1);
+    const labels = {
+        active: "Active",
+        inactive: "Inactive",
+        deleted: "Deleted"
+    };
+
+    return labels[status] || status.charAt(0).toUpperCase() + status.slice(1);
+}
+
+function getIsoDate(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+}
+
+function addDays(date, days) {
+    const result = new Date(date);
+    result.setDate(result.getDate() + days);
+    return result;
+}
+
+function getDateDiffInDays(startDate, endDate) {
+    const start = new Date(`${startDate}T00:00:00`);
+    const end = new Date(`${endDate}T00:00:00`);
+    return Math.round((end - start) / 86400000);
 }
 
 function formatFileSize(bytes) {

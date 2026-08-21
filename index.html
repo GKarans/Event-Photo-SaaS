@@ -64,25 +64,13 @@
                     <h1 id="dashboard-title">Welcome!</h1>
                     <p class="subtitle" id="user-email"></p>
                 </div>
-                <button class="icon-button" id="logout-button" type="button" aria-label="Logout" title="Logout">
-                    <span aria-hidden="true">⎋</span>
-                </button>
-            </div>
-
-            <form class="event-form" id="event-form">
-                <div class="section-heading">
-                    <h2>Create Event</h2>
-                    <p>Create an event and share its QR link with guests.</p>
+                <div class="dashboard-actions">
+                    <button class="primary-button compact-button" id="open-create-event-button" type="button">Create Event</button>
+                    <button class="icon-button" id="logout-button" type="button" aria-label="Logout" title="Logout">
+                        <span aria-hidden="true">⎋</span>
+                    </button>
                 </div>
-
-                <label for="event-name">Event name</label>
-                <input id="event-name" type="text" autocomplete="off" maxlength="80" required>
-
-                <label for="event-date">Date</label>
-                <input id="event-date" type="date">
-
-                <button class="primary-button" id="create-event-button" type="submit">Create Event</button>
-            </form>
+            </div>
 
             <section class="events-section" aria-labelledby="events-title">
                 <div class="section-heading" id="events-list-header">
@@ -177,6 +165,40 @@
 
         <div class="message hidden" id="message" role="status" aria-live="polite"></div>
     </main>
+
+    <dialog class="event-dialog" id="create-event-modal">
+        <form class="event-form modal-form" id="event-form">
+            <div class="modal-header">
+                <div class="section-heading">
+                    <h2>Create Event</h2>
+                    <p>Create an event period. Guest upload is available only during that period.</p>
+                </div>
+                <button class="icon-button modal-close" id="close-create-event-button" type="button" aria-label="Close create event">
+                    <span aria-hidden="true">×</span>
+                </button>
+            </div>
+
+            <label for="event-name">Event name</label>
+            <input id="event-name" type="text" autocomplete="off" maxlength="80" required>
+
+            <div class="date-grid">
+                <div>
+                    <label for="event-start-date">Start date</label>
+                    <input id="event-start-date" type="date" required>
+                </div>
+                <div>
+                    <label for="event-end-date">End date</label>
+                    <input id="event-end-date" type="date" required>
+                </div>
+            </div>
+            <p class="field-hint">Maximum event period is 3 days. Past dates are not allowed.</p>
+
+            <div class="modal-actions">
+                <button class="secondary-button" id="cancel-create-event-button" type="button">Cancel</button>
+                <button class="primary-button" id="create-event-button" type="submit">Create Event</button>
+            </div>
+        </form>
+    </dialog>
 
     <dialog class="photo-dialog" id="photo-dialog">
         <button class="icon-button dialog-close" id="close-preview-button" type="button" aria-label="Close preview">

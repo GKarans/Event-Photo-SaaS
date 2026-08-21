@@ -1,5 +1,5 @@
 -- Event Photo SaaS MVP schema
--- Run this in Supabase SQL Editor after creating the project.
+-- Run this full script in Supabase SQL Editor after creating the project.
 
 create extension if not exists pgcrypto;
 
@@ -22,10 +22,86 @@ create table if not exists public.events (
     owner_id uuid not null references public.users(id) on delete cascade,
     name text not null,
     date date,
+    start_date date,
+    end_date date,
+    storage_folder text,
     slug text not null unique,
     status text not null default 'active' check (status in ('active', 'inactive', 'deleted')),
     created_at timestamptz not null default now()
 );
+
+alter table public.events
+add column if not exists start_date date;
+
+alter table public.events
+add column if not exists end_date date;
+
+alter table public.events
+add column if not exists storage_folder text;
+
+update public.events
+set start_date = coalesce(start_date, date, current_date),
+    end_date = coalesce(end_date, date, start_date, current_date),
+    date = coalesce(date, start_date, current_date),
+    storage_folder = coalesce(storage_folder, slug)
+where start_date is null
+   or end_date is null
+   or date is null
+   or storage_folder is null;
+
+alter table public.events
+alter column start_date set not null;
+
+alter table public.events
+alter column end_date set not null;
+
+alter table public.events
+alter column storage_folder set not null;
+
+do $$
+begin
+    if not exists (
+        select 1
+        from pg_constraint
+        where conname = 'events_date_order_check'
+          and conrelid = 'public.events'::regclass
+    ) then
+        alter table public.events
+        add constraint events_date_order_check
+        check (end_date >= start_date);
+    end if;
+end;
+$$;
+
+do $$
+begin
+    if not exists (
+        select 1
+        from pg_constraint
+        where conname = 'events_max_three_days_check'
+          and conrelid = 'public.events'::regclass
+    ) then
+        alter table public.events
+        add constraint events_max_three_days_check
+        check (end_date <= start_date + 2);
+    end if;
+end;
+$$;
+
+do $$
+begin
+    if not exists (
+        select 1
+        from pg_constraint
+        where conname = 'events_storage_folder_unique'
+          and conrelid = 'public.events'::regclass
+    ) then
+        alter table public.events
+        add constraint events_storage_folder_unique
+        unique (storage_folder);
+    end if;
+end;
+$$;
 
 create table if not exists public.guests (
     id uuid primary key default gen_random_uuid(),
@@ -50,6 +126,7 @@ create table if not exists public.media (
 
 create index if not exists events_owner_id_idx on public.events(owner_id);
 create index if not exists events_slug_idx on public.events(slug);
+create index if not exists events_period_idx on public.events(start_date, end_date);
 create index if not exists guests_event_id_idx on public.guests(event_id);
 create index if not exists media_event_id_idx on public.media(event_id);
 create index if not exists media_guest_id_idx on public.media(guest_id);
@@ -122,20 +199,33 @@ drop policy if exists "Guests can read active event landing pages" on public.eve
 create policy "Guests can read active event landing pages"
 on public.events for select
 to anon
-using (status = 'active');
+using (
+    status = 'active'
+    and current_date >= start_date
+    and current_date <= end_date
+);
 
 drop policy if exists "Organizers can create own events" on public.events;
 create policy "Organizers can create own events"
 on public.events for insert
 to authenticated
-with check (owner_id = auth.uid());
+with check (
+    owner_id = auth.uid()
+    and start_date >= current_date
+    and end_date >= start_date
+    and end_date <= start_date + 2
+);
 
 drop policy if exists "Organizers can update own events" on public.events;
 create policy "Organizers can update own events"
 on public.events for update
 to authenticated
 using (owner_id = auth.uid())
-with check (owner_id = auth.uid());
+with check (
+    owner_id = auth.uid()
+    and end_date >= start_date
+    and end_date <= start_date + 2
+);
 
 drop policy if exists "Organizers can read guests for own events" on public.guests;
 create policy "Organizers can read guests for own events"
@@ -160,6 +250,8 @@ with check (
         from public.events
         where events.id = guests.event_id
           and events.status = 'active'
+          and current_date >= events.start_date
+          and current_date <= events.end_date
     )
 );
 
@@ -209,6 +301,8 @@ with check (
         from public.events
         where events.id = media.event_id
           and events.status = 'active'
+          and current_date >= events.start_date
+          and current_date <= events.end_date
     )
 );
 
@@ -229,7 +323,17 @@ drop policy if exists "Guests can upload event photos" on storage.objects;
 create policy "Guests can upload event photos"
 on storage.objects for insert
 to anon, authenticated
-with check (bucket_id = 'event-photos');
+with check (
+    bucket_id = 'event-photos'
+    and exists (
+        select 1
+        from public.events
+        where events.storage_folder = (storage.foldername(storage.objects.name))[1]
+          and events.status = 'active'
+          and current_date >= events.start_date
+          and current_date <= events.end_date
+    )
+);
 
 drop policy if exists "Organizers can read own event photos" on storage.objects;
 create policy "Organizers can read own event photos"

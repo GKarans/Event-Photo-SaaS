@@ -62,6 +62,12 @@ input {
     gap: 16px;
 }
 
+.dashboard-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
 .eyebrow {
     margin: 0 0 8px;
     color: var(--accent);
@@ -122,12 +128,6 @@ h1 {
 .register-fields {
     display: grid;
     gap: 10px;
-}
-
-.event-form {
-    margin-bottom: 28px;
-    padding-bottom: 24px;
-    border-bottom: 1px solid var(--line);
 }
 
 .section-heading {
@@ -332,6 +332,11 @@ button.is-loading::before,
     text-transform: uppercase;
 }
 
+.status-pill.is-inactive {
+    background: rgba(93, 107, 100, 0.14);
+    color: var(--muted);
+}
+
 code {
     display: block;
     max-width: 100%;
@@ -356,6 +361,50 @@ code {
 .event-detail {
     display: grid;
     gap: 18px;
+}
+
+.event-dialog {
+    width: min(92vw, 560px);
+    border: 0;
+    border-radius: 8px;
+    padding: 0;
+    background: var(--surface);
+    box-shadow: 0 24px 80px rgba(23, 33, 29, 0.24);
+}
+
+.event-dialog::backdrop {
+    background: rgba(23, 33, 29, 0.62);
+}
+
+.modal-form {
+    gap: 12px;
+    margin: 0;
+    padding: 20px;
+}
+
+.modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+.modal-close {
+    width: 40px;
+    min-height: 40px;
+    flex-basis: 40px;
+}
+
+.date-grid,
+.modal-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.date-grid > div {
+    display: grid;
+    gap: 10px;
 }
 
 .event-detail-heading {
@@ -651,7 +700,19 @@ code {
         padding: 20px;
     }
 
+    .dashboard-header,
+    .dashboard-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+        width: 100%;
+    }
+
     .action-row {
+        grid-template-columns: 1fr;
+    }
+
+    .date-grid,
+    .modal-actions {
         grid-template-columns: 1fr;
     }
 
