@@ -64,18 +64,18 @@
                     <h1 id="dashboard-title">Welcome!</h1>
                     <p class="subtitle" id="user-email"></p>
                 </div>
-                <div class="dashboard-actions">
-                    <button class="primary-button compact-button" id="open-create-event-button" type="button">Create Event</button>
-                    <button class="icon-button" id="logout-button" type="button" aria-label="Logout" title="Logout">
-                        <span aria-hidden="true">⎋</span>
-                    </button>
-                </div>
+                <button class="icon-button" id="logout-button" type="button" aria-label="Logout" title="Logout">
+                    <span aria-hidden="true">⎋</span>
+                </button>
             </div>
 
             <section class="events-section" aria-labelledby="events-title">
-                <div class="section-heading" id="events-list-header">
-                    <h2 id="events-title">My Events</h2>
-                    <p id="events-count">Loading events...</p>
+                <div class="section-heading events-header" id="events-list-header">
+                    <div>
+                        <h2 id="events-title">My Events</h2>
+                        <p id="events-count">Loading events...</p>
+                    </div>
+                    <button class="primary-button compact-button" id="open-create-event-button" type="button">Create Event</button>
                 </div>
 
                 <div class="events-list" id="events-list"></div>

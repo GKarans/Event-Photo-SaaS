@@ -62,12 +62,6 @@ input {
     gap: 16px;
 }
 
-.dashboard-actions {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
 .eyebrow {
     margin: 0 0 8px;
     color: var(--accent);
@@ -149,6 +143,12 @@ h1 {
 }
 
 .gallery-heading {
+    grid-template-columns: 1fr auto;
+    align-items: end;
+    gap: 12px;
+}
+
+.events-header {
     grid-template-columns: 1fr auto;
     align-items: end;
     gap: 12px;
@@ -700,8 +700,7 @@ code {
         padding: 20px;
     }
 
-    .dashboard-header,
-    .dashboard-actions {
+    .dashboard-header {
         display: grid;
         grid-template-columns: 1fr;
         width: 100%;
@@ -717,6 +716,10 @@ code {
     }
 
     .gallery-heading {
+        grid-template-columns: 1fr;
+    }
+
+    .events-header {
         grid-template-columns: 1fr;
     }
 
