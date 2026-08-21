@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="lv">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,27 +15,27 @@
                 <p class="eyebrow">Photo-only MVP</p>
                 <h1>Event Photo SaaS</h1>
                 <p class="subtitle">
-                    Organizators izveido pasākumu, viesi augšupielādē foto ar QR saiti.
+                    Create an event, share a QR code, and collect guest photos in one private gallery.
                 </p>
             </div>
 
-            <div class="mode-tabs" role="tablist" aria-label="Autentifikācijas režīms">
+            <div class="mode-tabs" role="tablist" aria-label="Authentication mode">
                 <button class="mode-tab is-active" id="login-tab" type="button">Login</button>
                 <button class="mode-tab" id="register-tab" type="button">Register</button>
             </div>
 
             <form class="auth-form" id="auth-form">
-                <label for="email">E-pasts</label>
+                <label for="email">Email</label>
                 <input id="email" type="email" autocomplete="email" required>
 
-                <label for="password">Parole</label>
+                <label for="password">Password</label>
                 <input id="password" type="password" autocomplete="current-password" minlength="6" required>
 
                 <button class="primary-button" id="submit-button" type="submit">Login</button>
             </form>
 
             <p class="form-hint" id="form-hint">
-                Pieslēdzies kā organizators, lai vēlāk pārvaldītu savus pasākumus.
+                Log in as an organizer to manage your events and photo galleries.
             </p>
         </section>
 
@@ -43,7 +43,7 @@
             <div class="dashboard-header">
                 <div>
                     <p class="eyebrow">Organizer dashboard</p>
-                    <h1>Sveiks!</h1>
+                    <h1>Welcome!</h1>
                     <p class="subtitle" id="user-email"></p>
                 </div>
                 <button class="icon-button" id="logout-button" type="button" aria-label="Logout" title="Logout">
@@ -54,13 +54,13 @@
             <form class="event-form" id="event-form">
                 <div class="section-heading">
                     <h2>Create Event</h2>
-                    <p>Izveido pasākumu, kuram vēlāk pieslēgsim QR saiti.</p>
+                    <p>Create an event and share its QR link with guests.</p>
                 </div>
 
-                <label for="event-name">Pasākuma nosaukums</label>
+                <label for="event-name">Event name</label>
                 <input id="event-name" type="text" autocomplete="off" maxlength="80" required>
 
-                <label for="event-date">Datums</label>
+                <label for="event-date">Date</label>
                 <input id="event-date" type="date">
 
                 <button class="primary-button" id="create-event-button" type="submit">Create Event</button>
@@ -69,7 +69,7 @@
             <section class="events-section" aria-labelledby="events-title">
                 <div class="section-heading" id="events-list-header">
                     <h2 id="events-title">My Events</h2>
-                    <p id="events-count">Ielādējam pasākumus...</p>
+                    <p id="events-count">Loading events...</p>
                 </div>
 
                 <div class="events-list" id="events-list"></div>
@@ -77,16 +77,18 @@
                 <section class="event-detail hidden" id="event-detail" aria-labelledby="event-detail-title">
                     <button class="text-action" id="back-to-events-button" type="button">Back to events</button>
 
-                    <div class="section-heading">
-                        <h2 id="event-detail-title"></h2>
-                        <p id="event-detail-date"></p>
-                    </div>
-
-                    <div class="detail-grid">
+                    <div class="section-heading event-detail-heading">
                         <div>
+                            <h2 id="event-detail-title"></h2>
+                            <p id="event-detail-date"></p>
+                        </div>
+                        <div class="status-card">
                             <span>Status</span>
                             <strong id="event-detail-status"></strong>
                         </div>
+                    </div>
+
+                    <div class="detail-grid">
                         <div>
                             <span>Guest URL</span>
                             <code id="event-detail-url"></code>
@@ -106,7 +108,7 @@
                         <div class="section-heading gallery-heading">
                             <div>
                                 <h2 id="gallery-title">Gallery</h2>
-                                <p id="gallery-count">Ielādējam foto...</p>
+                                <p id="gallery-count">Loading photos...</p>
                             </div>
                             <button class="secondary-button compact-button" id="download-gallery-button" type="button" disabled>Download All</button>
                         </div>
@@ -120,14 +122,14 @@
         <section class="guest-panel hidden" id="guest-panel">
             <div class="brand">
                 <p class="eyebrow">Event photos</p>
-                <h1 id="guest-event-title">Pasākums</h1>
+                <h1 id="guest-event-title">Event</h1>
                 <p class="subtitle" id="guest-event-date"></p>
             </div>
 
             <form class="guest-form" id="guest-form">
-                <label for="guest-name">Tavs vārds un uzvārds</label>
+                <label for="guest-name">Your first and last name</label>
                 <input id="guest-name" type="text" autocomplete="name" maxlength="80" required>
-                <p class="field-hint">Tas palīdzēs organizatoram saprast, kurš uzņēma foto.</p>
+                <p class="field-hint">This helps the organizer know who took each photo.</p>
 
                 <button class="primary-button" id="guest-start-button" type="submit">Start</button>
             </form>
@@ -135,7 +137,7 @@
             <div class="photo-panel hidden" id="photo-panel">
                 <div class="guest-toolbar">
                     <div>
-                        <span>Fotografē:</span>
+                        <span>Taking photos as:</span>
                         <strong id="guest-display-name"></strong>
                     </div>
                     <button class="text-action" id="change-guest-button" type="button">Change</button>

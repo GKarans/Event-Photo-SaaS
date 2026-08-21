@@ -118,8 +118,8 @@ function setAuthMode(mode) {
     registerTab.classList.toggle("is-active", !isLogin);
     submitButton.textContent = isLogin ? "Login" : "Register";
     formHint.textContent = isLogin
-        ? "Pieslēdzies kā organizators, lai vēlāk pārvaldītu savus pasākumus."
-        : "Izveido organizatora kontu. Ja Supabase prasa e-pasta apstiprinājumu, pārbaudi inbox.";
+        ? "Log in as an organizer to manage your events and photo galleries."
+        : "Create an organizer account. If email confirmation is enabled, check your inbox.";
 
     hideMessage();
 }
@@ -131,12 +131,12 @@ async function handleAuthSubmit(event) {
     const password = document.getElementById("password").value;
 
     if (!email || !password) {
-        showMessage("Ievadi e-pastu un paroli.", "error");
+        showMessage("Enter your email and password.", "error");
         return;
     }
 
     const defaultText = authMode === "login" ? "Login" : "Register";
-    setButtonLoading(submitButton, true, authMode === "login" ? "Pieslēdzam..." : "Reģistrējam...");
+    setButtonLoading(submitButton, true, authMode === "login" ? "Logging in..." : "Registering...");
 
     try {
         const { data, error } = authMode === "login"
@@ -149,14 +149,14 @@ async function handleAuthSubmit(event) {
         }
 
         if (authMode === "register" && !data.session) {
-            showMessage("Konts izveidots. Pārbaudi e-pastu un apstiprini reģistrāciju.", "success");
+            showMessage("Account created. Check your email to confirm registration.", "success");
             return;
         }
 
-        showMessage("Autentifikācija izdevās.", "success");
+        showMessage("Authentication successful.", "success");
     } catch (error) {
         console.error("Auth request error", error);
-        showMessage("Neizdevās sazināties ar autentifikācijas servisu. Pārbaudi internetu un mēģini vēlreiz.", "error");
+        showMessage("Could not reach the authentication service. Check your connection and try again.", "error");
     } finally {
         setButtonLoading(submitButton, false, defaultText);
     }
@@ -169,14 +169,14 @@ async function handleLogout() {
         const { error } = await supabase.auth.signOut();
 
         if (error) {
-            showMessage("Neizdevās izrakstīties. Mēģini vēlreiz.", "error");
+            showMessage("Could not log out. Try again.", "error");
             return;
         }
 
-        showMessage("Tu esi izrakstījies.", "success");
+        showMessage("You are logged out.", "success");
     } catch (error) {
         console.error("Logout request error", error);
-        showMessage("Izrakstīšanās neizdevās interneta savienojuma dēļ.", "error");
+        showMessage("Logout failed because of a connection problem.", "error");
     } finally {
         setButtonLoading(logoutButton, false, "⎋");
     }
@@ -206,7 +206,7 @@ async function renderGuestRoute(slug) {
     guestPanel.classList.remove("hidden");
     hideMessage();
 
-    guestEventTitle.textContent = "Ielādējam pasākumu...";
+    guestEventTitle.textContent = "Loading event...";
     guestEventDate.textContent = "";
 
     const { data, error } = await supabase
@@ -217,21 +217,21 @@ async function renderGuestRoute(slug) {
         .maybeSingle();
 
     if (error) {
-        guestEventTitle.textContent = "Neizdevās ielādēt pasākumu";
+        guestEventTitle.textContent = "Could not load event";
         showMessage(toFriendlyDatabaseError(error.message), "error");
         return;
     }
 
     if (!data) {
-        guestEventTitle.textContent = "Pasākums nav atrasts";
-        guestEventDate.textContent = "Pārbaudi QR kodu vai saiti.";
+        guestEventTitle.textContent = "Event not found";
+        guestEventDate.textContent = "Check the QR code or link.";
         guestForm.classList.add("hidden");
         return;
     }
 
     selectedEvent = data;
     guestEventTitle.textContent = data.name;
-    guestEventDate.textContent = data.date ? formatDate(data.date) : "Foto augšupielāde viesiem";
+    guestEventDate.textContent = data.date ? formatDate(data.date) : "Guest photo upload";
 
     const savedGuest = loadSavedGuest(data.slug);
 
@@ -247,17 +247,17 @@ async function handleGuestStart(event) {
     const guestName = guestNameInput.value.trim();
 
     if (!guestName) {
-        showMessage("Ievadi savu vārdu.", "error");
+        showMessage("Enter your name.", "error");
         return;
     }
 
     if (!selectedEvent?.id) {
-        showMessage("Pasākums nav ielādēts. Atsvaidzini lapu un mēģini vēlreiz.", "error");
+        showMessage("The event is not loaded. Refresh the page and try again.", "error");
         return;
     }
 
     const startButton = document.getElementById("guest-start-button");
-    setButtonLoading(startButton, true, "Sagatavojam...");
+    setButtonLoading(startButton, true, "Preparing...");
 
     try {
         const guestId = createClientId();
@@ -283,10 +283,10 @@ async function handleGuestStart(event) {
         };
         saveGuest(selectedEvent.slug, currentGuest);
         showPhotoPanel(currentGuest.name);
-        showMessage("Vari sākt uzņemt foto.", "success");
+        showMessage("You can start taking photos.", "success");
     } catch (error) {
         console.error("Guest start error", error);
-        showMessage("Neizdevās sagatavot viesa sesiju. Pārbaudi internetu un mēģini vēlreiz.", "error");
+        showMessage("Could not prepare your guest session. Check your connection and try again.", "error");
     } finally {
         setButtonLoading(startButton, false, "Start");
     }
@@ -314,7 +314,7 @@ async function handlePhotoSelected() {
     }
 
     if (!selectedEvent?.id || !currentGuest?.id) {
-        showMessage("Pirms foto uzņemšanas ievadi savu vārdu.", "error");
+        showMessage("Enter your name before taking photos.", "error");
         return;
     }
 
@@ -325,8 +325,8 @@ async function handlePhotoSelected() {
         return;
     }
 
-    setButtonLoading(takePhotoButton, true, "Augšupielādējam...");
-    showUploadState("Augšupielādējam foto...", "loading");
+    setButtonLoading(takePhotoButton, true, "Uploading...");
+    showUploadState("Uploading photo...", "loading");
 
     try {
         const storagePath = createStoragePath(file);
@@ -342,12 +342,12 @@ async function handlePhotoSelected() {
 
         if (uploadError) {
             console.error("Storage upload error", uploadError);
-            showUploadState("Upload neizdevās.", "error");
+            showUploadState("Upload failed.", "error");
             showMessage(toFriendlyStorageError(uploadError.message), "error");
             return;
         }
 
-        showUploadState("Foto augšupielādēts. Saglabājam metadatus...", "loading");
+        showUploadState("Photo uploaded. Saving gallery details...", "loading");
 
         const { error: mediaError } = await supabase
             .from("media")
@@ -362,17 +362,17 @@ async function handlePhotoSelected() {
 
         if (mediaError) {
             console.error("Media insert error", mediaError);
-            showUploadState("Foto fails saglabāts, bet galerijas ierakstu neizdevās izveidot.", "error");
+            showUploadState("The photo file was saved, but the gallery record could not be created.", "error");
             showMessage(toFriendlyDatabaseError(mediaError.message), "error");
             return;
         }
 
-        showUploadState("Photo uploaded! Vari uzņemt nākamo foto.", "success");
+        showUploadState("Photo uploaded. You can take another photo.", "success");
         showMessage("Photo uploaded!", "success");
     } catch (error) {
         console.error("Photo upload request error", error);
-        showUploadState("Upload neizdevās.", "error");
-        showMessage("Foto augšupielāde pārtrūka. Pārbaudi internetu un mēģini vēlreiz.", "error");
+        showUploadState("Upload failed.", "error");
+        showMessage("Photo upload failed. Check your connection and try again.", "error");
     } finally {
         setButtonLoading(takePhotoButton, false, "Take Photo");
     }
@@ -382,7 +382,7 @@ async function handleCreateEvent(event) {
     event.preventDefault();
 
     if (!currentSession?.user) {
-        showMessage("Lai izveidotu pasākumu, vispirms pieslēdzies.", "error");
+        showMessage("Log in before creating an event.", "error");
         return;
     }
 
@@ -390,11 +390,11 @@ async function handleCreateEvent(event) {
     const date = eventDateInput.value || null;
 
     if (!name) {
-        showMessage("Ievadi pasākuma nosaukumu.", "error");
+        showMessage("Enter an event name.", "error");
         return;
     }
 
-    setButtonLoading(createEventButton, true, "Saglabājam...");
+    setButtonLoading(createEventButton, true, "Saving...");
 
     try {
         const slug = createSlug(name);
@@ -415,11 +415,11 @@ async function handleCreateEvent(event) {
         }
 
         eventForm.reset();
-        showMessage("Pasākums izveidots.", "success");
+        showMessage("Event created.", "success");
         await loadEvents();
     } catch (error) {
         console.error("Create event error", error);
-        showMessage("Pasākumu neizdevās izveidot. Pārbaudi internetu un mēģini vēlreiz.", "error");
+        showMessage("Could not create the event. Check your connection and try again.", "error");
     } finally {
         setButtonLoading(createEventButton, false, "Create Event");
     }
@@ -430,17 +430,18 @@ async function loadEvents() {
         return;
     }
 
-    eventsCount.textContent = "Ielādējam pasākumus...";
+    eventsCount.textContent = "Loading events...";
     eventsList.innerHTML = "";
 
     const { data, error } = await supabase
         .from("events")
         .select("id,name,date,slug,status,created_at")
         .eq("owner_id", currentSession.user.id)
+        .neq("status", "deleted")
         .order("created_at", { ascending: false });
 
     if (error) {
-        eventsCount.textContent = "Pasākumus neizdevās ielādēt.";
+        eventsCount.textContent = "Could not load events.";
         showMessage(toFriendlyDatabaseError(error.message), "error");
         return;
     }
@@ -462,17 +463,17 @@ function renderEvents(events) {
     }
 
     if (!events.length) {
-        eventsCount.textContent = "Tev vēl nav pasākumu.";
+        eventsCount.textContent = "You do not have any events yet.";
         eventsList.innerHTML = `
             <div class="empty-state">
-                <strong>Nav izveidotu pasākumu</strong>
-                <span>Sāc ar pirmo pasākumu, lai vēlāk ģenerētu QR kodu.</span>
+                <strong>No events yet</strong>
+                <span>Create your first event to generate a guest link and QR code.</span>
             </div>
         `;
         return;
     }
 
-    eventsCount.textContent = `${events.length} pasākums${events.length === 1 ? "" : "i"}`;
+    eventsCount.textContent = `${events.length} event${events.length === 1 ? "" : "s"}`;
 
     const fragment = document.createDocumentFragment();
 
@@ -480,35 +481,36 @@ function renderEvents(events) {
         const card = document.createElement("article");
         card.className = "event-card";
 
-        const eventUrl = `${window.location.origin}/event/${event.slug}`;
-        const eventDate = event.date ? formatDate(event.date) : "Datums nav norādīts";
+        const eventDate = event.date ? formatDate(event.date) : "No date set";
 
         card.innerHTML = `
-            <div>
+            <div class="event-card-info">
                 <h3></h3>
                 <p></p>
             </div>
-            <div class="event-meta">
-                <span class="status-pill"></span>
-                <code></code>
+            <div class="event-card-actions">
+                <button class="secondary-button compact-button open-event-button" type="button"></button>
+                <button class="danger-button compact-button delete-event-button" type="button"></button>
             </div>
-            <button class="secondary-button open-event-button" type="button"></button>
+            <span class="status-pill"></span>
         `;
 
         card.dataset.eventId = event.id;
         card.querySelector("h3").textContent = event.name;
         card.querySelector("p").textContent = eventDate;
-        card.querySelector(".status-pill").textContent = event.status;
-        card.querySelector("code").textContent = eventUrl;
+        card.querySelector(".status-pill").textContent = formatStatus(event.status);
         card.querySelector(".open-event-button").textContent = "Open";
+        card.querySelector(".delete-event-button").textContent = "Delete";
         fragment.appendChild(card);
     }
 
     eventsList.appendChild(fragment);
 }
 
-function handleEventsListClick(event) {
-    const button = event.target.closest(".open-event-button");
+async function handleEventsListClick(event) {
+    const openButton = event.target.closest(".open-event-button");
+    const deleteButton = event.target.closest(".delete-event-button");
+    const button = openButton || deleteButton;
 
     if (!button) {
         return;
@@ -518,11 +520,46 @@ function handleEventsListClick(event) {
     const eventData = currentEvents.find(item => item.id === card?.dataset.eventId);
 
     if (!eventData) {
-        showMessage("Pasākumu neizdevās atrast sarakstā.", "error");
+        showMessage("Could not find this event in the list.", "error");
+        return;
+    }
+
+    if (deleteButton) {
+        await handleDeleteEvent(eventData, deleteButton);
         return;
     }
 
     showEventDetail(eventData);
+}
+
+async function handleDeleteEvent(eventData, button) {
+    const confirmed = window.confirm(`Delete "${eventData.name}"? Guests will no longer be able to upload photos to this event.`);
+
+    if (!confirmed) {
+        return;
+    }
+
+    setButtonLoading(button, true, "Deleting...");
+
+    try {
+        const { error } = await supabase
+            .from("events")
+            .update({ status: "deleted" })
+            .eq("id", eventData.id);
+
+        if (error) {
+            showMessage(toFriendlyDatabaseError(error.message), "error");
+            return;
+        }
+
+        showMessage("Event deleted.", "success");
+        await loadEvents();
+    } catch (error) {
+        console.error("Event delete error", error);
+        showMessage("Could not delete the event. Check your connection and try again.", "error");
+    } finally {
+        setButtonLoading(button, false, "Delete");
+    }
 }
 
 async function showEventDetail(eventData) {
@@ -535,8 +572,8 @@ async function showEventDetail(eventData) {
     eventDetail.classList.remove("hidden");
 
     eventDetailTitle.textContent = eventData.name;
-    eventDetailDate.textContent = eventData.date ? formatDate(eventData.date) : "Datums nav norādīts";
-    eventDetailStatus.textContent = eventData.status;
+    eventDetailDate.textContent = eventData.date ? formatDate(eventData.date) : "No date set";
+    eventDetailStatus.textContent = formatStatus(eventData.status);
     eventDetailUrl.textContent = eventUrl;
 
     await renderQrCode(eventUrl);
@@ -557,7 +594,7 @@ function showEventsList() {
 }
 
 async function loadGallery(eventId) {
-    galleryCount.textContent = "Ielādējam foto...";
+    galleryCount.textContent = "Loading photos...";
     galleryGrid.innerHTML = "";
     currentGalleryPhotos = [];
     downloadGalleryButton.disabled = true;
@@ -579,17 +616,17 @@ async function loadGallery(eventId) {
         .order("created_at", { ascending: false });
 
     if (error) {
-        galleryCount.textContent = "Foto neizdevās ielādēt.";
+        galleryCount.textContent = "Could not load photos.";
         showMessage(toFriendlyDatabaseError(error.message), "error");
         return;
     }
 
     if (!data?.length) {
-        galleryCount.textContent = "Šim pasākumam vēl nav foto.";
+        galleryCount.textContent = "No photos yet.";
         galleryGrid.innerHTML = `
             <div class="empty-state gallery-empty">
-                <strong>Nav foto</strong>
-                <span>Kad viesi augšupielādēs foto, tie parādīsies šeit.</span>
+                <strong>No photos</strong>
+                <span>Guest uploads will appear here.</span>
             </div>
         `;
         return;
@@ -635,18 +672,18 @@ function renderGallery(photos, unavailableCount = 0) {
     galleryGrid.innerHTML = "";
 
     if (!photos.length) {
-        galleryCount.textContent = "Šim pasākumam vēl nav foto.";
+        galleryCount.textContent = "No photos yet.";
         downloadGalleryButton.disabled = true;
         galleryGrid.innerHTML = `
             <div class="empty-state gallery-empty">
-                <strong>Nav pieejamu foto</strong>
-                <span>Kad viesi augšupielādēs foto, tie parādīsies šeit.</span>
+                <strong>No available photos</strong>
+                <span>Guest uploads will appear here.</span>
             </div>
         `;
         return;
     }
 
-    galleryCount.textContent = `${photos.length} foto`;
+    galleryCount.textContent = `${photos.length} photo${photos.length === 1 ? "" : "s"}`;
     downloadGalleryButton.disabled = false;
 
     const fragment = document.createDocumentFragment();
@@ -658,7 +695,7 @@ function renderGallery(photos, unavailableCount = 0) {
         button.dataset.photoId = photo.id;
         button.dataset.photoIndex = String(index);
 
-        const guestName = photo.guests?.name || "Nezināms viesis";
+        const guestName = photo.guests?.name || "Unknown guest";
         const uploadedAt = formatDateTime(photo.created_at);
 
         button.innerHTML = `
@@ -669,7 +706,7 @@ function renderGallery(photos, unavailableCount = 0) {
         const thumbWrap = button.querySelector(".thumb-wrap");
         const image = document.createElement("img");
         image.src = photo.signedUrl;
-        image.alt = `${guestName} foto`;
+        image.alt = `${guestName} photo`;
         image.loading = "lazy";
         thumbWrap.appendChild(image);
 
@@ -682,14 +719,14 @@ function renderGallery(photos, unavailableCount = 0) {
 
 async function handleDownloadGallery() {
     if (!currentGalleryPhotos.length) {
-        showMessage("Galerijā vēl nav foto lejupielādei.", "error");
+        showMessage("There are no photos to download yet.", "error");
         return;
     }
 
     const ZipLibrary = window.JSZip;
 
     if (!ZipLibrary) {
-        showMessage("ZIP bibliotēku neizdevās ielādēt. Pārbaudi interneta savienojumu.", "error");
+        showMessage("Could not load the ZIP library. Check your connection.", "error");
         return;
     }
 
@@ -717,10 +754,10 @@ async function handleDownloadGallery() {
         const objectUrl = URL.createObjectURL(zipBlob);
         triggerDownload(objectUrl, getGalleryZipFileName());
         setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
-        showMessage("Galerijas ZIP lejupielāde sākta.", "success");
+        showMessage("Gallery ZIP download started.", "success");
     } catch (error) {
         console.error("Gallery download error", error);
-        showMessage("Galerijas ZIP neizdevās sagatavot. Pamēģini vēlreiz pēc brīža.", "error");
+        showMessage("Could not prepare the gallery ZIP. Try again in a moment.", "error");
     } finally {
         downloadGalleryButton.disabled = !currentGalleryPhotos.length;
         downloadGalleryButton.textContent = "Download All";
@@ -738,7 +775,7 @@ function handleGalleryClick(event) {
     const photo = currentGalleryPhotos[photoIndex];
 
     if (!photo?.signedUrl) {
-        showMessage("Foto priekšskatījums nav pieejams.", "error");
+        showMessage("Photo preview is not available.", "error");
         return;
     }
 
@@ -753,10 +790,10 @@ function openPhotoPreview(photoIndex) {
     }
 
     currentPreviewIndex = photoIndex;
-    const guestName = photo.guests?.name || "Nezināms viesis";
+    const guestName = photo.guests?.name || "Unknown guest";
 
     previewImage.src = photo.signedUrl;
-    previewImage.alt = `${guestName} foto`;
+    previewImage.alt = `${guestName} photo`;
     previewTitle.textContent = guestName;
     previewSubtitle.textContent = `${formatDateTime(photo.created_at)} · ${formatFileSize(photo.file_size)}`;
     updatePreviewNavigation();
@@ -818,7 +855,7 @@ async function handleDownloadPhoto() {
     const photo = currentGalleryPhotos[currentPreviewIndex];
 
     if (!photo?.signedUrl) {
-        showMessage("Lejupielādējamo foto neizdevās atrast.", "error");
+        showMessage("Could not find the photo to download.", "error");
         return;
     }
 
@@ -836,11 +873,11 @@ async function handleDownloadPhoto() {
         const objectUrl = URL.createObjectURL(blob);
         triggerDownload(objectUrl, fileName);
         setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
-        showMessage("Foto lejupielāde sākta.", "success");
+        showMessage("Photo download started.", "success");
     } catch (error) {
         console.error("Photo download error", error);
         triggerDownload(photo.signedUrl, fileName);
-        showMessage("Atvērām foto lejupielādei. Ja pārlūks to atver jaunā skatā, saglabā no turienes.", "success");
+        showMessage("Opened the photo for download. If your browser opens it in a new view, save it from there.", "success");
     } finally {
         setButtonLoading(downloadPhotoButton, false, "Download Photo");
     }
@@ -850,11 +887,11 @@ async function handleDeletePhoto() {
     const photo = currentGalleryPhotos[currentPreviewIndex];
 
     if (!photo || !selectedEvent?.id) {
-        showMessage("Dzēšamo foto neizdevās atrast.", "error");
+        showMessage("Could not find the photo to delete.", "error");
         return;
     }
 
-    const confirmed = window.confirm("Dzēst šo foto no galerijas?");
+    const confirmed = window.confirm("Delete this photo from the gallery?");
 
     if (!confirmed) {
         return;
@@ -882,17 +919,17 @@ async function handleDeletePhoto() {
         if (mediaError) {
             console.error("Media delete error", mediaError);
             closePhotoPreview();
-            showMessage("Storage fails izdzēsts, bet galerijas statusu neizdevās atjaunot.", "error");
+            showMessage("The Storage file was deleted, but the gallery status could not be updated.", "error");
             await loadGallery(selectedEvent.id);
             return;
         }
 
         closePhotoPreview();
-        showMessage("Foto izdzēsts.", "success");
+        showMessage("Photo deleted.", "success");
         await loadGallery(selectedEvent.id);
     } catch (error) {
         console.error("Photo delete request error", error);
-        showMessage("Foto dzēšana neizdevās. Pārbaudi internetu un mēģini vēlreiz.", "error");
+        showMessage("Could not delete the photo. Check your connection and try again.", "error");
     } finally {
         setButtonLoading(deletePhotoButton, false, "Delete Photo");
     }
@@ -902,7 +939,7 @@ async function renderQrCode(value) {
     const createQrCode = window.qrcode;
 
     if (!createQrCode) {
-        showMessage("QR bibliotēku neizdevās ielādēt. Pārbaudi interneta savienojumu.", "error");
+        showMessage("Could not load the QR library. Check your connection.", "error");
         return;
     }
 
@@ -921,9 +958,9 @@ async function handleCopyEventLink() {
 
     try {
         await navigator.clipboard.writeText(eventUrl);
-        showMessage("Event saite nokopēta.", "success");
+        showMessage("Event link copied.", "success");
     } catch (_error) {
-        showMessage("Neizdevās nokopēt saiti. Iezīmē un nokopē URL manuāli.", "error");
+        showMessage("Could not copy the link. Select and copy the URL manually.", "error");
     }
 }
 
@@ -948,11 +985,11 @@ function showPhotoPanel(guestName) {
 
 function validatePhoto(file) {
     if (!file.type.startsWith("image/")) {
-        return "Atļauti tikai foto faili.";
+        return "Only photo files are allowed.";
     }
 
     if (file.size > MAX_PHOTO_SIZE) {
-        return "Foto ir pārāk liels. Maksimālais izmērs ir 10 MB.";
+        return "The photo is too large. Maximum size is 10 MB.";
     }
 
     return "";
@@ -1062,56 +1099,56 @@ function toFriendlyAuthError(message) {
     }
 
     if (normalized.includes("password")) {
-        return "Parole neatbilst prasībām. Izmanto vismaz 6 simbolus.";
+        return "Password does not meet the requirements. Use at least 6 characters.";
     }
 
     if (normalized.includes("email")) {
-        return "Pārbaudi e-pasta adresi vai apstiprinājuma statusu.";
+        return "Check the email address or confirmation status.";
     }
 
-    return "Autentifikācija neizdevās. Mēģini vēlreiz.";
+    return "Authentication failed. Try again.";
 }
 
 function toFriendlyDatabaseError(message) {
     const normalized = message.toLowerCase();
 
     if (normalized.includes("duplicate") || normalized.includes("unique")) {
-        return "Šāds pasākuma URL jau eksistē. Pamēģini nedaudz citu nosaukumu.";
+        return "This event URL already exists. Try a slightly different event name.";
     }
 
     if (normalized.includes("violates foreign key")) {
-        return "Lietotāja profils datubāzē vēl nav sagatavots. Palaid atjaunoto Supabase SQL shēmu un mēģini vēlreiz.";
+        return "The user profile is not ready in the database yet. Run the updated Supabase SQL schema and try again.";
     }
 
     if (normalized.includes("row-level security")) {
-        return "Datubāzes drošības noteikumi neļāva šo darbību. Pārbaudi, vai Supabase SQL shēma ir palaista.";
+        return "Database security rules blocked this action. Check that the Supabase SQL schema has been applied.";
     }
 
-    return "Datu saglabāšana neizdevās. Pārbaudi Supabase konfigurāciju un mēģini vēlreiz.";
+    return "Could not save the data. Check Supabase configuration and try again.";
 }
 
 function toFriendlyStorageError(message) {
     const normalized = message.toLowerCase();
 
     if (normalized.includes("row-level security") || normalized.includes("unauthorized")) {
-        return "Storage drošības noteikumi neļāva augšupielādi. Pārbaudi, vai Supabase SQL shēma ir atjaunota.";
+        return "Storage security rules blocked the upload. Check that the Supabase SQL schema is updated.";
     }
 
     if (normalized.includes("exceeded") || normalized.includes("too large")) {
-        return "Foto ir pārāk liels. Maksimālais izmērs ir 10 MB.";
+        return "The photo is too large. Maximum size is 10 MB.";
     }
 
-    return "Foto augšupielāde neizdevās. Pārbaudi interneta savienojumu un mēģini vēlreiz.";
+    return "Photo upload failed. Check your connection and try again.";
 }
 
 function toFriendlyStorageDeleteError(message) {
     const normalized = message.toLowerCase();
 
     if (normalized.includes("row-level security") || normalized.includes("unauthorized")) {
-        return "Storage drošības noteikumi neļāva dzēst šo foto. Pārbaudi Supabase Storage politikas.";
+        return "Storage security rules blocked photo deletion. Check Supabase Storage policies.";
     }
 
-    return "Storage failu neizdevās izdzēst. Pārbaudi internetu un mēģini vēlreiz.";
+    return "Could not delete the Storage file. Check your connection and try again.";
 }
 
 function createSlug(name) {
@@ -1186,7 +1223,7 @@ function getEventSlugFromPath() {
 }
 
 function formatDate(dateValue) {
-    return new Intl.DateTimeFormat("lv-LV", {
+    return new Intl.DateTimeFormat("en-GB", {
         year: "numeric",
         month: "long",
         day: "numeric"
@@ -1194,13 +1231,21 @@ function formatDate(dateValue) {
 }
 
 function formatDateTime(dateValue) {
-    return new Intl.DateTimeFormat("lv-LV", {
+    return new Intl.DateTimeFormat("en-GB", {
         year: "numeric",
         month: "2-digit",
         day: "2-digit",
         hour: "2-digit",
         minute: "2-digit"
     }).format(new Date(dateValue));
+}
+
+function formatStatus(status) {
+    if (!status) {
+        return "Unknown";
+    }
+
+    return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
 function formatFileSize(bytes) {

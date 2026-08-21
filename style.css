@@ -221,6 +221,10 @@ input:focus {
     color: #fff;
 }
 
+.danger-button.compact-button {
+    width: auto;
+}
+
 .icon-button {
     width: 48px;
     flex: 0 0 48px;
@@ -290,7 +294,9 @@ button.is-loading::before,
 
 .event-card {
     display: grid;
-    gap: 12px;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 10px;
 }
 
 .event-card h3 {
@@ -304,8 +310,9 @@ button.is-loading::before,
     color: var(--muted);
 }
 
-.event-meta {
+.event-card-actions {
     display: grid;
+    grid-template-columns: repeat(2, minmax(76px, auto));
     gap: 8px;
 }
 
@@ -344,6 +351,28 @@ code {
 .event-detail {
     display: grid;
     gap: 18px;
+}
+
+.event-detail-heading {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 16px;
+}
+
+.status-card {
+    display: grid;
+    gap: 6px;
+    min-width: 86px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px;
+    background: #fff;
+}
+
+.status-card span {
+    color: var(--muted);
+    font-size: 0.86rem;
+    font-weight: 700;
 }
 
 .text-action {
@@ -622,6 +651,18 @@ code {
     }
 
     .gallery-heading {
+        grid-template-columns: 1fr;
+    }
+
+    .event-card {
+        grid-template-columns: 1fr;
+    }
+
+    .event-card-actions {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .event-detail-heading {
         grid-template-columns: 1fr;
     }
 
