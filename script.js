@@ -82,6 +82,7 @@ let selectedEvent = null;
 let currentGuest = null;
 let currentGalleryPhotos = [];
 let currentPreviewIndex = -1;
+let previewTouchStartX = 0;
 const activeEventSlug = getEventSlugFromPath();
 const isAuthConfirmationRoute = window.location.pathname === "/auth/confirmed";
 
@@ -107,6 +108,9 @@ previewNextButton.addEventListener("click", () => showAdjacentPhoto(1));
 downloadPhotoButton.addEventListener("click", handleDownloadPhoto);
 deletePhotoButton.addEventListener("click", handleDeletePhoto);
 photoDialog.addEventListener("click", handlePreviewBackdropClick);
+photoDialog.addEventListener("close", () => document.body.classList.remove("is-dialog-open"));
+photoDialog.addEventListener("touchstart", handlePreviewTouchStart, { passive: true });
+photoDialog.addEventListener("touchend", handlePreviewTouchEnd);
 document.addEventListener("keydown", handlePreviewKeydown);
 guestForm.addEventListener("submit", handleGuestStart);
 changeGuestButton.addEventListener("click", handleChangeGuest);
@@ -547,7 +551,7 @@ async function handlePhotoSelected() {
     }
 
     setButtonLoading(takePhotoButton, true, "Uploading...");
-    showUploadState("Uploading photo...", "loading");
+    showUploadState("Uploading photo. Keep this page open.", "loading");
 
     try {
         const storagePath = createStoragePath(file);
@@ -1039,6 +1043,8 @@ function openPhotoPreview(photoIndex) {
     } else if (!photoDialog.open) {
         photoDialog.setAttribute("open", "");
     }
+
+    document.body.classList.add("is-dialog-open");
 }
 
 function showAdjacentPhoto(direction) {
@@ -1065,6 +1071,7 @@ function closePhotoPreview() {
 
     previewImage.src = "";
     currentPreviewIndex = -1;
+    document.body.classList.remove("is-dialog-open");
 }
 
 function handlePreviewBackdropClick(event) {
@@ -1085,6 +1092,25 @@ function handlePreviewKeydown(event) {
     if (event.key === "ArrowRight") {
         showAdjacentPhoto(1);
     }
+
+    if (event.key === "Escape") {
+        closePhotoPreview();
+    }
+}
+
+function handlePreviewTouchStart(event) {
+    previewTouchStartX = event.changedTouches?.[0]?.clientX || 0;
+}
+
+function handlePreviewTouchEnd(event) {
+    const endX = event.changedTouches?.[0]?.clientX || 0;
+    const distance = endX - previewTouchStartX;
+
+    if (Math.abs(distance) < 48 || currentGalleryPhotos.length < 2) {
+        return;
+    }
+
+    showAdjacentPhoto(distance > 0 ? -1 : 1);
 }
 
 async function handleDownloadPhoto() {
