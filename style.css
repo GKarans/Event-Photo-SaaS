@@ -26,7 +26,8 @@ body {
 }
 
 button,
-input {
+input,
+select {
     font: inherit;
 }
 
@@ -180,7 +181,8 @@ label {
     font-weight: 700;
 }
 
-input {
+input,
+select {
     width: 100%;
     min-height: 48px;
     border: 1px solid var(--line);
@@ -191,7 +193,8 @@ input {
     font-size: 16px;
 }
 
-input:focus {
+input:focus,
+select:focus {
     border-color: var(--accent);
     outline: 3px solid rgba(31, 122, 90, 0.14);
 }
@@ -331,7 +334,7 @@ button.is-loading::before,
 
 .event-card-actions {
     display: grid;
-    grid-template-columns: repeat(2, minmax(76px, auto));
+    grid-template-columns: repeat(4, minmax(76px, auto));
     gap: 8px;
 }
 
@@ -512,6 +515,22 @@ code {
     display: grid;
     gap: 14px;
     padding-top: 4px;
+}
+
+.gallery-controls {
+    display: grid;
+    grid-template-columns: auto minmax(130px, 1fr) auto minmax(130px, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+}
+
+.gallery-controls label {
+    font-size: 0.82rem;
+}
+
+.gallery-controls select {
+    min-height: 40px;
+    padding: 0 10px;
 }
 
 .gallery-grid {
@@ -793,6 +812,10 @@ code {
 
     .gallery-grid {
         gap: 6px;
+    }
+
+    .gallery-controls {
+        grid-template-columns: 1fr;
     }
 
     .gallery-item span {

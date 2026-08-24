@@ -33,6 +33,8 @@ const messageBox = document.getElementById("message");
 const openCreateEventButton = document.getElementById("open-create-event-button");
 const createEventModal = document.getElementById("create-event-modal");
 const eventForm = document.getElementById("event-form");
+const eventModalTitle = document.getElementById("event-modal-title");
+const eventModalDescription = document.getElementById("event-modal-description");
 const eventNameInput = document.getElementById("event-name");
 const eventStartDateInput = document.getElementById("event-start-date");
 const eventEndDateInput = document.getElementById("event-end-date");
@@ -49,11 +51,16 @@ const eventDetailDate = document.getElementById("event-detail-date");
 const eventDetailStatus = document.getElementById("event-detail-status");
 const eventDetailUrl = document.getElementById("event-detail-url");
 const qrImage = document.getElementById("qr-image");
+const editEventButton = document.getElementById("edit-event-button");
+const toggleEventStatusButton = document.getElementById("toggle-event-status-button");
 const copyEventLinkButton = document.getElementById("copy-event-link-button");
 const downloadQrButton = document.getElementById("download-qr-button");
 const galleryGrid = document.getElementById("gallery-grid");
 const galleryCount = document.getElementById("gallery-count");
 const downloadGalleryButton = document.getElementById("download-gallery-button");
+const galleryGuestFilter = document.getElementById("gallery-guest-filter");
+const gallerySort = document.getElementById("gallery-sort");
+const clearGalleryFiltersButton = document.getElementById("clear-gallery-filters-button");
 const photoDialog = document.getElementById("photo-dialog");
 const closePreviewButton = document.getElementById("close-preview-button");
 const previewPrevButton = document.getElementById("preview-prev-button");
@@ -80,6 +87,8 @@ let currentSession = null;
 let currentEvents = [];
 let selectedEvent = null;
 let currentGuest = null;
+let editingEventId = "";
+let allGalleryPhotos = [];
 let currentGalleryPhotos = [];
 let currentPreviewIndex = -1;
 let previewTouchStartX = 0;
@@ -99,8 +108,13 @@ eventStartDateInput.addEventListener("change", handleEventStartDateChange);
 eventsList.addEventListener("click", handleEventsListClick);
 backToEventsButton.addEventListener("click", showEventsList);
 copyEventLinkButton.addEventListener("click", handleCopyEventLink);
+editEventButton.addEventListener("click", handleEditSelectedEvent);
+toggleEventStatusButton.addEventListener("click", handleToggleSelectedEventStatus);
 downloadQrButton.addEventListener("click", handleDownloadQr);
 downloadGalleryButton.addEventListener("click", handleDownloadGallery);
+galleryGuestFilter.addEventListener("change", applyGalleryControls);
+gallerySort.addEventListener("change", applyGalleryControls);
+clearGalleryFiltersButton.addEventListener("click", handleClearGalleryFilters);
 galleryGrid.addEventListener("click", handleGalleryClick);
 closePreviewButton.addEventListener("click", closePhotoPreview);
 previewPrevButton.addEventListener("click", () => showAdjacentPhoto(-1));
@@ -426,14 +440,17 @@ function handleChangeGuest() {
 }
 
 function openCreateEventModal() {
+    editingEventId = "";
+    eventModalTitle.textContent = "Create Event";
+    eventModalDescription.textContent = "Create an event period. Guest upload is available only during that period.";
+    createEventButton.textContent = "Create Event";
+    eventForm.reset();
     setEventDateLimits();
     hideMessage();
 
-    if (!eventStartDateInput.value) {
-        const today = getIsoDate(new Date());
-        eventStartDateInput.value = today;
-        eventEndDateInput.value = today;
-    }
+    const today = getIsoDate(new Date());
+    eventStartDateInput.value = today;
+    eventEndDateInput.value = today;
 
     if (createEventModal.showModal) {
         createEventModal.showModal();
@@ -452,6 +469,7 @@ function closeCreateEventModal() {
     }
 
     setButtonLoading(createEventButton, false, "Create Event");
+    editingEventId = "";
 }
 
 function setEventDateLimits() {
@@ -468,14 +486,95 @@ function handleEventStartDateChange() {
     }
 }
 
-function validateEventPeriod(startDate, endDate) {
+function openEditEventModal(eventData) {
+    editingEventId = eventData.id;
+    eventModalTitle.textContent = "Edit Event";
+    eventModalDescription.textContent = "Update the event name, date period, or guest upload window.";
+    createEventButton.textContent = "Save Event";
+    eventNameInput.value = eventData.name || "";
+    eventStartDateInput.value = eventData.start_date || eventData.date || getIsoDate(new Date());
+    eventEndDateInput.value = eventData.end_date || eventData.date || eventStartDateInput.value;
+    setEventDateLimits();
+    eventEndDateInput.min = eventStartDateInput.value || getIsoDate(new Date());
+    hideMessage();
+
+    if (createEventModal.showModal) {
+        createEventModal.showModal();
+    } else {
+        createEventModal.setAttribute("open", "");
+    }
+
+    eventNameInput.focus();
+}
+
+function handleEditSelectedEvent() {
+    if (!selectedEvent) {
+        showMessage("Open an event before editing it.", "error");
+        return;
+    }
+
+    openEditEventModal(selectedEvent);
+}
+
+async function handleToggleSelectedEventStatus() {
+    if (!selectedEvent) {
+        showMessage("Open an event before changing its status.", "error");
+        return;
+    }
+
+    await handleToggleEventStatus(selectedEvent, toggleEventStatusButton);
+}
+
+async function handleToggleEventStatus(eventData, button) {
+    const nextStatus = eventData.status === "inactive" ? "active" : "inactive";
+
+    if (nextStatus === "active" && getIsoDate(new Date()) > (eventData.end_date || eventData.date)) {
+        showMessage("This event period has ended. Edit the period before activating it.", "error");
+        return;
+    }
+
+    const label = nextStatus === "active" ? "Activating..." : "Deactivating...";
+    setButtonLoading(button, true, label);
+
+    try {
+        const { error } = await supabase
+            .from("events")
+            .update({ status: nextStatus })
+            .eq("id", eventData.id);
+
+        if (error) {
+            showMessage(toFriendlyDatabaseError(error.message), "error");
+            return;
+        }
+
+        showMessage(nextStatus === "active" ? "Event activated." : "Event deactivated.", "success");
+        await loadEvents();
+
+        if (selectedEvent?.id === eventData.id) {
+            const updatedEvent = currentEvents.find(item => item.id === eventData.id);
+
+            if (updatedEvent) {
+                await showEventDetail(updatedEvent);
+            } else {
+                showEventsList();
+            }
+        }
+    } catch (error) {
+        console.error("Event status update error", error);
+        showMessage("Could not update event status. Check your connection and try again.", "error");
+    } finally {
+        setButtonLoading(button, false, nextStatus === "active" ? "Activate" : "Deactivate");
+    }
+}
+
+function validateEventPeriod(startDate, endDate, options = {}) {
     if (!startDate || !endDate) {
         return "Choose the event start and end date.";
     }
 
     const today = getIsoDate(new Date());
 
-    if (startDate < today || endDate < today) {
+    if ((!options.allowPastStart && startDate < today) || endDate < today) {
         return "Past dates are not allowed.";
     }
 
@@ -620,7 +719,11 @@ async function handleCreateEvent(event) {
         return;
     }
 
-    const dateValidationError = validateEventPeriod(startDate, endDate);
+    const isEditing = Boolean(editingEventId);
+    const eventIdBeingEdited = editingEventId;
+    const dateValidationError = validateEventPeriod(startDate, endDate, {
+        allowPastStart: isEditing
+    });
 
     if (dateValidationError) {
         showMessage(dateValidationError, "error");
@@ -630,21 +733,29 @@ async function handleCreateEvent(event) {
     setButtonLoading(createEventButton, true, "Saving...");
 
     try {
-        const slug = createSlug(name);
-        const storageFolder = `${createStorageFolderName(name)}-${createNumericSuffix()}`;
+        const payload = {
+            name,
+            date: startDate,
+            start_date: startDate,
+            end_date: endDate
+        };
 
-        const { error } = await supabase
-            .from("events")
-            .insert({
-                owner_id: currentSession.user.id,
-                name,
-                date: startDate,
-                start_date: startDate,
-                end_date: endDate,
-                slug,
-                storage_folder: storageFolder,
-                status: "active"
-            });
+        const request = isEditing
+            ? supabase
+                .from("events")
+                .update(payload)
+                .eq("id", eventIdBeingEdited)
+            : supabase
+                .from("events")
+                .insert({
+                    ...payload,
+                    owner_id: currentSession.user.id,
+                    slug: createSlug(name),
+                    storage_folder: `${createStorageFolderName(name)}-${createNumericSuffix()}`,
+                    status: "active"
+                });
+
+        const { error } = await request;
 
         if (error) {
             showMessage(toFriendlyDatabaseError(error.message), "error");
@@ -653,13 +764,21 @@ async function handleCreateEvent(event) {
 
         eventForm.reset();
         closeCreateEventModal();
-        showMessage("Event created.", "success");
+        showMessage(isEditing ? "Event updated." : "Event created.", "success");
         await loadEvents();
+
+        if (isEditing && selectedEvent?.id === eventIdBeingEdited) {
+            const updatedEvent = currentEvents.find(item => item.id === eventIdBeingEdited);
+
+            if (updatedEvent) {
+                await showEventDetail(updatedEvent);
+            }
+        }
     } catch (error) {
-        console.error("Create event error", error);
-        showMessage("Could not create the event. Check your connection and try again.", "error");
+        console.error("Save event error", error);
+        showMessage("Could not save the event. Check your connection and try again.", "error");
     } finally {
-        setButtonLoading(createEventButton, false, "Create Event");
+        setButtonLoading(createEventButton, false, isEditing ? "Save Event" : "Create Event");
     }
 }
 
@@ -731,6 +850,8 @@ function renderEvents(events) {
             </div>
             <div class="event-card-actions">
                 <button class="secondary-button compact-button open-event-button" type="button"></button>
+                <button class="secondary-button compact-button edit-event-button" type="button"></button>
+                <button class="secondary-button compact-button toggle-event-status-card-button" type="button"></button>
                 <button class="danger-button compact-button delete-event-button" type="button"></button>
             </div>
             <span class="status-pill"></span>
@@ -742,6 +863,8 @@ function renderEvents(events) {
         card.querySelector(".status-pill").textContent = formatStatus(displayStatus);
         card.querySelector(".status-pill").classList.toggle("is-inactive", displayStatus !== "active");
         card.querySelector(".open-event-button").textContent = "Open";
+        card.querySelector(".edit-event-button").textContent = "Edit";
+        card.querySelector(".toggle-event-status-card-button").textContent = event.status === "inactive" ? "Activate" : "Deactivate";
         card.querySelector(".delete-event-button").textContent = "Delete";
         fragment.appendChild(card);
     }
@@ -751,8 +874,10 @@ function renderEvents(events) {
 
 async function handleEventsListClick(event) {
     const openButton = event.target.closest(".open-event-button");
+    const editButton = event.target.closest(".edit-event-button");
+    const toggleStatusButton = event.target.closest(".toggle-event-status-card-button");
     const deleteButton = event.target.closest(".delete-event-button");
-    const button = openButton || deleteButton;
+    const button = openButton || editButton || toggleStatusButton || deleteButton;
 
     if (!button) {
         return;
@@ -768,6 +893,16 @@ async function handleEventsListClick(event) {
 
     if (deleteButton) {
         await handleDeleteEvent(eventData, deleteButton);
+        return;
+    }
+
+    if (editButton) {
+        openEditEventModal(eventData);
+        return;
+    }
+
+    if (toggleStatusButton) {
+        await handleToggleEventStatus(eventData, toggleStatusButton);
         return;
     }
 
@@ -815,6 +950,7 @@ async function showEventDetail(eventData) {
     eventDetailTitle.textContent = eventData.name;
     eventDetailDate.textContent = formatEventDateRange(eventData);
     eventDetailStatus.textContent = formatStatus(getDisplayEventStatus(eventData));
+    toggleEventStatusButton.textContent = eventData.status === "inactive" ? "Activate" : "Deactivate";
     eventDetailUrl.textContent = eventUrl;
 
     await renderQrCode(eventUrl);
@@ -823,10 +959,13 @@ async function showEventDetail(eventData) {
 
 function showEventsList() {
     selectedEvent = null;
+    allGalleryPhotos = [];
     currentGalleryPhotos = [];
     currentPreviewIndex = -1;
     galleryGrid.innerHTML = "";
     galleryCount.textContent = "";
+    galleryGuestFilter.innerHTML = '<option value="">All guests</option>';
+    gallerySort.value = "newest";
     downloadGalleryButton.disabled = true;
     eventDetail.classList.add("hidden");
     eventsListHeader.classList.remove("hidden");
@@ -862,6 +1001,10 @@ async function loadGallery(eventId) {
     }
 
     if (!data?.length) {
+        allGalleryPhotos = [];
+        currentGalleryPhotos = [];
+        galleryGuestFilter.innerHTML = '<option value="">All guests</option>';
+        gallerySort.value = "newest";
         galleryCount.textContent = "No photos yet.";
         galleryGrid.innerHTML = `
             <div class="empty-state gallery-empty">
@@ -874,9 +1017,9 @@ async function loadGallery(eventId) {
 
     const signedPhotos = await createSignedGalleryPhotos(data);
     const availablePhotos = signedPhotos.filter(photo => photo.signedUrl);
-    const unavailableCount = signedPhotos.length - availablePhotos.length;
-    currentGalleryPhotos = availablePhotos;
-    renderGallery(availablePhotos, unavailableCount);
+    allGalleryPhotos = availablePhotos;
+    populateGalleryGuestFilter(availablePhotos);
+    applyGalleryControls();
 }
 
 async function createSignedGalleryPhotos(photos) {
@@ -908,22 +1051,74 @@ async function createSignedGalleryPhotos(photos) {
     return signedPhotos;
 }
 
-function renderGallery(photos, unavailableCount = 0) {
+function populateGalleryGuestFilter(photos) {
+    const previousValue = galleryGuestFilter.value;
+    const guestNames = [...new Set(photos.map(photo => photo.guests?.name || "Unknown guest"))]
+        .sort((a, b) => a.localeCompare(b));
+
+    galleryGuestFilter.innerHTML = '<option value="">All guests</option>';
+
+    for (const guestName of guestNames) {
+        const option = document.createElement("option");
+        option.value = guestName;
+        option.textContent = guestName;
+        galleryGuestFilter.appendChild(option);
+    }
+
+    if (guestNames.includes(previousValue)) {
+        galleryGuestFilter.value = previousValue;
+    }
+}
+
+function applyGalleryControls() {
+    const selectedGuest = galleryGuestFilter.value;
+    const sortMode = gallerySort.value;
+    let photos = [...allGalleryPhotos];
+
+    if (selectedGuest) {
+        photos = photos.filter(photo => (photo.guests?.name || "Unknown guest") === selectedGuest);
+    }
+
+    photos.sort((a, b) => {
+        if (sortMode === "oldest") {
+            return new Date(a.created_at) - new Date(b.created_at);
+        }
+
+        if (sortMode === "guest") {
+            const guestCompare = (a.guests?.name || "Unknown guest").localeCompare(b.guests?.name || "Unknown guest");
+            return guestCompare || new Date(b.created_at) - new Date(a.created_at);
+        }
+
+        return new Date(b.created_at) - new Date(a.created_at);
+    });
+
+    currentGalleryPhotos = photos;
+    renderGallery(photos);
+}
+
+function handleClearGalleryFilters() {
+    galleryGuestFilter.value = "";
+    gallerySort.value = "newest";
+    applyGalleryControls();
+}
+
+function renderGallery(photos) {
     galleryGrid.innerHTML = "";
 
     if (!photos.length) {
-        galleryCount.textContent = "No photos yet.";
+        galleryCount.textContent = allGalleryPhotos.length ? "No photos match this filter." : "No photos yet.";
         downloadGalleryButton.disabled = true;
         galleryGrid.innerHTML = `
             <div class="empty-state gallery-empty">
-                <strong>No available photos</strong>
-                <span>Guest uploads will appear here.</span>
+                <strong>${allGalleryPhotos.length ? "No matching photos" : "No available photos"}</strong>
+                <span>${allGalleryPhotos.length ? "Clear filters or choose another guest." : "Guest uploads will appear here."}</span>
             </div>
         `;
         return;
     }
 
-    galleryCount.textContent = `${photos.length} photo${photos.length === 1 ? "" : "s"}`;
+    const filterSuffix = photos.length === allGalleryPhotos.length ? "" : ` of ${allGalleryPhotos.length}`;
+    galleryCount.textContent = `${photos.length}${filterSuffix} photo${photos.length === 1 ? "" : "s"}`;
     downloadGalleryButton.disabled = false;
 
     const fragment = document.createDocumentFragment();

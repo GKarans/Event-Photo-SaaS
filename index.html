@@ -106,6 +106,8 @@
                     </div>
 
                     <div class="action-row">
+                        <button class="secondary-button" id="edit-event-button" type="button">Edit Event</button>
+                        <button class="secondary-button" id="toggle-event-status-button" type="button">Deactivate</button>
                         <button class="secondary-button" id="copy-event-link-button" type="button">Copy Link</button>
                         <button class="primary-button" id="download-qr-button" type="button">Download QR</button>
                     </div>
@@ -117,6 +119,22 @@
                                 <p id="gallery-count">Loading photos...</p>
                             </div>
                             <button class="secondary-button compact-button" id="download-gallery-button" type="button" disabled>Download All</button>
+                        </div>
+
+                        <div class="gallery-controls">
+                            <label for="gallery-guest-filter">Guest</label>
+                            <select id="gallery-guest-filter">
+                                <option value="">All guests</option>
+                            </select>
+
+                            <label for="gallery-sort">Sort</label>
+                            <select id="gallery-sort">
+                                <option value="newest">Newest first</option>
+                                <option value="oldest">Oldest first</option>
+                                <option value="guest">Guest name</option>
+                            </select>
+
+                            <button class="secondary-button compact-button" id="clear-gallery-filters-button" type="button">Clear</button>
                         </div>
 
                         <div class="gallery-grid" id="gallery-grid"></div>
@@ -171,8 +189,8 @@
         <form class="event-form modal-form" id="event-form">
             <div class="modal-header">
                 <div class="section-heading">
-                    <h2>Create Event</h2>
-                    <p>Create an event period. Guest upload is available only during that period.</p>
+                    <h2 id="event-modal-title">Create Event</h2>
+                    <p id="event-modal-description">Create an event period. Guest upload is available only during that period.</p>
                 </div>
                 <button class="icon-button modal-close" id="close-create-event-button" type="button" aria-label="Close create event">
                     <span aria-hidden="true">×</span>
