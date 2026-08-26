@@ -3,6 +3,14 @@
 
 create extension if not exists pgcrypto;
 
+create or replace function public.current_app_date()
+returns date
+language sql
+stable
+as $$
+    select (now() at time zone 'Europe/Riga')::date;
+$$;
+
 create table if not exists public.users (
     id uuid primary key references auth.users(id) on delete cascade,
     email text not null,
@@ -40,9 +48,9 @@ alter table public.events
 add column if not exists storage_folder text;
 
 update public.events
-set start_date = coalesce(start_date, date, current_date),
-    end_date = coalesce(end_date, date, start_date, current_date),
-    date = coalesce(date, start_date, current_date),
+set start_date = coalesce(start_date, date, public.current_app_date()),
+    end_date = coalesce(end_date, date, start_date, public.current_app_date()),
+    date = coalesce(date, start_date, public.current_app_date()),
     storage_folder = coalesce(storage_folder, slug)
 where start_date is null
    or end_date is null
@@ -201,8 +209,8 @@ on public.events for select
 to anon, authenticated
 using (
     status = 'active'
-    and current_date >= start_date
-    and current_date <= end_date
+    and public.current_app_date() >= start_date
+    and public.current_app_date() <= end_date
 );
 
 drop policy if exists "Organizers can create own events" on public.events;
@@ -211,7 +219,7 @@ on public.events for insert
 to authenticated
 with check (
     owner_id = auth.uid()
-    and start_date >= current_date
+    and start_date >= public.current_app_date()
     and end_date >= start_date
     and end_date <= start_date + 2
 );
@@ -250,8 +258,8 @@ with check (
         from public.events
         where events.id = guests.event_id
           and events.status = 'active'
-          and current_date >= events.start_date
-          and current_date <= events.end_date
+          and public.current_app_date() >= events.start_date
+          and public.current_app_date() <= events.end_date
     )
 );
 
@@ -301,8 +309,8 @@ with check (
         from public.events
         where events.id = media.event_id
           and events.status = 'active'
-          and current_date >= events.start_date
-          and current_date <= events.end_date
+          and public.current_app_date() >= events.start_date
+          and public.current_app_date() <= events.end_date
     )
 );
 
@@ -330,8 +338,8 @@ with check (
         from public.events
         where events.storage_folder = (storage.foldername(storage.objects.name))[1]
           and events.status = 'active'
-          and current_date >= events.start_date
-          and current_date <= events.end_date
+          and public.current_app_date() >= events.start_date
+          and public.current_app_date() <= events.end_date
     )
 );
 
