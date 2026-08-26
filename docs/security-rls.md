@@ -276,7 +276,7 @@ Frontend lietotājam nerāda stack trace vai sistēmas iekšējās kļūdas. Kļ
 - nav tiesību veikt darbību;
 - event link nav pieejams.
 
-Pašreizējais uzlabojamais punkts: daži RLS kļūdu teksti joprojām ir pārāk tehniski, piemēram “Database security rules blocked this action”. Tos vēlams aizstāt ar lietotājam saprotamākiem tekstiem, piemēram “This event is closed”.
+11. dienas UX uzlabojumā tehniskie RLS un Storage kļūdu teksti tika aizstāti ar lietotājam saprotamiem paziņojumiem, piemēram “This event is closed” vai “Photo upload is not available for this event right now”.
 
 ## Pašreizējie drošības ierobežojumi
 

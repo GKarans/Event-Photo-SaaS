@@ -351,13 +351,21 @@ async function renderGuestRoute(slug) {
 
     if (error) {
         guestEventTitle.textContent = "Could not load event";
-        showMessage(toFriendlyDatabaseError(error.message), "error");
+        showMessage(toFriendlyDatabaseError(error.message, "guest-load"), "error");
         return;
     }
 
-    if (!data || !isEventOpenForGuests(data)) {
+    if (!data) {
         guestEventTitle.textContent = "Event not found";
-        guestEventDate.textContent = "This event link is not available for photo upload.";
+        guestEventDate.textContent = "Check the QR code or link and try again.";
+        guestForm.classList.add("hidden");
+        photoPanel.classList.add("hidden");
+        return;
+    }
+
+    if (!isEventOpenForGuests(data)) {
+        guestEventTitle.textContent = "This event is closed";
+        guestEventDate.textContent = "Photo upload is not available for this event right now.";
         guestForm.classList.add("hidden");
         photoPanel.classList.add("hidden");
         return;
@@ -405,7 +413,7 @@ async function handleGuestStart(event) {
             });
 
         if (error) {
-            showMessage(toFriendlyDatabaseError(error.message), "error");
+            showMessage(toFriendlyDatabaseError(error.message, "guest-start"), "error");
             return;
         }
 
@@ -543,7 +551,7 @@ async function handleToggleEventStatus(eventData, button) {
             .eq("id", eventData.id);
 
         if (error) {
-            showMessage(toFriendlyDatabaseError(error.message), "error");
+            showMessage(toFriendlyDatabaseError(error.message, "organizer-event"), "error");
             return;
         }
 
@@ -667,7 +675,7 @@ async function handlePhotoSelected() {
         if (uploadError) {
             console.error("Storage upload error", uploadError);
             showUploadState("Upload failed.", "error");
-            showMessage(toFriendlyStorageError(uploadError.message), "error");
+            showMessage(toFriendlyStorageError(uploadError.message, "guest-upload"), "error");
             return;
         }
 
@@ -687,7 +695,7 @@ async function handlePhotoSelected() {
         if (mediaError) {
             console.error("Media insert error", mediaError);
             showUploadState("The photo file was saved, but the gallery record could not be created.", "error");
-            showMessage(toFriendlyDatabaseError(mediaError.message), "error");
+            showMessage(toFriendlyDatabaseError(mediaError.message, "guest-upload"), "error");
             return;
         }
 
@@ -758,7 +766,7 @@ async function handleCreateEvent(event) {
         const { error } = await request;
 
         if (error) {
-            showMessage(toFriendlyDatabaseError(error.message), "error");
+            showMessage(toFriendlyDatabaseError(error.message, "organizer-event"), "error");
             return;
         }
 
@@ -801,7 +809,7 @@ async function loadEvents() {
 
     if (error) {
         eventsCount.textContent = "Could not load events.";
-        showMessage(toFriendlyDatabaseError(error.message), "error");
+        showMessage(toFriendlyDatabaseError(error.message, "organizer-events"), "error");
         return;
     }
 
@@ -925,7 +933,7 @@ async function handleDeleteEvent(eventData, button) {
             .eq("id", eventData.id);
 
         if (error) {
-            showMessage(toFriendlyDatabaseError(error.message), "error");
+            showMessage(toFriendlyDatabaseError(error.message, "organizer-event"), "error");
             return;
         }
 
@@ -996,7 +1004,7 @@ async function loadGallery(eventId) {
 
     if (error) {
         galleryCount.textContent = "Could not load photos.";
-        showMessage(toFriendlyDatabaseError(error.message), "error");
+        showMessage(toFriendlyDatabaseError(error.message, "gallery"), "error");
         return;
     }
 
@@ -1566,7 +1574,7 @@ function toFriendlyAuthError(message) {
     return "Authentication failed. Try again.";
 }
 
-function toFriendlyDatabaseError(message) {
+function toFriendlyDatabaseError(message, context = "general") {
     const normalized = message.toLowerCase();
 
     if (normalized.includes("duplicate") || normalized.includes("unique")) {
@@ -1574,21 +1582,53 @@ function toFriendlyDatabaseError(message) {
     }
 
     if (normalized.includes("violates foreign key")) {
-        return "The user profile is not ready in the database yet. Run the updated Supabase SQL schema and try again.";
+        if (context.startsWith("guest")) {
+            return "This event is closed. Photo upload is not available right now.";
+        }
+
+        return "Your organizer profile is still being prepared. Log out, log in again, and try once more.";
     }
 
-    if (normalized.includes("row-level security")) {
-        return "Database security rules blocked this action. Check that the Supabase SQL schema has been applied.";
+    if (isPermissionError(normalized)) {
+        if (context === "guest-load") {
+            return "This event link is not available for photo upload.";
+        }
+
+        if (context === "guest-start" || context === "guest-upload") {
+            return "This event is closed. Photo upload is not available right now.";
+        }
+
+        if (context === "gallery") {
+            return "You do not have access to this gallery.";
+        }
+
+        if (context.startsWith("organizer")) {
+            return "You do not have permission to change this event. Refresh the page and try again.";
+        }
+
+        return "You do not have permission to perform this action.";
     }
 
-    return "Could not save the data. Check Supabase configuration and try again.";
+    if (context.startsWith("guest")) {
+        return "Could not continue. Refresh the event link and try again.";
+    }
+
+    if (context === "gallery") {
+        return "Could not load the gallery. Refresh the page and try again.";
+    }
+
+    return "Could not save the data. Check your connection and try again.";
 }
 
-function toFriendlyStorageError(message) {
+function toFriendlyStorageError(message, context = "general") {
     const normalized = message.toLowerCase();
 
-    if (normalized.includes("row-level security") || normalized.includes("unauthorized")) {
-        return "Storage security rules blocked the upload. Check that the Supabase SQL schema is updated.";
+    if (isPermissionError(normalized)) {
+        if (context === "guest-upload") {
+            return "This event is closed. Photo upload is not available right now.";
+        }
+
+        return "You do not have permission to upload photos here.";
     }
 
     if (normalized.includes("exceeded") || normalized.includes("too large")) {
@@ -1601,11 +1641,19 @@ function toFriendlyStorageError(message) {
 function toFriendlyStorageDeleteError(message) {
     const normalized = message.toLowerCase();
 
-    if (normalized.includes("row-level security") || normalized.includes("unauthorized")) {
-        return "Storage security rules blocked photo deletion. Check Supabase Storage policies.";
+    if (isPermissionError(normalized)) {
+        return "You do not have permission to delete this photo, or it has already been removed.";
     }
 
     return "Could not delete the Storage file. Check your connection and try again.";
+}
+
+function isPermissionError(normalizedMessage) {
+    return normalizedMessage.includes("row-level security")
+        || normalizedMessage.includes("unauthorized")
+        || normalizedMessage.includes("not authorized")
+        || normalizedMessage.includes("permission denied")
+        || normalizedMessage.includes("insufficient privilege");
 }
 
 function createSlug(name) {
