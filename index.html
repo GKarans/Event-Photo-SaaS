@@ -187,7 +187,7 @@
 
         <section class="guest-panel hidden" id="guest-panel">
             <div class="guest-cover" id="guest-cover"></div>
-            <p class="guest-product-mark">Event Photo SaaS</p>
+            <div class="guest-product-mark" aria-label="Event Photo SaaS"></div>
             <div class="brand">
                 <p class="eyebrow">Event photos</p>
                 <h1 id="guest-event-title">Event</h1>
@@ -282,6 +282,17 @@
                     <input id="guest-cover-input" type="file" accept="image/*">
                     <p class="field-hint">Optional image shown behind the guest welcome screen.</p>
 
+                    <div class="range-grid">
+                        <div>
+                            <label for="guest-cover-position-x">Horizontal position</label>
+                            <input id="guest-cover-position-x" type="range" min="0" max="100" value="50">
+                        </div>
+                        <div>
+                            <label for="guest-cover-position-y">Vertical position</label>
+                            <input id="guest-cover-position-y" type="range" min="0" max="100" value="50">
+                        </div>
+                    </div>
+
                     <label for="guest-design-title-input">Title</label>
                     <input id="guest-design-title-input" type="text" maxlength="80">
 
@@ -300,7 +311,7 @@
                 <div class="guest-design-preview" aria-label="Guest screen preview">
                     <div class="guest-preview-phone">
                         <div class="guest-preview-cover" id="guest-preview-cover"></div>
-                        <p class="guest-preview-mark">Event Photo SaaS</p>
+                        <div class="guest-preview-mark" aria-label="Event Photo SaaS"></div>
                         <div class="guest-preview-content">
                             <h3 id="guest-preview-title">Event</h3>
                             <p id="guest-preview-date"></p>

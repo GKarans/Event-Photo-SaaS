@@ -12,8 +12,8 @@ const THUMBNAIL_IMAGE_QUALITY = 0.72;
 const SIGNED_URL_EXPIRES_IN_SECONDS = 60 * 10;
 const GALLERY_CACHE_TTL_MS = 8 * 60 * 1000;
 const GALLERY_RENDER_BATCH_SIZE = 24;
-const EVENT_SELECT_FIELDS = "id,name,date,start_date,end_date,slug,status,storage_folder,guest_title,guest_subtitle,guest_button_text,cover_image_path,created_at";
-const PUBLIC_EVENT_SELECT_FIELDS = "id,name,date,start_date,end_date,slug,status,storage_folder,guest_title,guest_subtitle,guest_button_text,cover_image_path";
+const EVENT_SELECT_FIELDS = "id,name,date,start_date,end_date,slug,status,storage_folder,guest_title,guest_subtitle,guest_button_text,cover_image_path,cover_position_x,cover_position_y,created_at";
+const PUBLIC_EVENT_SELECT_FIELDS = "id,name,date,start_date,end_date,slug,status,storage_folder,guest_title,guest_subtitle,guest_button_text,cover_image_path,cover_position_x,cover_position_y";
 const LEGACY_EVENT_SELECT_FIELDS = "id,name,date,start_date,end_date,slug,status,storage_folder,created_at";
 const LEGACY_PUBLIC_EVENT_SELECT_FIELDS = "id,name,date,start_date,end_date,slug,status,storage_folder";
 
@@ -74,6 +74,8 @@ const guestDesignModal = document.getElementById("guest-design-modal");
 const guestDesignForm = document.getElementById("guest-design-form");
 const closeGuestDesignButton = document.getElementById("close-guest-design-button");
 const guestCoverInput = document.getElementById("guest-cover-input");
+const guestCoverPositionXInput = document.getElementById("guest-cover-position-x");
+const guestCoverPositionYInput = document.getElementById("guest-cover-position-y");
 const guestDesignTitleInput = document.getElementById("guest-design-title-input");
 const guestDesignSubtitleInput = document.getElementById("guest-design-subtitle-input");
 const guestDesignButtonInput = document.getElementById("guest-design-button-input");
@@ -130,6 +132,8 @@ let galleryRenderToken = 0;
 let selectedGuestCoverFile = null;
 let selectedGuestCoverPreviewUrl = "";
 let shouldRemoveGuestCover = false;
+let messageHideTimeout = null;
+let uploadStateHideTimeout = null;
 const galleryCache = new Map();
 const activeEventSlug = getEventSlugFromPath();
 const isAuthConfirmationRoute = window.location.pathname === "/auth/confirmed";
@@ -158,6 +162,8 @@ downloadQrButton.addEventListener("click", handleDownloadQr);
 closeGuestDesignButton.addEventListener("click", closeGuestDesignModal);
 guestDesignForm.addEventListener("submit", handleSaveGuestDesign);
 guestCoverInput.addEventListener("change", handleGuestCoverSelected);
+guestCoverPositionXInput.addEventListener("input", updateGuestDesignPreview);
+guestCoverPositionYInput.addEventListener("input", updateGuestDesignPreview);
 guestDesignTitleInput.addEventListener("input", updateGuestDesignPreview);
 guestDesignSubtitleInput.addEventListener("input", updateGuestDesignPreview);
 guestDesignButtonInput.addEventListener("input", updateGuestDesignPreview);
@@ -479,6 +485,8 @@ function isBrandingSchemaMissingError(error) {
         || message.includes("guest_subtitle")
         || message.includes("guest_button_text")
         || message.includes("cover_image_path")
+        || message.includes("cover_position_x")
+        || message.includes("cover_position_y")
         || message.includes("column")
         && message.includes("events");
 }
@@ -493,6 +501,8 @@ function addGuestDesignDefaults(eventData) {
         guest_subtitle: null,
         guest_button_text: null,
         cover_image_path: null,
+        cover_position_x: 50,
+        cover_position_y: 50,
         ...eventData
     };
 }
@@ -529,12 +539,14 @@ async function applyGuestLandingDesign(eventData) {
     guestStartButton.textContent = "Let's go";
     takePhotoButton.textContent = buttonText;
     guestCover.style.backgroundImage = "";
+    applyCoverPosition(guestCover, eventData);
 
     if (eventData.cover_image_path) {
         const coverUrl = await createStorageSignedUrl(eventData.cover_image_path, 600);
 
         if (coverUrl) {
             guestCover.style.backgroundImage = `url("${coverUrl}")`;
+            applyCoverPosition(guestCover, eventData);
         }
     }
 }
@@ -919,8 +931,7 @@ async function handlePhotoSelected() {
         }
 
         invalidateGalleryCache(selectedEvent.id);
-        showUploadState("Photo uploaded. You can take another photo.", "success");
-        showMessage("Photo uploaded!", "success");
+        showUploadState("Photo uploaded!", "success", true);
     } catch (error) {
         console.error("Photo upload request error", error);
         showUploadState("Upload failed.", "error");
@@ -1253,6 +1264,8 @@ async function populateGuestDesignForm(eventData) {
     guestDesignTitleInput.value = getGuestDisplayTitle(eventData);
     guestDesignSubtitleInput.value = eventData.guest_subtitle?.trim() || "";
     guestDesignButtonInput.value = getGuestButtonText(eventData);
+    guestCoverPositionXInput.value = normalizeCoverPosition(eventData.cover_position_x);
+    guestCoverPositionYInput.value = normalizeCoverPosition(eventData.cover_position_y);
     updateGuestDesignPreview();
 
     if (eventData.cover_image_path) {
@@ -1260,6 +1273,7 @@ async function populateGuestDesignForm(eventData) {
 
         if (coverUrl && selectedEvent?.id === eventData.id && !selectedGuestCoverFile && !shouldRemoveGuestCover) {
             guestPreviewCover.style.backgroundImage = `url("${coverUrl}")`;
+            applyCoverPosition(guestPreviewCover, eventData);
         }
     }
 }
@@ -1288,6 +1302,7 @@ function handleGuestCoverSelected() {
     selectedGuestCoverFile = file;
     selectedGuestCoverPreviewUrl = URL.createObjectURL(file);
     guestPreviewCover.style.backgroundImage = `url("${selectedGuestCoverPreviewUrl}")`;
+    updateGuestDesignPreview();
 }
 
 function handleResetGuestDesign() {
@@ -1298,6 +1313,8 @@ function handleResetGuestDesign() {
     guestDesignTitleInput.value = selectedEvent?.name || "";
     guestDesignSubtitleInput.value = "";
     guestDesignButtonInput.value = "Take Photo";
+    guestCoverPositionXInput.value = "50";
+    guestCoverPositionYInput.value = "50";
     updateGuestDesignPreview();
 }
 
@@ -1312,6 +1329,8 @@ async function handleSaveGuestDesign(event) {
     const title = guestDesignTitleInput.value.trim();
     const subtitle = guestDesignSubtitleInput.value.trim();
     const buttonText = guestDesignButtonInput.value.trim() || "Take Photo";
+    const coverPositionX = normalizeCoverPosition(guestCoverPositionXInput.value);
+    const coverPositionY = normalizeCoverPosition(guestCoverPositionYInput.value);
 
     if (!title) {
         showMessage("Enter a title for the guest screen.", "error");
@@ -1325,17 +1344,21 @@ async function handleSaveGuestDesign(event) {
             name: title,
             guest_title: title,
             guest_subtitle: subtitle || null,
-            guest_button_text: buttonText === "Take Photo" ? null : buttonText
+            guest_button_text: buttonText === "Take Photo" ? null : buttonText,
+            cover_position_x: coverPositionX,
+            cover_position_y: coverPositionY
         };
 
         if (selectedGuestCoverFile) {
-            const coverPath = createCoverStoragePath(selectedGuestCoverFile);
+            const optimizedCover = await optimizePhotoFile(selectedGuestCoverFile);
+            const coverFile = optimizedCover.original;
+            const coverPath = createCoverStoragePath(coverFile);
             const { error: uploadError } = await supabase
                 .storage
                 .from(PHOTO_BUCKET)
-                .upload(coverPath, selectedGuestCoverFile, {
+                .upload(coverPath, coverFile, {
                     cacheControl: "3600",
-                    contentType: selectedGuestCoverFile.type,
+                    contentType: coverFile.type,
                     upsert: false
                 });
 
@@ -1405,12 +1428,30 @@ function updateGuestDesignPreview() {
     guestPreviewDate.textContent = selectedEvent ? formatEventDateRange(selectedEvent) : "";
     guestPreviewSubtitle.textContent = previewSubtitle;
     guestPreviewButton.textContent = previewButtonText;
+    applyCoverPosition(guestPreviewCover, {
+        cover_position_x: guestCoverPositionXInput.value,
+        cover_position_y: guestCoverPositionYInput.value
+    });
 
     if (selectedGuestCoverPreviewUrl) {
         guestPreviewCover.style.backgroundImage = `url("${selectedGuestCoverPreviewUrl}")`;
     } else if (shouldRemoveGuestCover || !selectedEvent?.cover_image_path) {
         guestPreviewCover.style.backgroundImage = "";
     }
+}
+
+function applyCoverPosition(element, eventData) {
+    element.style.backgroundPosition = `${normalizeCoverPosition(eventData?.cover_position_x)}% ${normalizeCoverPosition(eventData?.cover_position_y)}%`;
+}
+
+function normalizeCoverPosition(value) {
+    const numberValue = Number(value);
+
+    if (!Number.isFinite(numberValue)) {
+        return 50;
+    }
+
+    return Math.min(100, Math.max(0, Math.round(numberValue)));
 }
 
 function clearSelectedGuestCoverPreview() {
@@ -2283,12 +2324,18 @@ function getGuestStorageKey(slug) {
     return `event-photo-saas:guest:${slug}`;
 }
 
-function showUploadState(text, type = "info") {
+function showUploadState(text, type = "info", autoHide = false) {
+    clearTimeout(uploadStateHideTimeout);
     uploadState.textContent = text;
     uploadState.className = `upload-state ${type}`;
+
+    if (autoHide) {
+        uploadStateHideTimeout = setTimeout(hideUploadState, 3000);
+    }
 }
 
 function hideUploadState() {
+    clearTimeout(uploadStateHideTimeout);
     uploadState.textContent = "";
     uploadState.classList.add("hidden");
 }
@@ -2304,12 +2351,15 @@ function setButtonLoading(button, isLoading, text) {
 }
 
 function showMessage(text, type) {
+    clearTimeout(messageHideTimeout);
     messageBox.textContent = text;
     messageBox.className = `message ${type}`;
     messageBox.setAttribute("role", type === "error" ? "alert" : "status");
+    messageHideTimeout = setTimeout(hideMessage, 3000);
 }
 
 function hideMessage() {
+    clearTimeout(messageHideTimeout);
     messageBox.textContent = "";
     messageBox.className = "message hidden";
 }

@@ -816,6 +816,17 @@ code {
     gap: 10px;
 }
 
+.range-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.range-grid input {
+    min-height: 34px;
+    padding: 0;
+}
+
 .guest-design-preview {
     display: grid;
     place-items: center;
@@ -848,7 +859,7 @@ code {
     background:
         linear-gradient(145deg, rgba(91, 44, 138, 0.42), transparent 48%),
         linear-gradient(315deg, rgba(13, 115, 119, 0.32), transparent 52%);
-    background-position: center;
+    background-position: 50% 50%;
     background-size: cover;
 }
 
@@ -864,14 +875,16 @@ code {
 .guest-product-mark {
     position: absolute;
     z-index: 2;
-    top: 14px;
-    left: 14px;
+    top: 16px;
+    left: 16px;
     margin: 0;
-    color: rgba(255, 255, 255, 0.78);
-    font-size: 0.62rem;
-    font-weight: 800;
-    letter-spacing: 0;
-    text-transform: uppercase;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background:
+        radial-gradient(circle at center, rgba(7, 11, 17, 0.88) 0 21%, transparent 22%),
+        conic-gradient(from 20deg, var(--gold) 0 14%, transparent 14% 18%, var(--gold) 18% 32%, transparent 32% 36%, var(--gold) 36% 50%, transparent 50% 54%, var(--gold) 54% 68%, transparent 68% 72%, var(--gold) 72% 86%, transparent 86% 90%, var(--gold) 90% 100%);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
 }
 
 .guest-preview-content {
@@ -932,13 +945,34 @@ code {
     z-index: 1;
 }
 
+.guest-panel.is-photo-mode {
+    display: grid;
+    min-height: min(760px, calc(100dvh - 48px));
+    align-content: stretch;
+}
+
 .guest-panel.is-photo-mode .brand {
+    display: block;
+    margin: 54px 120px 0 0;
+    text-align: left;
+}
+
+.guest-panel.is-photo-mode .brand h1 {
+    color: #fff;
+    font-size: clamp(2rem, 7vw, 4.4rem);
+    text-shadow: 0 4px 18px rgba(0, 0, 0, 0.42);
+}
+
+.guest-panel.is-photo-mode .guest-custom-subtitle,
+.guest-panel.is-photo-mode .subtitle {
     display: none;
 }
 
 .guest-panel.is-photo-mode .photo-panel {
-    min-height: min(560px, 72dvh);
+    min-height: auto;
     align-content: end;
+    align-self: end;
+    gap: 12px;
 }
 
 .guest-custom-subtitle {
@@ -1133,19 +1167,34 @@ code {
 }
 
 .guest-panel.is-photo-mode .guest-toolbar {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 3;
     align-items: center;
-    padding: 10px 12px;
+    max-width: min(58%, 230px);
+    padding: 8px 10px;
+    border-radius: 14px;
     background: rgba(10, 14, 19, 0.72);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
 }
 
 .guest-panel.is-photo-mode .guest-toolbar span {
-    font-size: 0.72rem;
+    font-size: 0.64rem;
 }
 
 .guest-panel.is-photo-mode .guest-toolbar strong {
-    font-size: 1rem;
+    overflow: hidden;
+    font-size: 0.86rem;
+    max-width: 120px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.guest-panel.is-photo-mode .guest-toolbar .text-action {
+    padding: 0;
+    font-size: 0.78rem;
 }
 
 .guest-toolbar div {
@@ -1163,6 +1212,11 @@ code {
     min-height: 64px;
     border-radius: 999px;
     font-size: 1.12rem;
+}
+
+.guest-panel.is-photo-mode .capture-button {
+    align-self: end;
+    margin-top: min(34dvh, 240px);
 }
 
 .capture-hint {
@@ -1520,24 +1574,42 @@ code {
         padding: 12px;
     }
 
+    .range-grid {
+        grid-template-columns: 1fr;
+    }
+
     .gallery-item span {
         font-size: 0.68rem;
     }
 
-    .photo-panel {
-        min-height: calc(100vh - 190px);
-        align-content: start;
+    .guest-panel.is-photo-mode .brand {
+        margin: 52px 118px 0 0;
     }
 
-    .capture-button {
-        position: sticky;
-        bottom: max(12px, env(safe-area-inset-bottom));
+    .guest-panel.is-photo-mode .brand h1 {
+        font-size: 2.25rem;
+    }
+
+    .guest-panel.is-photo-mode .photo-panel {
+        min-height: 0;
+        align-content: end;
+        align-self: end;
+    }
+
+    .guest-panel.is-photo-mode .capture-button {
+        position: static;
         min-height: 72px;
-        margin-top: 10px;
+        margin-top: min(32dvh, 220px);
         border-radius: 999px;
         font-size: 1.18rem;
         box-shadow: 0 14px 30px rgba(31, 122, 90, 0.22);
         z-index: 2;
+    }
+
+    .guest-panel.is-photo-mode .guest-toolbar {
+        top: 12px;
+        right: 12px;
+        max-width: min(56%, 190px);
     }
 
     .guest-toolbar {

@@ -63,6 +63,12 @@ add column if not exists guest_button_text text;
 alter table public.events
 add column if not exists cover_image_path text;
 
+alter table public.events
+add column if not exists cover_position_x integer not null default 50 check (cover_position_x >= 0 and cover_position_x <= 100);
+
+alter table public.events
+add column if not exists cover_position_y integer not null default 50 check (cover_position_y >= 0 and cover_position_y <= 100);
+
 update public.events
 set start_date = coalesce(start_date, date, public.current_app_date()),
     end_date = coalesce(end_date, date, start_date, public.current_app_date()),
