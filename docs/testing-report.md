@@ -14,6 +14,8 @@
 
 ## RLS un Storage pārbaudes scenāriji
 
+Šī sadaļa atbilst 12. dienas testēšanas darbam: RLS/storage pārbaude ar diviem organizatoriem, anon guest upload, inactive event un outside period scenārijiem.
+
 ### 1. Organizators redz tikai savus eventus
 
 Soļi:
@@ -112,6 +114,40 @@ Rezultāts:
 ## 28.08 praktiskā testa rezultāti
 
 Testa laiks: 27.08.2026. 17:00 - 28.08.2026. 02:00
+
+## Mini tests pirms praktiskā testa
+
+Šī sadaļa atbilst 14. dienas testēšanas darbam: mobilās plūsmas pārbaude pirms lielā praktiskā testa.
+
+Pārbaudītie scenāriji:
+
+- guest link atvēršana mobilajā pārlūkā;
+- QR plūsma līdz event landing skatam;
+- viesa vārda ievade;
+- foto uzņemšana un augšupielāde;
+- organizatora galerijas atvēršana;
+- foto preview pārbaude;
+- ZIP download pārbaude organizatora pusē.
+
+Rezultāts:
+
+- Statuss: izturēts.
+- Piezīmes: pirms lielā testa pamata plūsma bija pietiekami stabila praktiskai pārbaudei. Atsevišķi tika konstatētas un labotas RLS/date policy problēmas, kas varēja ietekmēt guest link pieejamību.
+
+## Bugfix pēc praktiskā testa
+
+Šī sadaļa atbilst 19. dienas kodēšanas/testēšanas darbam: pēc testa atrasto problēmu labošana bez jaunu lielu funkciju pievienošanas.
+
+Veiktie labojumi:
+
+- guest event link atļauts arī `authenticated` lomai, lai linku varētu atvērt arī tad, ja pārlūkā ir aktīva organizatora sesija;
+- RLS datuma pārbaude pārlikta uz `Europe/Riga` datumu ar `public.current_app_date()`, lai pusnakts laikā Supabase UTC datums nebloķētu Latvijā aktīvu eventu;
+- tehniskie RLS/Storage kļūdu paziņojumi frontendā aizstāti ar lietotājam saprotamiem tekstiem.
+
+Rezultāts:
+
+- Statuss: labots lokāli.
+- Piezīmes: izmaiņas saglabātas Git commitos. Netlify deploy jāveic atsevišķi, kad pieejami deployment kredīti.
 
 ### Dalībnieki
 
