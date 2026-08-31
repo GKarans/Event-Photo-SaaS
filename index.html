@@ -4,12 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Event Photo SaaS</title>
+    <script>
+        const savedTheme = localStorage.getItem("eventPhotoTheme") || "dark";
+        document.documentElement.dataset.theme = savedTheme;
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/style.css">
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 </head>
 <body>
     <main class="app-shell">
+        <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to light mode">
+            <span class="theme-toggle-dot" aria-hidden="true"></span>
+            <span id="theme-toggle-label">Light mode</span>
+        </button>
+
         <section class="auth-panel" id="auth-panel">
             <div class="brand">
                 <p class="eyebrow">Photo-only MVP</p>
@@ -142,6 +154,48 @@
                         </div>
                     </div>
 
+                    <section class="guest-design-section" aria-labelledby="guest-design-title">
+                        <div class="section-heading">
+                            <h2 id="guest-design-title">Guest Design</h2>
+                            <p>Customize the guest upload screen and preview it before saving.</p>
+                        </div>
+
+                        <div class="guest-design-layout">
+                            <form class="guest-design-form" id="guest-design-form">
+                                <label for="guest-cover-input">Cover photo</label>
+                                <input id="guest-cover-input" type="file" accept="image/*">
+                                <p class="field-hint">Optional image shown behind the guest welcome card.</p>
+
+                                <label for="guest-design-title-input">Title</label>
+                                <input id="guest-design-title-input" type="text" maxlength="80">
+
+                                <label for="guest-design-subtitle-input">Subtitle</label>
+                                <textarea id="guest-design-subtitle-input" maxlength="160" rows="3"></textarea>
+
+                                <label for="guest-design-button-input">Button text</label>
+                                <input id="guest-design-button-input" type="text" maxlength="32">
+
+                                <div class="modal-actions">
+                                    <button class="secondary-button" id="reset-guest-design-button" type="button">Reset</button>
+                                    <button class="primary-button" id="save-guest-design-button" type="submit">Save Design</button>
+                                </div>
+                            </form>
+
+                            <div class="guest-design-preview" aria-label="Guest screen preview">
+                                <div class="guest-preview-phone">
+                                    <div class="guest-preview-cover" id="guest-preview-cover"></div>
+                                    <div class="guest-preview-content">
+                                        <p class="eyebrow">Event photos</p>
+                                        <h3 id="guest-preview-title">Event</h3>
+                                        <p id="guest-preview-date"></p>
+                                        <p id="guest-preview-subtitle"></p>
+                                        <button class="guest-preview-button" id="guest-preview-button" type="button">Take Photo</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
                     <section class="gallery-section" aria-labelledby="gallery-title">
                         <div class="section-heading gallery-heading">
                             <div>
@@ -174,9 +228,11 @@
         </section>
 
         <section class="guest-panel hidden" id="guest-panel">
+            <div class="guest-cover" id="guest-cover"></div>
             <div class="brand">
                 <p class="eyebrow">Event photos</p>
                 <h1 id="guest-event-title">Event</h1>
+                <p class="guest-custom-subtitle hidden" id="guest-event-subtitle"></p>
                 <p class="subtitle" id="guest-event-date"></p>
             </div>
 

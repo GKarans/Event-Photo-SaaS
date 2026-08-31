@@ -8,6 +8,10 @@ const MAX_PHOTO_SIZE = 10 * 1024 * 1024;
 const SIGNED_URL_EXPIRES_IN_SECONDS = 60 * 10;
 const GALLERY_CACHE_TTL_MS = 8 * 60 * 1000;
 const GALLERY_RENDER_BATCH_SIZE = 24;
+const EVENT_SELECT_FIELDS = "id,name,date,start_date,end_date,slug,status,storage_folder,guest_title,guest_subtitle,guest_button_text,cover_image_path,created_at";
+const PUBLIC_EVENT_SELECT_FIELDS = "id,name,date,start_date,end_date,slug,status,storage_folder,guest_title,guest_subtitle,guest_button_text,cover_image_path";
+const LEGACY_EVENT_SELECT_FIELDS = "id,name,date,start_date,end_date,slug,status,storage_folder,created_at";
+const LEGACY_PUBLIC_EVENT_SELECT_FIELDS = "id,name,date,start_date,end_date,slug,status,storage_folder";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     auth: {
@@ -62,6 +66,18 @@ const editEventButton = document.getElementById("edit-event-button");
 const toggleEventStatusButton = document.getElementById("toggle-event-status-button");
 const copyEventLinkButton = document.getElementById("copy-event-link-button");
 const downloadQrButton = document.getElementById("download-qr-button");
+const guestDesignForm = document.getElementById("guest-design-form");
+const guestCoverInput = document.getElementById("guest-cover-input");
+const guestDesignTitleInput = document.getElementById("guest-design-title-input");
+const guestDesignSubtitleInput = document.getElementById("guest-design-subtitle-input");
+const guestDesignButtonInput = document.getElementById("guest-design-button-input");
+const saveGuestDesignButton = document.getElementById("save-guest-design-button");
+const resetGuestDesignButton = document.getElementById("reset-guest-design-button");
+const guestPreviewCover = document.getElementById("guest-preview-cover");
+const guestPreviewTitle = document.getElementById("guest-preview-title");
+const guestPreviewDate = document.getElementById("guest-preview-date");
+const guestPreviewSubtitle = document.getElementById("guest-preview-subtitle");
+const guestPreviewButton = document.getElementById("guest-preview-button");
 const galleryGrid = document.getElementById("gallery-grid");
 const galleryCount = document.getElementById("gallery-count");
 const downloadGalleryButton = document.getElementById("download-gallery-button");
@@ -78,16 +94,21 @@ const previewSubtitle = document.getElementById("preview-subtitle");
 const downloadPhotoButton = document.getElementById("download-photo-button");
 const deletePhotoButton = document.getElementById("delete-photo-button");
 const guestPanel = document.getElementById("guest-panel");
+const guestCover = document.getElementById("guest-cover");
 const guestEventTitle = document.getElementById("guest-event-title");
+const guestEventSubtitle = document.getElementById("guest-event-subtitle");
 const guestEventDate = document.getElementById("guest-event-date");
 const guestForm = document.getElementById("guest-form");
 const guestNameInput = document.getElementById("guest-name");
+const guestStartButton = document.getElementById("guest-start-button");
 const photoPanel = document.getElementById("photo-panel");
 const guestDisplayName = document.getElementById("guest-display-name");
 const changeGuestButton = document.getElementById("change-guest-button");
 const takePhotoButton = document.getElementById("take-photo-button");
 const photoInput = document.getElementById("photo-input");
 const uploadState = document.getElementById("upload-state");
+const themeToggle = document.getElementById("theme-toggle");
+const themeToggleLabel = document.getElementById("theme-toggle-label");
 
 let authMode = "login";
 let currentSession = null;
@@ -100,10 +121,15 @@ let currentGalleryPhotos = [];
 let currentPreviewIndex = -1;
 let previewTouchStartX = 0;
 let galleryRenderToken = 0;
+let selectedGuestCoverFile = null;
+let selectedGuestCoverPreviewUrl = "";
+let shouldRemoveGuestCover = false;
 const galleryCache = new Map();
 const activeEventSlug = getEventSlugFromPath();
 const isAuthConfirmationRoute = window.location.pathname === "/auth/confirmed";
 
+syncThemeToggle();
+themeToggle.addEventListener("click", handleThemeToggle);
 loginTab.addEventListener("click", () => setAuthMode("login"));
 registerTab.addEventListener("click", () => setAuthMode("register"));
 goToLoginButton.addEventListener("click", handleGoToLogin);
@@ -123,6 +149,12 @@ copyEventLinkButton.addEventListener("click", handleCopyEventLink);
 editEventButton.addEventListener("click", handleEditSelectedEvent);
 toggleEventStatusButton.addEventListener("click", handleToggleSelectedEventStatus);
 downloadQrButton.addEventListener("click", handleDownloadQr);
+guestDesignForm.addEventListener("submit", handleSaveGuestDesign);
+guestCoverInput.addEventListener("change", handleGuestCoverSelected);
+guestDesignTitleInput.addEventListener("input", updateGuestDesignPreview);
+guestDesignSubtitleInput.addEventListener("input", updateGuestDesignPreview);
+guestDesignButtonInput.addEventListener("input", updateGuestDesignPreview);
+resetGuestDesignButton.addEventListener("click", handleResetGuestDesign);
 downloadGalleryButton.addEventListener("click", handleDownloadGallery);
 galleryGuestFilter.addEventListener("change", applyGalleryControls);
 gallerySort.addEventListener("change", applyGalleryControls);
@@ -142,6 +174,27 @@ guestForm.addEventListener("submit", handleGuestStart);
 changeGuestButton.addEventListener("click", handleChangeGuest);
 takePhotoButton.addEventListener("click", () => photoInput.click());
 photoInput.addEventListener("change", handlePhotoSelected);
+
+function handleThemeToggle() {
+    const currentTheme = document.documentElement.dataset.theme === "light" ? "light" : "dark";
+    const nextTheme = currentTheme === "dark" ? "light" : "dark";
+
+    document.documentElement.dataset.theme = nextTheme;
+    localStorage.setItem("eventPhotoTheme", nextTheme);
+    syncThemeToggle();
+}
+
+function syncThemeToggle() {
+    const theme = document.documentElement.dataset.theme === "light" ? "light" : "dark";
+    const nextTheme = theme === "dark" ? "light" : "dark";
+
+    themeToggleLabel.textContent = `${capitalizeFirstLetter(nextTheme)} mode`;
+    themeToggle.setAttribute("aria-label", `Switch to ${nextTheme} mode`);
+}
+
+function capitalizeFirstLetter(value) {
+    return value.charAt(0).toUpperCase() + value.slice(1);
+}
 
 supabase.auth.onAuthStateChange((_event, session) => {
     if (activeEventSlug || isAuthConfirmationRoute) {
@@ -365,11 +418,7 @@ async function renderGuestRoute(slug) {
     guestEventTitle.textContent = "Loading event...";
     guestEventDate.textContent = "";
 
-    const { data, error } = await supabase
-        .from("events")
-        .select("id,name,date,start_date,end_date,slug,status,storage_folder")
-        .eq("slug", slug)
-        .maybeSingle();
+    const { data, error } = await queryEventBySlug(slug);
 
     if (error) {
         guestEventTitle.textContent = "Could not load event";
@@ -385,6 +434,62 @@ async function renderGuestRoute(slug) {
         return;
     }
 
+    await renderLoadedGuestEvent(data);
+}
+
+async function queryEventBySlug(slug) {
+    const response = await supabase
+        .from("events")
+        .select(PUBLIC_EVENT_SELECT_FIELDS)
+        .eq("slug", slug)
+        .maybeSingle();
+
+    if (!isBrandingSchemaMissingError(response.error)) {
+        return response;
+    }
+
+    const fallbackResponse = await supabase
+        .from("events")
+        .select(LEGACY_PUBLIC_EVENT_SELECT_FIELDS)
+        .eq("slug", slug)
+        .maybeSingle();
+
+    return {
+        ...fallbackResponse,
+        data: addGuestDesignDefaults(fallbackResponse.data)
+    };
+}
+
+function isBrandingSchemaMissingError(error) {
+    if (!error?.message) {
+        return false;
+    }
+
+    const message = error.message.toLowerCase();
+
+    return message.includes("guest_title")
+        || message.includes("guest_subtitle")
+        || message.includes("guest_button_text")
+        || message.includes("cover_image_path")
+        || message.includes("column")
+        && message.includes("events");
+}
+
+function addGuestDesignDefaults(eventData) {
+    if (!eventData) {
+        return eventData;
+    }
+
+    return {
+        guest_title: null,
+        guest_subtitle: null,
+        guest_button_text: null,
+        cover_image_path: null,
+        ...eventData
+    };
+}
+
+async function renderLoadedGuestEvent(data) {
     if (!isEventOpenForGuests(data)) {
         guestEventTitle.textContent = "This event is closed";
         guestEventDate.textContent = "Photo upload is not available for this event right now.";
@@ -394,7 +499,7 @@ async function renderGuestRoute(slug) {
     }
 
     selectedEvent = data;
-    guestEventTitle.textContent = data.name;
+    applyGuestLandingDesign(data);
     guestEventDate.textContent = formatEventDateRange(data);
 
     const savedGuest = loadSavedGuest(data.slug);
@@ -403,6 +508,35 @@ async function renderGuestRoute(slug) {
         currentGuest = savedGuest;
         showPhotoPanel(savedGuest.name);
     }
+}
+
+async function applyGuestLandingDesign(eventData) {
+    const title = getGuestDisplayTitle(eventData);
+    const subtitle = eventData.guest_subtitle?.trim() || "";
+    const buttonText = getGuestButtonText(eventData);
+
+    guestEventTitle.textContent = title;
+    guestEventSubtitle.textContent = subtitle;
+    guestEventSubtitle.classList.toggle("hidden", !subtitle);
+    guestStartButton.textContent = buttonText;
+    takePhotoButton.textContent = buttonText;
+    guestCover.style.backgroundImage = "";
+
+    if (eventData.cover_image_path) {
+        const coverUrl = await createStorageSignedUrl(eventData.cover_image_path, 600);
+
+        if (coverUrl) {
+            guestCover.style.backgroundImage = `url("${coverUrl}")`;
+        }
+    }
+}
+
+function getGuestDisplayTitle(eventData) {
+    return eventData?.name?.trim() || "Event";
+}
+
+function getGuestButtonText(eventData) {
+    return eventData?.guest_button_text?.trim() || "Take Photo";
 }
 
 async function handleGuestStart(event) {
@@ -452,7 +586,7 @@ async function handleGuestStart(event) {
         console.error("Guest start error", error);
         showMessage("Could not prepare your guest session. Check your connection and try again.", "error");
     } finally {
-        setButtonLoading(startButton, false, "Start");
+        setButtonLoading(startButton, false, getGuestButtonText(selectedEvent));
     }
 }
 
@@ -558,13 +692,15 @@ async function handleToggleSelectedEventStatus() {
 async function handleToggleEventStatus(eventData, button) {
     const nextStatus = eventData.status === "inactive" ? "active" : "inactive";
 
-    if (nextStatus === "active" && getIsoDate(new Date()) > (eventData.end_date || eventData.date)) {
+    if (nextStatus === "active" && hasEventPeriodEnded(eventData)) {
         showMessage("This event period has ended. Edit the period before activating it.", "error");
+        setEventStatusButtonState(eventData);
         return;
     }
 
     const label = nextStatus === "active" ? "Activating..." : "Deactivating...";
     setButtonLoading(button, true, label);
+    let updateSucceeded = false;
 
     try {
         const { error } = await supabase
@@ -577,6 +713,7 @@ async function handleToggleEventStatus(eventData, button) {
             return;
         }
 
+        updateSucceeded = true;
         showMessage(nextStatus === "active" ? "Event activated." : "Event deactivated.", "success");
         await loadEvents();
 
@@ -584,7 +721,8 @@ async function handleToggleEventStatus(eventData, button) {
             const updatedEvent = currentEvents.find(item => item.id === eventData.id);
 
             if (updatedEvent) {
-                await showEventDetail(updatedEvent);
+                selectedEvent = updatedEvent;
+                await showEventDetail(selectedEvent);
             } else {
                 showEventsList();
             }
@@ -593,7 +731,9 @@ async function handleToggleEventStatus(eventData, button) {
         console.error("Event status update error", error);
         showMessage("Could not update event status. Check your connection and try again.", "error");
     } finally {
-        setButtonLoading(button, false, nextStatus === "active" ? "Activate" : "Deactivate");
+        const currentEvent = updateSucceeded ? currentEvents.find(item => item.id === eventData.id) || selectedEvent || eventData : eventData;
+        setButtonLoading(button, false);
+        setEventStatusButtonState(currentEvent);
     }
 }
 
@@ -729,7 +869,7 @@ async function handlePhotoSelected() {
         showUploadState("Upload failed.", "error");
         showMessage("Photo upload failed. Check your connection and try again.", "error");
     } finally {
-        setButtonLoading(takePhotoButton, false, "Take Photo");
+        setButtonLoading(takePhotoButton, false, getGuestButtonText(selectedEvent));
     }
 }
 
@@ -822,13 +962,7 @@ async function loadEvents() {
     eventsList.innerHTML = "";
     await syncExpiredEvents();
 
-    const { data, error } = await supabase
-        .from("events")
-        .select("id,name,date,start_date,end_date,slug,status,storage_folder,created_at")
-        .eq("owner_id", currentSession.user.id)
-        .neq("status", "deleted")
-        .gte("end_date", getIsoDate(addDays(new Date(), -3)))
-        .order("created_at", { ascending: false });
+    const { data, error } = await queryOrganizerEvents();
 
     if (error) {
         eventsCount.textContent = "Could not load events.";
@@ -837,6 +971,33 @@ async function loadEvents() {
     }
 
     renderEvents(data || []);
+}
+
+async function queryOrganizerEvents() {
+    const response = await supabase
+        .from("events")
+        .select(EVENT_SELECT_FIELDS)
+        .eq("owner_id", currentSession.user.id)
+        .neq("status", "deleted")
+        .gte("end_date", getIsoDate(addDays(new Date(), -3)))
+        .order("created_at", { ascending: false });
+
+    if (!isBrandingSchemaMissingError(response.error)) {
+        return response;
+    }
+
+    const fallbackResponse = await supabase
+        .from("events")
+        .select(LEGACY_EVENT_SELECT_FIELDS)
+        .eq("owner_id", currentSession.user.id)
+        .neq("status", "deleted")
+        .gte("end_date", getIsoDate(addDays(new Date(), -3)))
+        .order("created_at", { ascending: false });
+
+    return {
+        ...fallbackResponse,
+        data: (fallbackResponse.data || []).map(addGuestDesignDefaults)
+    };
 }
 
 function renderEvents(events) {
@@ -902,8 +1063,6 @@ function renderFilteredEvents() {
             </div>
             <div class="event-card-actions">
                 <button class="secondary-button compact-button open-event-button" type="button"></button>
-                <button class="secondary-button compact-button edit-event-button" type="button"></button>
-                <button class="secondary-button compact-button toggle-event-status-card-button" type="button"></button>
                 <button class="danger-button compact-button delete-event-button" type="button"></button>
             </div>
             <span class="status-pill"></span>
@@ -915,8 +1074,6 @@ function renderFilteredEvents() {
         card.querySelector(".status-pill").textContent = formatStatus(displayStatus);
         card.querySelector(".status-pill").classList.toggle("is-inactive", displayStatus !== "active");
         card.querySelector(".open-event-button").textContent = "Open";
-        card.querySelector(".edit-event-button").textContent = "Edit";
-        card.querySelector(".toggle-event-status-card-button").textContent = event.status === "inactive" ? "Activate" : "Deactivate";
         card.querySelector(".delete-event-button").textContent = "Delete";
         fragment.appendChild(card);
     }
@@ -958,10 +1115,8 @@ function getFilteredEvents() {
 
 async function handleEventsListClick(event) {
     const openButton = event.target.closest(".open-event-button");
-    const editButton = event.target.closest(".edit-event-button");
-    const toggleStatusButton = event.target.closest(".toggle-event-status-card-button");
     const deleteButton = event.target.closest(".delete-event-button");
-    const button = openButton || editButton || toggleStatusButton || deleteButton;
+    const button = openButton || deleteButton;
 
     if (!button) {
         return;
@@ -977,16 +1132,6 @@ async function handleEventsListClick(event) {
 
     if (deleteButton) {
         await handleDeleteEvent(eventData, deleteButton);
-        return;
-    }
-
-    if (editButton) {
-        openEditEventModal(eventData);
-        return;
-    }
-
-    if (toggleStatusButton) {
-        await handleToggleEventStatus(eventData, toggleStatusButton);
         return;
     }
 
@@ -1036,11 +1181,231 @@ async function showEventDetail(eventData) {
     eventDetailTitle.textContent = eventData.name;
     eventDetailDate.textContent = formatEventDateRange(eventData);
     eventDetailStatus.textContent = formatStatus(getDisplayEventStatus(eventData));
-    toggleEventStatusButton.textContent = eventData.status === "inactive" ? "Activate" : "Deactivate";
+    setEventStatusButtonState(eventData);
     eventDetailUrl.textContent = eventUrl;
+    await populateGuestDesignForm(eventData);
 
     await renderQrCode(eventUrl);
     await loadGallery(eventData.id);
+}
+
+async function populateGuestDesignForm(eventData) {
+    clearSelectedGuestCoverPreview();
+    selectedGuestCoverFile = null;
+    shouldRemoveGuestCover = false;
+    guestCoverInput.value = "";
+    guestDesignTitleInput.value = getGuestDisplayTitle(eventData);
+    guestDesignSubtitleInput.value = eventData.guest_subtitle?.trim() || "";
+    guestDesignButtonInput.value = getGuestButtonText(eventData);
+    updateGuestDesignPreview();
+
+    if (eventData.cover_image_path) {
+        const coverUrl = await createStorageSignedUrl(eventData.cover_image_path, SIGNED_URL_EXPIRES_IN_SECONDS);
+
+        if (coverUrl && selectedEvent?.id === eventData.id && !selectedGuestCoverFile && !shouldRemoveGuestCover) {
+            guestPreviewCover.style.backgroundImage = `url("${coverUrl}")`;
+        }
+    }
+}
+
+function handleGuestCoverSelected() {
+    const file = guestCoverInput.files?.[0] || null;
+
+    clearSelectedGuestCoverPreview();
+    selectedGuestCoverFile = null;
+    shouldRemoveGuestCover = false;
+
+    if (!file) {
+        updateGuestDesignPreview();
+        return;
+    }
+
+    const validationError = validatePhoto(file);
+
+    if (validationError) {
+        guestCoverInput.value = "";
+        showMessage(validationError, "error");
+        updateGuestDesignPreview();
+        return;
+    }
+
+    selectedGuestCoverFile = file;
+    selectedGuestCoverPreviewUrl = URL.createObjectURL(file);
+    guestPreviewCover.style.backgroundImage = `url("${selectedGuestCoverPreviewUrl}")`;
+}
+
+function handleResetGuestDesign() {
+    clearSelectedGuestCoverPreview();
+    selectedGuestCoverFile = null;
+    shouldRemoveGuestCover = Boolean(selectedEvent?.cover_image_path);
+    guestCoverInput.value = "";
+    guestDesignTitleInput.value = selectedEvent?.name || "";
+    guestDesignSubtitleInput.value = "";
+    guestDesignButtonInput.value = "Take Photo";
+    updateGuestDesignPreview();
+}
+
+async function handleSaveGuestDesign(event) {
+    event.preventDefault();
+
+    if (!selectedEvent?.id) {
+        showMessage("Open an event before saving guest design.", "error");
+        return;
+    }
+
+    const title = guestDesignTitleInput.value.trim();
+    const subtitle = guestDesignSubtitleInput.value.trim();
+    const buttonText = guestDesignButtonInput.value.trim() || "Take Photo";
+
+    if (!title) {
+        showMessage("Enter a title for the guest screen.", "error");
+        return;
+    }
+
+    setButtonLoading(saveGuestDesignButton, true, "Saving...");
+
+    try {
+        const payload = {
+            name: title,
+            guest_title: title,
+            guest_subtitle: subtitle || null,
+            guest_button_text: buttonText === "Take Photo" ? null : buttonText
+        };
+
+        if (selectedGuestCoverFile) {
+            const coverPath = createCoverStoragePath(selectedGuestCoverFile);
+            const { error: uploadError } = await supabase
+                .storage
+                .from(PHOTO_BUCKET)
+                .upload(coverPath, selectedGuestCoverFile, {
+                    cacheControl: "3600",
+                    contentType: selectedGuestCoverFile.type,
+                    upsert: false
+                });
+
+            if (uploadError) {
+                console.error("Cover upload error", uploadError);
+                showMessage(toFriendlyStorageError(uploadError.message, "organizer-upload"), "error");
+                return;
+            }
+
+            payload.cover_image_path = coverPath;
+        } else if (shouldRemoveGuestCover) {
+            await deleteCurrentCoverImage();
+            payload.cover_image_path = null;
+        }
+
+        const { data, error } = await supabase
+            .from("events")
+            .update(payload)
+            .eq("id", selectedEvent.id)
+            .select(EVENT_SELECT_FIELDS)
+            .single();
+
+        if (error) {
+            showMessage(toFriendlyDatabaseError(error.message, "organizer-event"), "error");
+            return;
+        }
+
+        selectedEvent = data;
+        currentEvents = currentEvents.map(item => item.id === data.id ? data : item);
+        clearSelectedGuestCoverPreview();
+        selectedGuestCoverFile = null;
+        shouldRemoveGuestCover = false;
+        guestCoverInput.value = "";
+        eventDetailTitle.textContent = data.name;
+        showMessage("Guest design saved.", "success");
+        renderFilteredEvents();
+        await showEventDetail(data);
+    } catch (error) {
+        console.error("Guest design save error", error);
+        showMessage("Could not save guest design. Check your connection and try again.", "error");
+    } finally {
+        setButtonLoading(saveGuestDesignButton, false, "Save Design");
+    }
+}
+
+async function deleteCurrentCoverImage() {
+    if (!selectedEvent?.cover_image_path) {
+        return;
+    }
+
+    const { error } = await supabase
+        .storage
+        .from(PHOTO_BUCKET)
+        .remove([selectedEvent.cover_image_path]);
+
+    if (error) {
+        console.error("Cover delete error", error);
+    }
+}
+
+function updateGuestDesignPreview() {
+    const previewTitle = guestDesignTitleInput.value.trim() || selectedEvent?.name || "Event";
+    const previewSubtitle = guestDesignSubtitleInput.value.trim() || "Guests enter their name, start the camera, and upload photos.";
+    const previewButtonText = guestDesignButtonInput.value.trim() || "Take Photo";
+
+    guestPreviewTitle.textContent = previewTitle;
+    guestPreviewDate.textContent = selectedEvent ? formatEventDateRange(selectedEvent) : "";
+    guestPreviewSubtitle.textContent = previewSubtitle;
+    guestPreviewButton.textContent = previewButtonText;
+
+    if (selectedGuestCoverPreviewUrl) {
+        guestPreviewCover.style.backgroundImage = `url("${selectedGuestCoverPreviewUrl}")`;
+    } else if (shouldRemoveGuestCover || !selectedEvent?.cover_image_path) {
+        guestPreviewCover.style.backgroundImage = "";
+    }
+}
+
+function clearSelectedGuestCoverPreview() {
+    if (selectedGuestCoverPreviewUrl) {
+        URL.revokeObjectURL(selectedGuestCoverPreviewUrl);
+        selectedGuestCoverPreviewUrl = "";
+    }
+}
+
+function createCoverStoragePath(file) {
+    const extension = getFileExtension(file);
+    const timestamp = createReadableTimestamp();
+
+    return `event-covers/${selectedEvent.id}/cover_${timestamp}.${extension}`;
+}
+
+async function createStorageSignedUrl(path, expiresInSeconds) {
+    const { data, error } = await supabase
+        .storage
+        .from(PHOTO_BUCKET)
+        .createSignedUrl(path, expiresInSeconds);
+
+    if (error) {
+        console.error("Signed URL error", error);
+        return "";
+    }
+
+    return data?.signedUrl || "";
+}
+
+function setEventStatusButtonState(eventData) {
+    if (!eventData) {
+        toggleEventStatusButton.disabled = true;
+        toggleEventStatusButton.textContent = "Unavailable";
+        return;
+    }
+
+    const shouldActivate = eventData.status === "inactive";
+    const activationBlocked = shouldActivate && hasEventPeriodEnded(eventData);
+
+    toggleEventStatusButton.disabled = activationBlocked;
+    toggleEventStatusButton.title = activationBlocked ? "Edit the event period before activating this event." : "";
+    toggleEventStatusButton.textContent = activationBlocked
+        ? "Period ended"
+        : shouldActivate
+            ? "Activate"
+            : "Deactivate";
+}
+
+function hasEventPeriodEnded(eventData) {
+    return getIsoDate(new Date()) > (eventData.end_date || eventData.date);
 }
 
 function showEventsList() {

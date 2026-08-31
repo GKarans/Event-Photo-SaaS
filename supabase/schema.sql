@@ -33,6 +33,10 @@ create table if not exists public.events (
     start_date date,
     end_date date,
     storage_folder text,
+    guest_title text,
+    guest_subtitle text,
+    guest_button_text text,
+    cover_image_path text,
     slug text not null unique,
     status text not null default 'active' check (status in ('active', 'inactive', 'deleted')),
     created_at timestamptz not null default now()
@@ -46,6 +50,18 @@ add column if not exists end_date date;
 
 alter table public.events
 add column if not exists storage_folder text;
+
+alter table public.events
+add column if not exists guest_title text;
+
+alter table public.events
+add column if not exists guest_subtitle text;
+
+alter table public.events
+add column if not exists guest_button_text text;
+
+alter table public.events
+add column if not exists cover_image_path text;
 
 update public.events
 set start_date = coalesce(start_date, date, public.current_app_date()),
@@ -370,6 +386,65 @@ using (
         from public.media
         join public.events on events.id = media.event_id
         where media.storage_path = storage.objects.name
+          and events.owner_id = auth.uid()
+    )
+);
+
+drop policy if exists "Organizers can upload own event covers" on storage.objects;
+create policy "Organizers can upload own event covers"
+on storage.objects for insert
+to authenticated
+with check (
+    bucket_id = 'event-photos'
+    and (storage.foldername(storage.objects.name))[1] = 'event-covers'
+    and exists (
+        select 1
+        from public.events
+        where events.id::text = (storage.foldername(storage.objects.name))[2]
+          and events.owner_id = auth.uid()
+    )
+);
+
+drop policy if exists "Organizers can read own event covers" on storage.objects;
+create policy "Organizers can read own event covers"
+on storage.objects for select
+to authenticated
+using (
+    bucket_id = 'event-photos'
+    and exists (
+        select 1
+        from public.events
+        where events.cover_image_path = storage.objects.name
+          and events.owner_id = auth.uid()
+    )
+);
+
+drop policy if exists "Guests can read active event covers" on storage.objects;
+create policy "Guests can read active event covers"
+on storage.objects for select
+to anon, authenticated
+using (
+    bucket_id = 'event-photos'
+    and exists (
+        select 1
+        from public.events
+        where events.cover_image_path = storage.objects.name
+          and events.status = 'active'
+          and public.current_app_date() >= events.start_date
+          and public.current_app_date() <= events.end_date
+    )
+);
+
+drop policy if exists "Organizers can delete own event covers" on storage.objects;
+create policy "Organizers can delete own event covers"
+on storage.objects for delete
+to authenticated
+using (
+    bucket_id = 'event-photos'
+    and exists (
+        select 1
+        from public.events
+        where events.cover_image_path = storage.objects.name
           and events.owner_id = auth.uid()
     )
 );
