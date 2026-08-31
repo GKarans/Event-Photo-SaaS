@@ -5,6 +5,10 @@ const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_5tHxxBuBgQJagyqIKuVVyg_2ZtruZ6J
 const APP_URL = "https://event-photo-saas.netlify.app";
 const PHOTO_BUCKET = "event-photos";
 const MAX_PHOTO_SIZE = 10 * 1024 * 1024;
+const ORIGINAL_IMAGE_MAX_DIMENSION = 2200;
+const ORIGINAL_IMAGE_QUALITY = 0.82;
+const THUMBNAIL_IMAGE_MAX_DIMENSION = 560;
+const THUMBNAIL_IMAGE_QUALITY = 0.72;
 const SIGNED_URL_EXPIRES_IN_SECONDS = 60 * 10;
 const GALLERY_CACHE_TTL_MS = 8 * 60 * 1000;
 const GALLERY_RENDER_BATCH_SIZE = 24;
@@ -851,14 +855,21 @@ async function handlePhotoSelected() {
     showUploadState("Uploading photo. Keep this page open.", "loading");
 
     try {
-        const storagePath = createStoragePath(file);
+        showUploadState("Preparing photo for upload...", "loading");
+
+        const optimizedPhoto = await optimizePhotoFile(file);
+        const storagePath = createStoragePath(optimizedPhoto.original);
+        const thumbnailPath = optimizedPhoto.thumbnail ? createThumbnailStoragePath(storagePath) : null;
+        let uploadedThumbnailPath = null;
+
+        showUploadState("Uploading photo. Keep this page open.", "loading");
 
         const { error: uploadError } = await supabase
             .storage
             .from(PHOTO_BUCKET)
-            .upload(storagePath, file, {
+            .upload(storagePath, optimizedPhoto.original, {
                 cacheControl: "3600",
-                contentType: file.type,
+                contentType: optimizedPhoto.original.type,
                 upsert: false
             });
 
@@ -869,6 +880,23 @@ async function handlePhotoSelected() {
             return;
         }
 
+        if (optimizedPhoto.thumbnail && thumbnailPath) {
+            const { error: thumbnailUploadError } = await supabase
+                .storage
+                .from(PHOTO_BUCKET)
+                .upload(thumbnailPath, optimizedPhoto.thumbnail, {
+                    cacheControl: "604800",
+                    contentType: optimizedPhoto.thumbnail.type,
+                    upsert: false
+                });
+
+            if (thumbnailUploadError) {
+                console.error("Thumbnail upload error", thumbnailUploadError);
+            } else {
+                uploadedThumbnailPath = thumbnailPath;
+            }
+        }
+
         showUploadState("Photo uploaded. Saving gallery details...", "loading");
 
         const { error: mediaError } = await supabase
@@ -877,8 +905,9 @@ async function handlePhotoSelected() {
                 event_id: selectedEvent.id,
                 guest_id: currentGuest.id,
                 storage_path: storagePath,
-                file_type: file.type,
-                file_size: file.size,
+                thumbnail_path: uploadedThumbnailPath,
+                file_type: optimizedPhoto.original.type,
+                file_size: optimizedPhoto.original.size,
                 status: "uploaded"
             });
 
@@ -1504,6 +1533,7 @@ async function loadGallery(eventId) {
         .select(`
             id,
             storage_path,
+            thumbnail_path,
             file_type,
             file_size,
             created_at,
@@ -1537,7 +1567,7 @@ async function loadGallery(eventId) {
     }
 
     const signedPhotos = await createSignedGalleryPhotos(data);
-    const availablePhotos = signedPhotos.filter(photo => photo.signedUrl);
+    const availablePhotos = signedPhotos.filter(photo => photo.thumbSignedUrl || photo.signedUrl);
     allGalleryPhotos = availablePhotos;
     setCachedGallery(eventId, availablePhotos);
     populateGalleryGuestFilter(availablePhotos);
@@ -1545,7 +1575,7 @@ async function loadGallery(eventId) {
 }
 
 async function createSignedGalleryPhotos(photos) {
-    const paths = photos.map(photo => photo.storage_path);
+    const paths = photos.map(photo => getPhotoDisplayPath(photo));
 
     const { data, error } = await supabase
         .storage
@@ -1567,7 +1597,8 @@ async function createSignedGalleryPhotos(photos) {
 
         return {
             ...photo,
-            signedUrl: signedPhoto?.signedUrl || "",
+            thumbSignedUrl: signedPhoto?.signedUrl || "",
+            signedUrl: "",
             signedUrlError
         };
     });
@@ -1575,15 +1606,17 @@ async function createSignedGalleryPhotos(photos) {
 
 async function createSignedGalleryPhotosIndividually(photos) {
     const signedPhotos = await Promise.all(photos.map(async photo => {
+        const displayPath = getPhotoDisplayPath(photo);
         const { data, error } = await supabase
             .storage
             .from(PHOTO_BUCKET)
-            .createSignedUrl(photo.storage_path, SIGNED_URL_EXPIRES_IN_SECONDS);
+            .createSignedUrl(displayPath, SIGNED_URL_EXPIRES_IN_SECONDS);
 
         if (error) {
             console.error("Signed URL error", error);
             return {
                 ...photo,
+                thumbSignedUrl: "",
                 signedUrl: "",
                 signedUrlError: error.message
             };
@@ -1591,12 +1624,35 @@ async function createSignedGalleryPhotosIndividually(photos) {
 
         return {
             ...photo,
-            signedUrl: data.signedUrl,
+            thumbSignedUrl: data.signedUrl,
+            signedUrl: "",
             signedUrlError: ""
         };
     }));
 
     return signedPhotos;
+}
+
+function getPhotoDisplayPath(photo) {
+    return photo.thumbnail_path || photo.storage_path;
+}
+
+async function getPhotoOriginalSignedUrl(photo) {
+    if (!photo?.storage_path) {
+        return "";
+    }
+
+    if (photo.signedUrl) {
+        return photo.signedUrl;
+    }
+
+    const signedUrl = await createStorageSignedUrl(photo.storage_path, SIGNED_URL_EXPIRES_IN_SECONDS);
+
+    if (signedUrl) {
+        photo.signedUrl = signedUrl;
+    }
+
+    return signedUrl;
 }
 
 function populateGalleryGuestFilter(photos) {
@@ -1700,7 +1756,7 @@ function renderGalleryBatch(photos, fragment, startIndex, renderToken) {
 
         const thumbWrap = button.querySelector(".thumb-wrap");
         const image = document.createElement("img");
-        image.src = photo.signedUrl;
+        image.src = photo.thumbSignedUrl || photo.signedUrl;
         image.alt = `${guestName} photo`;
         image.loading = "lazy";
         image.decoding = "async";
@@ -1740,7 +1796,13 @@ async function handleDownloadGallery() {
         for (const [index, photo] of currentGalleryPhotos.entries()) {
             downloadGalleryButton.textContent = `Zipping ${index + 1}/${currentGalleryPhotos.length}`;
 
-            const response = await fetch(photo.signedUrl);
+            const signedUrl = await getPhotoOriginalSignedUrl(photo);
+
+            if (!signedUrl) {
+                throw new Error("Original photo URL is not available");
+            }
+
+            const response = await fetch(signedUrl);
 
             if (!response.ok) {
                 throw new Error(`Download failed with status ${response.status}`);
@@ -1776,7 +1838,7 @@ function handleGalleryClick(event) {
     const photoIndex = Number(item.dataset.photoIndex);
     const photo = currentGalleryPhotos[photoIndex];
 
-    if (!photo?.signedUrl) {
+    if (!photo?.thumbSignedUrl && !photo?.signedUrl) {
         showMessage("Photo preview is not available.", "error");
         return;
     }
@@ -1784,7 +1846,7 @@ function handleGalleryClick(event) {
     openPhotoPreview(photoIndex);
 }
 
-function openPhotoPreview(photoIndex) {
+async function openPhotoPreview(photoIndex) {
     const photo = currentGalleryPhotos[photoIndex];
 
     if (!photo) {
@@ -1794,7 +1856,7 @@ function openPhotoPreview(photoIndex) {
     currentPreviewIndex = photoIndex;
     const guestName = photo.guests?.name || "Unknown guest";
 
-    previewImage.src = photo.signedUrl;
+    previewImage.src = photo.thumbSignedUrl || photo.signedUrl;
     previewImage.alt = `${guestName} photo`;
     previewTitle.textContent = guestName;
     previewSubtitle.textContent = `${formatDateTime(photo.created_at)} · ${formatFileSize(photo.file_size)}`;
@@ -1807,6 +1869,12 @@ function openPhotoPreview(photoIndex) {
     }
 
     document.body.classList.add("is-dialog-open");
+
+    const signedUrl = await getPhotoOriginalSignedUrl(photo);
+
+    if (currentPreviewIndex === photoIndex && signedUrl) {
+        previewImage.src = signedUrl;
+    }
 }
 
 function showAdjacentPhoto(direction) {
@@ -1878,7 +1946,7 @@ function handlePreviewTouchEnd(event) {
 async function handleDownloadPhoto() {
     const photo = currentGalleryPhotos[currentPreviewIndex];
 
-    if (!photo?.signedUrl) {
+    if (!photo) {
         showMessage("Could not find the photo to download.", "error");
         return;
     }
@@ -1887,7 +1955,13 @@ async function handleDownloadPhoto() {
     setButtonLoading(downloadPhotoButton, true, "Downloading...");
 
     try {
-        const response = await fetch(photo.signedUrl);
+        const signedUrl = await getPhotoOriginalSignedUrl(photo);
+
+        if (!signedUrl) {
+            throw new Error("Original photo URL is not available");
+        }
+
+        const response = await fetch(signedUrl);
 
         if (!response.ok) {
             throw new Error(`Download failed with status ${response.status}`);
@@ -1900,8 +1974,12 @@ async function handleDownloadPhoto() {
         showMessage("Photo download started.", "success");
     } catch (error) {
         console.error("Photo download error", error);
-        triggerDownload(photo.signedUrl, fileName);
-        showMessage("Opened the photo for download. If your browser opens it in a new view, save it from there.", "success");
+        if (photo.signedUrl) {
+            triggerDownload(photo.signedUrl, fileName);
+            showMessage("Opened the photo for download. If your browser opens it in a new view, save it from there.", "success");
+        } else {
+            showMessage("Could not prepare the photo download. Try again in a moment.", "error");
+        }
     } finally {
         setButtonLoading(downloadPhotoButton, false, "Download Photo");
     }
@@ -1924,10 +2002,11 @@ async function handleDeletePhoto() {
     setButtonLoading(deletePhotoButton, true, "Deleting...");
 
     try {
+        const pathsToDelete = [photo.storage_path, photo.thumbnail_path].filter(Boolean);
         const { error: storageError } = await supabase
             .storage
             .from(PHOTO_BUCKET)
-            .remove([photo.storage_path]);
+            .remove(pathsToDelete);
 
         if (storageError) {
             console.error("Storage delete error", storageError);
@@ -2009,6 +2088,115 @@ function showPhotoPanel(guestName) {
     hideUploadState();
 }
 
+async function optimizePhotoFile(file) {
+    try {
+        const original = await resizeImageFile(file, {
+            maxDimension: ORIGINAL_IMAGE_MAX_DIMENSION,
+            quality: ORIGINAL_IMAGE_QUALITY,
+            prefix: "optimized"
+        });
+        const thumbnail = await resizeImageFile(file, {
+            maxDimension: THUMBNAIL_IMAGE_MAX_DIMENSION,
+            quality: THUMBNAIL_IMAGE_QUALITY,
+            prefix: "thumb"
+        });
+
+        return {
+            original: original.size < file.size ? original : file,
+            thumbnail
+        };
+    } catch (error) {
+        console.error("Photo optimization skipped", error);
+        return {
+            original: file,
+            thumbnail: null
+        };
+    }
+}
+
+async function resizeImageFile(file, options) {
+    const image = await loadImageForResize(file);
+    const { width, height } = calculateResizeDimensions(image.width, image.height, options.maxDimension);
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+
+    const context = canvas.getContext("2d");
+
+    if (!context) {
+        throw new Error("Canvas is not available");
+    }
+
+    context.drawImage(image, 0, 0, width, height);
+    releaseLoadedImage(image);
+
+    const blob = await canvasToBlob(canvas, "image/jpeg", options.quality);
+
+    return new File([blob], createOptimizedFileName(file, options.prefix), {
+        type: "image/jpeg",
+        lastModified: Date.now()
+    });
+}
+
+async function loadImageForResize(file) {
+    if ("createImageBitmap" in window) {
+        return createImageBitmap(file);
+    }
+
+    return new Promise((resolve, reject) => {
+        const objectUrl = URL.createObjectURL(file);
+        const image = new Image();
+        image.onload = () => {
+            URL.revokeObjectURL(objectUrl);
+            resolve(image);
+        };
+        image.onerror = () => {
+            URL.revokeObjectURL(objectUrl);
+            reject(new Error("Image could not be loaded"));
+        };
+        image.src = objectUrl;
+    });
+}
+
+function releaseLoadedImage(image) {
+    if (typeof image.close === "function") {
+        image.close();
+    }
+}
+
+function calculateResizeDimensions(width, height, maxDimension) {
+    const longestSide = Math.max(width, height);
+
+    if (longestSide <= maxDimension) {
+        return { width, height };
+    }
+
+    const scale = maxDimension / longestSide;
+
+    return {
+        width: Math.max(1, Math.round(width * scale)),
+        height: Math.max(1, Math.round(height * scale))
+    };
+}
+
+function canvasToBlob(canvas, type, quality) {
+    return new Promise((resolve, reject) => {
+        canvas.toBlob((blob) => {
+            if (!blob) {
+                reject(new Error("Image compression failed"));
+                return;
+            }
+
+            resolve(blob);
+        }, type, quality);
+    });
+}
+
+function createOptimizedFileName(file, prefix) {
+    const baseName = file.name.replace(/\.[^/.]+$/, "") || "photo";
+    return `${prefix}-${baseName}.jpg`;
+}
+
 function validatePhoto(file) {
     if (!file.type.startsWith("image/")) {
         return "Only photo files are allowed.";
@@ -2034,6 +2222,15 @@ function createStoragePath(file) {
     const filename = `${guestBaseName}_${timestamp}.${extension}`;
 
     return `${eventFolder}/${guestFolder}/${filename}`;
+}
+
+function createThumbnailStoragePath(storagePath) {
+    const pathParts = storagePath.split("/");
+    const filename = pathParts.pop() || `thumbnail_${createReadableTimestamp()}.jpg`;
+    const baseName = filename.replace(/\.[^/.]+$/, "") || "photo";
+    pathParts.push(`thumb_${baseName}.jpg`);
+
+    return pathParts.join("/");
 }
 
 function getFileExtension(file) {

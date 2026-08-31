@@ -369,7 +369,10 @@ using (
         select 1
         from public.media
         join public.events on events.id = media.event_id
-        where media.storage_path = storage.objects.name
+        where (
+            media.storage_path = storage.objects.name
+            or media.thumbnail_path = storage.objects.name
+          )
           and events.owner_id = auth.uid()
           and media.status = 'uploaded'
     )
@@ -385,7 +388,10 @@ using (
         select 1
         from public.media
         join public.events on events.id = media.event_id
-        where media.storage_path = storage.objects.name
+        where (
+            media.storage_path = storage.objects.name
+            or media.thumbnail_path = storage.objects.name
+          )
           and events.owner_id = auth.uid()
     )
 );
