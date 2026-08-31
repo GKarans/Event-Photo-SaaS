@@ -66,7 +66,9 @@ const editEventButton = document.getElementById("edit-event-button");
 const toggleEventStatusButton = document.getElementById("toggle-event-status-button");
 const copyEventLinkButton = document.getElementById("copy-event-link-button");
 const downloadQrButton = document.getElementById("download-qr-button");
+const guestDesignModal = document.getElementById("guest-design-modal");
 const guestDesignForm = document.getElementById("guest-design-form");
+const closeGuestDesignButton = document.getElementById("close-guest-design-button");
 const guestCoverInput = document.getElementById("guest-cover-input");
 const guestDesignTitleInput = document.getElementById("guest-design-title-input");
 const guestDesignSubtitleInput = document.getElementById("guest-design-subtitle-input");
@@ -149,6 +151,7 @@ copyEventLinkButton.addEventListener("click", handleCopyEventLink);
 editEventButton.addEventListener("click", handleEditSelectedEvent);
 toggleEventStatusButton.addEventListener("click", handleToggleSelectedEventStatus);
 downloadQrButton.addEventListener("click", handleDownloadQr);
+closeGuestDesignButton.addEventListener("click", closeGuestDesignModal);
 guestDesignForm.addEventListener("submit", handleSaveGuestDesign);
 guestCoverInput.addEventListener("change", handleGuestCoverSelected);
 guestDesignTitleInput.addEventListener("input", updateGuestDesignPreview);
@@ -413,6 +416,7 @@ async function renderGuestRoute(slug) {
     authConfirmationPanel.classList.add("hidden");
     dashboardPanel.classList.add("hidden");
     guestPanel.classList.remove("hidden");
+    guestPanel.classList.remove("is-photo-mode");
     hideMessage();
 
     guestEventTitle.textContent = "Loading event...";
@@ -499,7 +503,7 @@ async function renderLoadedGuestEvent(data) {
     }
 
     selectedEvent = data;
-    applyGuestLandingDesign(data);
+    await applyGuestLandingDesign(data);
     guestEventDate.textContent = formatEventDateRange(data);
 
     const savedGuest = loadSavedGuest(data.slug);
@@ -518,7 +522,7 @@ async function applyGuestLandingDesign(eventData) {
     guestEventTitle.textContent = title;
     guestEventSubtitle.textContent = subtitle;
     guestEventSubtitle.classList.toggle("hidden", !subtitle);
-    guestStartButton.textContent = buttonText;
+    guestStartButton.textContent = "Let's go";
     takePhotoButton.textContent = buttonText;
     guestCover.style.backgroundImage = "";
 
@@ -586,7 +590,7 @@ async function handleGuestStart(event) {
         console.error("Guest start error", error);
         showMessage("Could not prepare your guest session. Check your connection and try again.", "error");
     } finally {
-        setButtonLoading(startButton, false, getGuestButtonText(selectedEvent));
+        setButtonLoading(startButton, false, "Let's go");
     }
 }
 
@@ -596,6 +600,7 @@ function handleChangeGuest() {
     }
 
     currentGuest = null;
+    guestPanel.classList.remove("is-photo-mode");
     photoPanel.classList.add("hidden");
     guestForm.classList.remove("hidden");
     guestNameInput.focus();
@@ -677,7 +682,30 @@ function handleEditSelectedEvent() {
         return;
     }
 
-    openEditEventModal(selectedEvent);
+    openGuestDesignModal(selectedEvent);
+}
+
+async function openGuestDesignModal(eventData) {
+    await populateGuestDesignForm(eventData);
+    hideMessage();
+
+    if (guestDesignModal.showModal) {
+        guestDesignModal.showModal();
+    } else {
+        guestDesignModal.setAttribute("open", "");
+    }
+
+    guestDesignTitleInput.focus();
+}
+
+function closeGuestDesignModal() {
+    if (guestDesignModal.close) {
+        guestDesignModal.close();
+    } else {
+        guestDesignModal.removeAttribute("open");
+    }
+
+    setButtonLoading(saveGuestDesignButton, false, "Save Design");
 }
 
 async function handleToggleSelectedEventStatus() {
@@ -1183,7 +1211,6 @@ async function showEventDetail(eventData) {
     eventDetailStatus.textContent = formatStatus(getDisplayEventStatus(eventData));
     setEventStatusButtonState(eventData);
     eventDetailUrl.textContent = eventUrl;
-    await populateGuestDesignForm(eventData);
 
     await renderQrCode(eventUrl);
     await loadGallery(eventData.id);
@@ -1976,6 +2003,7 @@ function handleDownloadQr() {
 function showPhotoPanel(guestName) {
     guestDisplayName.textContent = guestName;
     guestNameInput.value = guestName;
+    guestPanel.classList.add("is-photo-mode");
     guestForm.classList.add("hidden");
     photoPanel.classList.remove("hidden");
     hideUploadState();
