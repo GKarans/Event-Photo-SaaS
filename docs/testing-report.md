@@ -113,7 +113,7 @@ Rezultāts:
 
 ## 28.08 praktiskā testa rezultāti
 
-Testa laiks: 27.08.2026. 17:00 - 28.08.2026. 02:00
+Testa laiks: 27.08.2026. 15:00 - 00:00
 
 ## Mini tests pirms praktiskā testa
 
@@ -148,6 +148,43 @@ Rezultāts:
 
 - Statuss: labots lokāli.
 - Piezīmes: izmaiņas saglabātas Git commitos. Netlify deploy jāveic atsevišķi, kad pieejami deployment kredīti.
+
+## Regresijas tests pēc bugfix
+
+Šī sadaļa atbilst 20. dienas testēšanas darbam: pārbaudīt, ka pēc RLS/date/error labojumiem nav salauzta pamata MVP plūsma.
+
+Pārbaudītie scenāriji:
+
+- organizators var ielogoties;
+- organizators redz tikai savus eventus;
+- organizators var atvērt event detail skatu;
+- guest link atver aktīvu eventu;
+- viesis var ievadīt vārdu un sākt foto plūsmu;
+- deaktivizēts events bloķē guest upload;
+- ārpus event perioda guest upload nav pieejams;
+- organizatora galerija ielādē foto;
+- foto preview, filter, sort un ZIP download funkcijas saglabājas pieejamas.
+
+Rezultāts:
+
+- Statuss: izturēts lokālā/pārbaudes līmenī.
+- Piezīmes: pēc praktiskā testa veiktie labojumi bija saistīti ar piekļuves noteikumiem, laika zonas pārbaudi un kļūdu tekstiem. Pamata lietošanas plūsma pēc labojumiem netika mainīta.
+
+## Galerijas veiktspējas pārbaude
+
+Pēc praktiskā testa ar 60 foto tika veikta galerijas ielādes optimizācija organizatora skatā.
+
+Veiktie uzlabojumi:
+
+- signed URL ģenerēšana pārslēgta no secīgiem pieprasījumiem uz batch pieprasījumu;
+- pievienota īslaicīga galerijas cache atmiņa pārlūkā, lai atkārtoti atverot to pašu eventu nav jāielādē visi foto no jauna;
+- galerijas grid tiek renderēts pa daļām, lai lielāks foto skaits mazāk bloķētu saskarni;
+- attēliem saglabāts lazy loading un pievienota asinhrona dekodēšana.
+
+Rezultāts:
+
+- Statuss: ieviests.
+- Piezīmes: šis uzlabojums samazina atkārtotas ielādes gaidīšanas laiku, īpaši gadījumos, kad organizators atver eventu, atgriežas sarakstā un atkal atver to pašu galeriju.
 
 ### Dalībnieki
 

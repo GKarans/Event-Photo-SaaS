@@ -5,6 +5,9 @@ const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_5tHxxBuBgQJagyqIKuVVyg_2ZtruZ6J
 const APP_URL = "https://event-photo-saas.netlify.app";
 const PHOTO_BUCKET = "event-photos";
 const MAX_PHOTO_SIZE = 10 * 1024 * 1024;
+const SIGNED_URL_EXPIRES_IN_SECONDS = 60 * 10;
+const GALLERY_CACHE_TTL_MS = 8 * 60 * 1000;
+const GALLERY_RENDER_BATCH_SIZE = 24;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     auth: {
@@ -92,6 +95,8 @@ let allGalleryPhotos = [];
 let currentGalleryPhotos = [];
 let currentPreviewIndex = -1;
 let previewTouchStartX = 0;
+let galleryRenderToken = 0;
+const galleryCache = new Map();
 const activeEventSlug = getEventSlugFromPath();
 const isAuthConfirmationRoute = window.location.pathname === "/auth/confirmed";
 
@@ -699,6 +704,7 @@ async function handlePhotoSelected() {
             return;
         }
 
+        invalidateGalleryCache(selectedEvent.id);
         showUploadState("Photo uploaded. You can take another photo.", "success");
         showMessage("Photo uploaded!", "success");
     } catch (error) {
@@ -937,6 +943,7 @@ async function handleDeleteEvent(eventData, button) {
             return;
         }
 
+        invalidateGalleryCache(eventData.id);
         showMessage("Event deleted.", "success");
         await loadEvents();
     } catch (error) {
@@ -980,11 +987,53 @@ function showEventsList() {
     eventsList.classList.remove("hidden");
 }
 
-async function loadGallery(eventId) {
+function setGalleryLoadingState() {
+    galleryRenderToken += 1;
     galleryCount.textContent = "Loading photos...";
     galleryGrid.innerHTML = "";
     currentGalleryPhotos = [];
     downloadGalleryButton.disabled = true;
+}
+
+function getCachedGallery(eventId) {
+    const cachedGallery = galleryCache.get(eventId);
+
+    if (!cachedGallery) {
+        return null;
+    }
+
+    if (Date.now() - cachedGallery.loadedAt > GALLERY_CACHE_TTL_MS) {
+        galleryCache.delete(eventId);
+        return null;
+    }
+
+    return cachedGallery;
+}
+
+function setCachedGallery(eventId, photos) {
+    galleryCache.set(eventId, {
+        loadedAt: Date.now(),
+        photos
+    });
+}
+
+function invalidateGalleryCache(eventId) {
+    if (eventId) {
+        galleryCache.delete(eventId);
+    }
+}
+
+async function loadGallery(eventId) {
+    const cachedGallery = getCachedGallery(eventId);
+
+    if (cachedGallery) {
+        allGalleryPhotos = cachedGallery.photos;
+        populateGalleryGuestFilter(cachedGallery.photos);
+        applyGalleryControls();
+        return;
+    }
+
+    setGalleryLoadingState();
 
     const { data, error } = await supabase
         .from("media")
@@ -1026,35 +1075,62 @@ async function loadGallery(eventId) {
     const signedPhotos = await createSignedGalleryPhotos(data);
     const availablePhotos = signedPhotos.filter(photo => photo.signedUrl);
     allGalleryPhotos = availablePhotos;
+    setCachedGallery(eventId, availablePhotos);
     populateGalleryGuestFilter(availablePhotos);
     applyGalleryControls();
 }
 
 async function createSignedGalleryPhotos(photos) {
-    const signedPhotos = [];
+    const paths = photos.map(photo => photo.storage_path);
 
-    for (const photo of photos) {
+    const { data, error } = await supabase
+        .storage
+        .from(PHOTO_BUCKET)
+        .createSignedUrls(paths, SIGNED_URL_EXPIRES_IN_SECONDS);
+
+    if (error) {
+        console.error("Signed URLs batch error", error);
+        return createSignedGalleryPhotosIndividually(photos);
+    }
+
+    return photos.map((photo, index) => {
+        const signedPhoto = data?.[index];
+        const signedUrlError = signedPhoto?.error || "";
+
+        if (signedUrlError) {
+            console.error("Signed URL item error", signedUrlError);
+        }
+
+        return {
+            ...photo,
+            signedUrl: signedPhoto?.signedUrl || "",
+            signedUrlError
+        };
+    });
+}
+
+async function createSignedGalleryPhotosIndividually(photos) {
+    const signedPhotos = await Promise.all(photos.map(async photo => {
         const { data, error } = await supabase
             .storage
             .from(PHOTO_BUCKET)
-            .createSignedUrl(photo.storage_path, 60 * 10);
+            .createSignedUrl(photo.storage_path, SIGNED_URL_EXPIRES_IN_SECONDS);
 
         if (error) {
             console.error("Signed URL error", error);
-            signedPhotos.push({
+            return {
                 ...photo,
                 signedUrl: "",
                 signedUrlError: error.message
-            });
-            continue;
+            };
         }
 
-        signedPhotos.push({
+        return {
             ...photo,
             signedUrl: data.signedUrl,
             signedUrlError: ""
-        });
-    }
+        };
+    }));
 
     return signedPhotos;
 }
@@ -1111,6 +1187,8 @@ function handleClearGalleryFilters() {
 }
 
 function renderGallery(photos) {
+    galleryRenderToken += 1;
+    const renderToken = galleryRenderToken;
     galleryGrid.innerHTML = "";
 
     if (!photos.length) {
@@ -1130,8 +1208,18 @@ function renderGallery(photos) {
     downloadGalleryButton.disabled = false;
 
     const fragment = document.createDocumentFragment();
+    renderGalleryBatch(photos, fragment, 0, renderToken);
+}
 
-    for (const [index, photo] of photos.entries()) {
+function renderGalleryBatch(photos, fragment, startIndex, renderToken) {
+    if (renderToken !== galleryRenderToken) {
+        return;
+    }
+
+    const endIndex = Math.min(startIndex + GALLERY_RENDER_BATCH_SIZE, photos.length);
+
+    for (let index = startIndex; index < endIndex; index += 1) {
+        const photo = photos[index];
         const button = document.createElement("button");
         button.className = "gallery-item";
         button.type = "button";
@@ -1151,6 +1239,7 @@ function renderGallery(photos) {
         image.src = photo.signedUrl;
         image.alt = `${guestName} photo`;
         image.loading = "lazy";
+        image.decoding = "async";
         thumbWrap.appendChild(image);
 
         button.querySelector("span").textContent = `${guestName} · ${uploadedAt}`;
@@ -1158,6 +1247,12 @@ function renderGallery(photos) {
     }
 
     galleryGrid.appendChild(fragment);
+
+    if (endIndex < photos.length) {
+        window.requestAnimationFrame(() => {
+            renderGalleryBatch(photos, document.createDocumentFragment(), endIndex, renderToken);
+        });
+    }
 }
 
 async function handleDownloadGallery() {
@@ -1390,6 +1485,7 @@ async function handleDeletePhoto() {
         }
 
         closePhotoPreview();
+        invalidateGalleryCache(selectedEvent.id);
         showMessage("Photo deleted.", "success");
         await loadGallery(selectedEvent.id);
     } catch (error) {
