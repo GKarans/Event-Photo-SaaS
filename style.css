@@ -841,8 +841,8 @@ code {
 
 .guest-preview-phone {
     position: relative;
-    width: min(100%, 230px);
-    aspect-ratio: 9 / 16;
+    width: min(100%, 260px);
+    aspect-ratio: 7 / 9;
     overflow: hidden;
     border: 10px solid var(--surface-strong);
     border-radius: 30px;
@@ -854,13 +854,28 @@ code {
 
 .guest-preview-cover,
 .guest-cover {
-    position: absolute;
-    inset: 0;
-    background:
+    --cover-image:
         linear-gradient(145deg, rgba(91, 44, 138, 0.42), transparent 48%),
         linear-gradient(315deg, rgba(13, 115, 119, 0.32), transparent 52%);
-    background-position: 50% 50%;
+    --cover-position: 50% 50%;
+    --cover-scale: 1.08;
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    background: var(--surface-solid);
+}
+
+.guest-preview-cover::before,
+.guest-cover::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: var(--cover-image);
+    background-position: center;
     background-size: cover;
+    background-repeat: no-repeat;
+    transform: scale(var(--cover-scale));
+    transform-origin: var(--cover-position);
 }
 
 .guest-preview-cover::after,
@@ -928,6 +943,18 @@ code {
     isolation: isolate;
 }
 
+.is-guest-view .app-shell {
+    width: min(100%, 560px);
+}
+
+.is-guest-view .guest-panel {
+    display: grid;
+    min-height: min(720px, calc(100dvh - 96px));
+    aspect-ratio: 7 / 9;
+    align-content: end;
+    gap: 22px;
+}
+
 .guest-panel .brand::before,
 .guest-panel .eyebrow {
     display: none;
@@ -969,6 +996,7 @@ code {
 }
 
 .guest-panel.is-photo-mode .photo-panel {
+    position: static;
     min-height: auto;
     align-content: end;
     align-self: end;
@@ -1175,17 +1203,21 @@ code {
     max-width: min(58%, 230px);
     padding: 8px 10px;
     border-radius: 14px;
+    border-color: rgba(216, 181, 111, 0.52);
     background: rgba(10, 14, 19, 0.72);
+    color: #fff;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
 }
 
 .guest-panel.is-photo-mode .guest-toolbar span {
+    color: rgba(255, 255, 255, 0.72);
     font-size: 0.64rem;
 }
 
 .guest-panel.is-photo-mode .guest-toolbar strong {
     overflow: hidden;
+    color: #fff;
     font-size: 0.86rem;
     max-width: 120px;
     text-overflow: ellipsis;
@@ -1194,6 +1226,7 @@ code {
 
 .guest-panel.is-photo-mode .guest-toolbar .text-action {
     padding: 0;
+    color: #45d3d0;
     font-size: 0.78rem;
 }
 
@@ -1221,10 +1254,11 @@ code {
 
 .capture-hint {
     margin: -4px 0 0;
-    color: var(--muted);
+    color: rgba(255, 255, 255, 0.72);
     font-size: 0.9rem;
     line-height: 1.4;
     text-align: center;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.42);
 }
 
 .upload-state {

@@ -12,8 +12,10 @@ const THUMBNAIL_IMAGE_QUALITY = 0.72;
 const SIGNED_URL_EXPIRES_IN_SECONDS = 60 * 10;
 const GALLERY_CACHE_TTL_MS = 8 * 60 * 1000;
 const GALLERY_RENDER_BATCH_SIZE = 24;
-const EVENT_SELECT_FIELDS = "id,name,date,start_date,end_date,slug,status,storage_folder,guest_title,guest_subtitle,guest_button_text,cover_image_path,cover_position_x,cover_position_y,created_at";
-const PUBLIC_EVENT_SELECT_FIELDS = "id,name,date,start_date,end_date,slug,status,storage_folder,guest_title,guest_subtitle,guest_button_text,cover_image_path,cover_position_x,cover_position_y";
+const EVENT_SELECT_FIELDS = "id,name,date,start_date,end_date,slug,status,storage_folder,guest_title,guest_subtitle,guest_button_text,cover_image_path,cover_position_x,cover_position_y,cover_zoom,created_at";
+const PUBLIC_EVENT_SELECT_FIELDS = "id,name,date,start_date,end_date,slug,status,storage_folder,guest_title,guest_subtitle,guest_button_text,cover_image_path,cover_position_x,cover_position_y,cover_zoom";
+const EVENT_SELECT_FIELDS_WITHOUT_ZOOM = "id,name,date,start_date,end_date,slug,status,storage_folder,guest_title,guest_subtitle,guest_button_text,cover_image_path,cover_position_x,cover_position_y,created_at";
+const PUBLIC_EVENT_SELECT_FIELDS_WITHOUT_ZOOM = "id,name,date,start_date,end_date,slug,status,storage_folder,guest_title,guest_subtitle,guest_button_text,cover_image_path,cover_position_x,cover_position_y";
 const LEGACY_EVENT_SELECT_FIELDS = "id,name,date,start_date,end_date,slug,status,storage_folder,created_at";
 const LEGACY_PUBLIC_EVENT_SELECT_FIELDS = "id,name,date,start_date,end_date,slug,status,storage_folder";
 
@@ -76,6 +78,7 @@ const closeGuestDesignButton = document.getElementById("close-guest-design-butto
 const guestCoverInput = document.getElementById("guest-cover-input");
 const guestCoverPositionXInput = document.getElementById("guest-cover-position-x");
 const guestCoverPositionYInput = document.getElementById("guest-cover-position-y");
+const guestCoverZoomInput = document.getElementById("guest-cover-zoom");
 const guestDesignTitleInput = document.getElementById("guest-design-title-input");
 const guestDesignSubtitleInput = document.getElementById("guest-design-subtitle-input");
 const guestDesignButtonInput = document.getElementById("guest-design-button-input");
@@ -164,6 +167,7 @@ guestDesignForm.addEventListener("submit", handleSaveGuestDesign);
 guestCoverInput.addEventListener("change", handleGuestCoverSelected);
 guestCoverPositionXInput.addEventListener("input", updateGuestDesignPreview);
 guestCoverPositionYInput.addEventListener("input", updateGuestDesignPreview);
+guestCoverZoomInput.addEventListener("input", updateGuestDesignPreview);
 guestDesignTitleInput.addEventListener("input", updateGuestDesignPreview);
 guestDesignSubtitleInput.addEventListener("input", updateGuestDesignPreview);
 guestDesignButtonInput.addEventListener("input", updateGuestDesignPreview);
@@ -462,6 +466,19 @@ async function queryEventBySlug(slug) {
         return response;
     }
 
+    const noZoomResponse = await supabase
+        .from("events")
+        .select(PUBLIC_EVENT_SELECT_FIELDS_WITHOUT_ZOOM)
+        .eq("slug", slug)
+        .maybeSingle();
+
+    if (!isBrandingSchemaMissingError(noZoomResponse.error)) {
+        return {
+            ...noZoomResponse,
+            data: addGuestDesignDefaults(noZoomResponse.data)
+        };
+    }
+
     const fallbackResponse = await supabase
         .from("events")
         .select(LEGACY_PUBLIC_EVENT_SELECT_FIELDS)
@@ -487,6 +504,7 @@ function isBrandingSchemaMissingError(error) {
         || message.includes("cover_image_path")
         || message.includes("cover_position_x")
         || message.includes("cover_position_y")
+        || message.includes("cover_zoom")
         || message.includes("column")
         && message.includes("events");
 }
@@ -503,6 +521,7 @@ function addGuestDesignDefaults(eventData) {
         cover_image_path: null,
         cover_position_x: 50,
         cover_position_y: 50,
+        cover_zoom: 108,
         ...eventData
     };
 }
@@ -538,14 +557,14 @@ async function applyGuestLandingDesign(eventData) {
     guestEventSubtitle.classList.toggle("hidden", !subtitle);
     guestStartButton.textContent = "Let's go";
     takePhotoButton.textContent = buttonText;
-    guestCover.style.backgroundImage = "";
+    setCoverImage(guestCover, "");
     applyCoverPosition(guestCover, eventData);
 
     if (eventData.cover_image_path) {
         const coverUrl = await createStorageSignedUrl(eventData.cover_image_path, 600);
 
         if (coverUrl) {
-            guestCover.style.backgroundImage = `url("${coverUrl}")`;
+            setCoverImage(guestCover, coverUrl);
             applyCoverPosition(guestCover, eventData);
         }
     }
@@ -1054,6 +1073,21 @@ async function queryOrganizerEvents() {
         return response;
     }
 
+    const noZoomResponse = await supabase
+        .from("events")
+        .select(EVENT_SELECT_FIELDS_WITHOUT_ZOOM)
+        .eq("owner_id", currentSession.user.id)
+        .neq("status", "deleted")
+        .gte("end_date", getIsoDate(addDays(new Date(), -3)))
+        .order("created_at", { ascending: false });
+
+    if (!isBrandingSchemaMissingError(noZoomResponse.error)) {
+        return {
+            ...noZoomResponse,
+            data: (noZoomResponse.data || []).map(addGuestDesignDefaults)
+        };
+    }
+
     const fallbackResponse = await supabase
         .from("events")
         .select(LEGACY_EVENT_SELECT_FIELDS)
@@ -1266,13 +1300,14 @@ async function populateGuestDesignForm(eventData) {
     guestDesignButtonInput.value = getGuestButtonText(eventData);
     guestCoverPositionXInput.value = normalizeCoverPosition(eventData.cover_position_x);
     guestCoverPositionYInput.value = normalizeCoverPosition(eventData.cover_position_y);
+    guestCoverZoomInput.value = normalizeCoverZoom(eventData.cover_zoom);
     updateGuestDesignPreview();
 
     if (eventData.cover_image_path) {
         const coverUrl = await createStorageSignedUrl(eventData.cover_image_path, SIGNED_URL_EXPIRES_IN_SECONDS);
 
         if (coverUrl && selectedEvent?.id === eventData.id && !selectedGuestCoverFile && !shouldRemoveGuestCover) {
-            guestPreviewCover.style.backgroundImage = `url("${coverUrl}")`;
+            setCoverImage(guestPreviewCover, coverUrl);
             applyCoverPosition(guestPreviewCover, eventData);
         }
     }
@@ -1301,7 +1336,7 @@ function handleGuestCoverSelected() {
 
     selectedGuestCoverFile = file;
     selectedGuestCoverPreviewUrl = URL.createObjectURL(file);
-    guestPreviewCover.style.backgroundImage = `url("${selectedGuestCoverPreviewUrl}")`;
+    setCoverImage(guestPreviewCover, selectedGuestCoverPreviewUrl);
     updateGuestDesignPreview();
 }
 
@@ -1315,6 +1350,7 @@ function handleResetGuestDesign() {
     guestDesignButtonInput.value = "Take Photo";
     guestCoverPositionXInput.value = "50";
     guestCoverPositionYInput.value = "50";
+    guestCoverZoomInput.value = "108";
     updateGuestDesignPreview();
 }
 
@@ -1331,6 +1367,7 @@ async function handleSaveGuestDesign(event) {
     const buttonText = guestDesignButtonInput.value.trim() || "Take Photo";
     const coverPositionX = normalizeCoverPosition(guestCoverPositionXInput.value);
     const coverPositionY = normalizeCoverPosition(guestCoverPositionYInput.value);
+    const coverZoom = normalizeCoverZoom(guestCoverZoomInput.value);
 
     if (!title) {
         showMessage("Enter a title for the guest screen.", "error");
@@ -1346,7 +1383,8 @@ async function handleSaveGuestDesign(event) {
             guest_subtitle: subtitle || null,
             guest_button_text: buttonText === "Take Photo" ? null : buttonText,
             cover_position_x: coverPositionX,
-            cover_position_y: coverPositionY
+            cover_position_y: coverPositionY,
+            cover_zoom: coverZoom
         };
 
         if (selectedGuestCoverFile) {
@@ -1430,18 +1468,29 @@ function updateGuestDesignPreview() {
     guestPreviewButton.textContent = previewButtonText;
     applyCoverPosition(guestPreviewCover, {
         cover_position_x: guestCoverPositionXInput.value,
-        cover_position_y: guestCoverPositionYInput.value
+        cover_position_y: guestCoverPositionYInput.value,
+        cover_zoom: guestCoverZoomInput.value
     });
 
     if (selectedGuestCoverPreviewUrl) {
-        guestPreviewCover.style.backgroundImage = `url("${selectedGuestCoverPreviewUrl}")`;
+        setCoverImage(guestPreviewCover, selectedGuestCoverPreviewUrl);
     } else if (shouldRemoveGuestCover || !selectedEvent?.cover_image_path) {
-        guestPreviewCover.style.backgroundImage = "";
+        setCoverImage(guestPreviewCover, "");
     }
 }
 
+function setCoverImage(element, url) {
+    if (url) {
+        element.style.setProperty("--cover-image", `url("${url}")`);
+        return;
+    }
+
+    element.style.removeProperty("--cover-image");
+}
+
 function applyCoverPosition(element, eventData) {
-    element.style.backgroundPosition = `${normalizeCoverPosition(eventData?.cover_position_x)}% ${normalizeCoverPosition(eventData?.cover_position_y)}%`;
+    element.style.setProperty("--cover-position", `${normalizeCoverPosition(eventData?.cover_position_x)}% ${normalizeCoverPosition(eventData?.cover_position_y)}%`);
+    element.style.setProperty("--cover-scale", (normalizeCoverZoom(eventData?.cover_zoom) / 100).toFixed(2));
 }
 
 function normalizeCoverPosition(value) {
@@ -1452,6 +1501,16 @@ function normalizeCoverPosition(value) {
     }
 
     return Math.min(100, Math.max(0, Math.round(numberValue)));
+}
+
+function normalizeCoverZoom(value) {
+    const numberValue = Number(value);
+
+    if (!Number.isFinite(numberValue)) {
+        return 108;
+    }
+
+    return Math.min(140, Math.max(100, Math.round(numberValue)));
 }
 
 function clearSelectedGuestCoverPreview() {

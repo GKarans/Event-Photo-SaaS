@@ -69,6 +69,9 @@ add column if not exists cover_position_x integer not null default 50 check (cov
 alter table public.events
 add column if not exists cover_position_y integer not null default 50 check (cover_position_y >= 0 and cover_position_y <= 100);
 
+alter table public.events
+add column if not exists cover_zoom integer not null default 108 check (cover_zoom >= 100 and cover_zoom <= 140);
+
 update public.events
 set start_date = coalesce(start_date, date, public.current_app_date()),
     end_date = coalesce(end_date, date, start_date, public.current_app_date()),
