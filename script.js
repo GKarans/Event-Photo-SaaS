@@ -44,6 +44,10 @@ const eventEndDateInput = document.getElementById("event-end-date");
 const createEventButton = document.getElementById("create-event-button");
 const closeCreateEventButton = document.getElementById("close-create-event-button");
 const cancelCreateEventButton = document.getElementById("cancel-create-event-button");
+const eventsControls = document.getElementById("events-controls");
+const eventSearchInput = document.getElementById("event-search");
+const eventStatusFilter = document.getElementById("event-status-filter");
+const eventSort = document.getElementById("event-sort");
 const eventsList = document.getElementById("events-list");
 const eventsCount = document.getElementById("events-count");
 const eventsListHeader = document.getElementById("events-list-header");
@@ -110,6 +114,9 @@ closeCreateEventButton.addEventListener("click", closeCreateEventModal);
 cancelCreateEventButton.addEventListener("click", closeCreateEventModal);
 eventForm.addEventListener("submit", handleCreateEvent);
 eventStartDateInput.addEventListener("change", handleEventStartDateChange);
+eventSearchInput.addEventListener("input", renderFilteredEvents);
+eventStatusFilter.addEventListener("change", renderFilteredEvents);
+eventSort.addEventListener("change", renderFilteredEvents);
 eventsList.addEventListener("click", handleEventsListClick);
 backToEventsButton.addEventListener("click", showEventsList);
 copyEventLinkButton.addEventListener("click", handleCopyEventLink);
@@ -269,7 +276,7 @@ async function handleGoToLogin() {
 }
 
 async function handleLogout() {
-    setButtonLoading(logoutButton, true, "...");
+    setButtonLoading(logoutButton, true, "Logging out...");
 
     try {
         const { error } = await supabase.auth.signOut();
@@ -284,7 +291,7 @@ async function handleLogout() {
         console.error("Logout request error", error);
         showMessage("Logout failed because of a connection problem.", "error");
     } finally {
-        setButtonLoading(logoutButton, false, "⎋");
+        setButtonLoading(logoutButton, false, "Logout");
     }
 }
 
@@ -837,20 +844,41 @@ function renderEvents(events) {
         return;
     }
 
-    eventsList.innerHTML = "";
     currentEvents = events;
+    renderFilteredEvents();
+}
+
+function renderFilteredEvents() {
+    if (!eventsList || !eventsCount) {
+        return;
+    }
+
+    eventsList.innerHTML = "";
 
     if (!currentSession?.user) {
         eventsCount.textContent = "";
         return;
     }
 
-    if (!events.length) {
+    if (!currentEvents.length) {
         eventsCount.textContent = "You do not have any events yet.";
         eventsList.innerHTML = `
             <div class="empty-state">
                 <strong>No events yet</strong>
                 <span>Create your first event to generate a guest link and QR code.</span>
+            </div>
+        `;
+        return;
+    }
+
+    const events = getFilteredEvents();
+
+    if (!events.length) {
+        eventsCount.textContent = "No events match these filters.";
+        eventsList.innerHTML = `
+            <div class="empty-state">
+                <strong>No matching events</strong>
+                <span>Change the search, status, or sort options.</span>
             </div>
         `;
         return;
@@ -894,6 +922,38 @@ function renderEvents(events) {
     }
 
     eventsList.appendChild(fragment);
+}
+
+function getFilteredEvents() {
+    const searchTerm = eventSearchInput.value.trim().toLowerCase();
+    const statusFilter = eventStatusFilter.value;
+    const sortMode = eventSort.value;
+
+    const filteredEvents = currentEvents.filter(event => {
+        const displayStatus = getDisplayEventStatus(event);
+        const matchesSearch = !searchTerm || event.name.toLowerCase().includes(searchTerm);
+        const matchesStatus = statusFilter === "all" || displayStatus === statusFilter;
+
+        return matchesSearch && matchesStatus;
+    });
+
+    filteredEvents.sort((a, b) => {
+        if (sortMode === "oldest") {
+            return new Date(a.created_at) - new Date(b.created_at);
+        }
+
+        if (sortMode === "date-asc") {
+            return new Date(a.start_date || a.date) - new Date(b.start_date || b.date);
+        }
+
+        if (sortMode === "name") {
+            return a.name.localeCompare(b.name);
+        }
+
+        return new Date(b.created_at) - new Date(a.created_at);
+    });
+
+    return filteredEvents;
 }
 
 async function handleEventsListClick(event) {
@@ -969,6 +1029,7 @@ async function showEventDetail(eventData) {
     const eventUrl = getEventUrl(eventData);
 
     eventsListHeader.classList.add("hidden");
+    eventsControls.classList.add("hidden");
     eventsList.classList.add("hidden");
     eventDetail.classList.remove("hidden");
 
@@ -994,6 +1055,7 @@ function showEventsList() {
     downloadGalleryButton.disabled = true;
     eventDetail.classList.add("hidden");
     eventsListHeader.classList.remove("hidden");
+    eventsControls.classList.remove("hidden");
     eventsList.classList.remove("hidden");
 }
 

@@ -1,23 +1,27 @@
 :root {
     color-scheme: light;
-    --bg: #f7f9fb;
+    --bg: #eef6f8;
     --surface: #ffffff;
-    --surface-muted: #eef4f2;
+    --surface-muted: #eef4f7;
     --surface-strong: #0f172a;
     --text: #111827;
-    --muted: #60706a;
-    --line: #d8e3df;
-    --line-strong: #c8d5d0;
-    --accent: #0f8a64;
-    --accent-dark: #096649;
-    --accent-soft: #e3f5ee;
-    --navy: #1e293b;
+    --muted: #64748b;
+    --line: #dbe5ea;
+    --line-strong: #c7d6dd;
+    --accent: #0f9f7a;
+    --accent-dark: #047857;
+    --accent-soft: #dff8ef;
+    --indigo: #4f46e5;
+    --indigo-soft: #eef2ff;
+    --cyan: #0891b2;
+    --navy: #172033;
     --amber: #d97706;
     --danger: #c5261a;
     --danger-soft: #fee2e2;
     --success: #087443;
     --shadow-soft: 0 18px 44px rgba(15, 23, 42, 0.08);
     --shadow-panel: 0 24px 70px rgba(15, 23, 42, 0.12);
+    --shadow-color: 0 18px 40px rgba(15, 159, 122, 0.16);
 }
 
 * {
@@ -28,7 +32,10 @@ body {
     margin: 0;
     min-height: 100vh;
     font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    background: var(--bg);
+    background:
+        linear-gradient(135deg, rgba(79, 70, 229, 0.1), transparent 34%),
+        linear-gradient(315deg, rgba(15, 159, 122, 0.14), transparent 38%),
+        var(--bg);
     color: var(--text);
     -webkit-text-size-adjust: 100%;
 }
@@ -82,13 +89,17 @@ body.is-dialog-open {
     border-bottom: 1px solid var(--line);
 }
 
+.logout-button {
+    width: auto;
+}
+
 .dashboard-header > div {
     min-width: 0;
 }
 
 .eyebrow {
     margin: 0 0 8px;
-    color: var(--accent);
+    color: var(--accent-dark);
     font-size: 0.78rem;
     font-weight: 800;
     letter-spacing: 0;
@@ -131,7 +142,7 @@ h1 {
 
 .mode-tab.is-active {
     background: var(--surface);
-    color: var(--text);
+    color: var(--indigo);
     box-shadow: 0 1px 3px rgba(23, 33, 29, 0.12);
 }
 
@@ -206,8 +217,8 @@ select {
 
 input:focus,
 select:focus {
-    border-color: var(--accent);
-    outline: 3px solid rgba(31, 122, 90, 0.14);
+    border-color: var(--indigo);
+    outline: 3px solid rgba(79, 70, 229, 0.14);
 }
 
 .primary-button,
@@ -236,8 +247,9 @@ select:focus {
 
 .primary-button {
     margin-top: 0;
-    background: var(--accent);
+    background: linear-gradient(135deg, var(--indigo), var(--accent));
     color: #fff;
+    box-shadow: var(--shadow-color);
 }
 
 .auth-form .primary-button,
@@ -246,13 +258,13 @@ select:focus {
 }
 
 .primary-button:hover {
-    background: var(--accent-dark);
+    background: linear-gradient(135deg, #4338ca, var(--accent-dark));
 }
 
 .secondary-button {
     width: 100%;
     background: var(--surface-muted);
-    color: var(--text);
+    color: var(--navy);
 }
 
 .secondary-button:hover {
@@ -286,6 +298,11 @@ select:focus {
     background: var(--surface-muted);
     color: var(--text);
     font-size: 1.35rem;
+}
+
+.back-button {
+    justify-self: start;
+    width: auto;
 }
 
 button:disabled {
@@ -352,6 +369,14 @@ button.is-loading::before,
     grid-template-columns: minmax(0, 1fr) auto auto;
     align-items: center;
     gap: 12px;
+    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.04);
+    transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+}
+
+.event-card:hover {
+    border-color: var(--line-strong);
+    box-shadow: 0 16px 34px rgba(15, 23, 42, 0.08);
+    transform: translateY(-1px);
 }
 
 .event-card h3 {
@@ -382,6 +407,28 @@ button.is-loading::before,
     text-transform: uppercase;
 }
 
+.event-filter-bar {
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) minmax(150px, 190px) minmax(160px, 210px);
+    gap: 10px;
+    align-items: end;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: linear-gradient(135deg, rgba(79, 70, 229, 0.06), rgba(15, 159, 122, 0.08));
+}
+
+.event-filter-bar label {
+    display: grid;
+    gap: 6px;
+}
+
+.event-filter-bar span {
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+
 .status-pill.is-inactive {
     background: rgba(93, 107, 100, 0.14);
     color: var(--muted);
@@ -393,7 +440,7 @@ code {
     overflow-wrap: anywhere;
     border-radius: 6px;
     padding: 8px;
-    background: var(--surface-muted);
+    background: #f4f7f9;
     color: var(--muted);
     font-size: 0.82rem;
 }
@@ -480,7 +527,7 @@ code {
     border: 1px solid var(--line);
     border-radius: 8px;
     padding: 12px;
-    background: #fff;
+    background: linear-gradient(135deg, var(--accent-soft), #fff);
 }
 
 .event-card-info {
@@ -534,7 +581,9 @@ code {
     padding: 18px;
     border: 1px solid var(--line);
     border-radius: 8px;
-    background: #fff;
+    background:
+        linear-gradient(135deg, rgba(79, 70, 229, 0.06), transparent 44%),
+        #fff;
 }
 
 #qr-image {
@@ -573,6 +622,10 @@ code {
     grid-template-columns: auto minmax(130px, 1fr) auto minmax(130px, 1fr) auto;
     align-items: center;
     gap: 8px;
+    padding: 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fbfcfd;
 }
 
 .gallery-controls label {
@@ -617,6 +670,7 @@ code {
     background: var(--surface-muted);
     color: var(--muted);
     font-size: 0.78rem;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45);
 }
 
 .thumb-wrap img {
@@ -839,6 +893,10 @@ code {
         order: 2;
     }
 
+    .is-dashboard-view .logout-button {
+        justify-self: start;
+    }
+
     .is-dashboard-view .events-section {
         min-width: 0;
         padding: 28px 28px 34px 0;
@@ -854,6 +912,12 @@ code {
 
     .is-dashboard-view .events-list {
         grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    }
+
+    .is-dashboard-view .event-filter-bar {
+        position: sticky;
+        top: 68px;
+        z-index: 3;
     }
 
     .is-dashboard-view .event-card {
@@ -1016,6 +1080,10 @@ code {
     .event-card-actions {
         grid-column: 1 / -1;
         grid-template-columns: 1fr 1fr;
+    }
+
+    .event-filter-bar {
+        grid-template-columns: 1fr;
     }
 
     .event-card .status-pill {

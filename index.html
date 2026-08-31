@@ -64,9 +64,7 @@
                     <h1 id="dashboard-title">Welcome!</h1>
                     <p class="subtitle" id="user-email"></p>
                 </div>
-                <button class="icon-button" id="logout-button" type="button" aria-label="Logout" title="Logout">
-                    <span aria-hidden="true">⎋</span>
-                </button>
+                <button class="secondary-button compact-button logout-button" id="logout-button" type="button">Logout</button>
             </div>
 
             <section class="events-section" aria-labelledby="events-title">
@@ -78,10 +76,39 @@
                     <button class="primary-button compact-button" id="open-create-event-button" type="button">Create Event</button>
                 </div>
 
+                <div class="event-filter-bar" id="events-controls" aria-label="Event filters">
+                    <label class="event-search">
+                        <span>Search</span>
+                        <input id="event-search" type="search" placeholder="Search events" autocomplete="off">
+                    </label>
+
+                    <label>
+                        <span>Status</span>
+                        <select id="event-status-filter">
+                            <option value="all">All statuses</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </label>
+
+                    <label>
+                        <span>Sort</span>
+                        <select id="event-sort">
+                            <option value="newest">Newest created</option>
+                            <option value="oldest">Oldest created</option>
+                            <option value="date-asc">Event date</option>
+                            <option value="name">Event name</option>
+                        </select>
+                    </label>
+                </div>
+
                 <div class="events-list" id="events-list"></div>
 
                 <section class="event-detail hidden" id="event-detail" aria-labelledby="event-detail-title">
-                    <button class="text-action" id="back-to-events-button" type="button">Back to events</button>
+                    <button class="secondary-button compact-button back-button" id="back-to-events-button" type="button">
+                        <span aria-hidden="true">←</span>
+                        <span>Back</span>
+                    </button>
 
                     <div class="section-heading event-detail-heading">
                         <div>
