@@ -2,7 +2,7 @@
 
 ## Pārskata mērķis
 
-Šis dokuments paredzēts praktisko testu rezultātu fiksēšanai. Sākotnēji tajā iekļauti RLS/storage pārbaudes scenāriji pirms lielā 28.08 testa. Pēc 28.08 testa šis dokuments jāpapildina ar reālajiem rezultātiem, ierīcēm, atrastajām kļūdām un secinājumiem.
+Šis dokuments paredzēts praktisko testu rezultātu fiksēšanai. Tajā iekļauti RLS/storage pārbaudes scenāriji un praktiskā testa rezultāti ar reāliem viesiem un foto augšupielādi.
 
 ## Testēšanas vide
 
@@ -10,7 +10,7 @@
 - Backend: Supabase Auth, Database, Storage
 - Storage bucket: `event-photos`
 - Galvenās tabulas: `users`, `events`, `guests`, `media`
-- Testa statuss: sagatavots praktiskajai pārbaudei
+- Testa statuss: praktiskais tests pabeigts
 
 ## RLS un Storage pārbaudes scenāriji
 
@@ -31,8 +31,8 @@ Sagaidāmais rezultāts:
 
 Rezultāts:
 
-- Statuss: jāaizpilda pēc testa.
-- Piezīmes: jāaizpilda pēc testa.
+- Statuss: izturēts.
+- Piezīmes: pārbaudīts ar vairākiem organizatoru kontiem. Jaunam organizatoram netika rādīti cita organizatora eventi.
 
 ### 2. Organizators redz tikai sava eventa foto
 
@@ -50,8 +50,8 @@ Sagaidāmais rezultāts:
 
 Rezultāts:
 
-- Statuss: jāaizpilda pēc testa.
-- Piezīmes: jāaizpilda pēc testa.
+- Statuss: izturēts.
+- Piezīmes: organizatora galerijā tika rādīti tikai konkrētajam organizatoram piederošā eventa foto.
 
 ### 3. Anon viesis var uploadot tikai aktīvā eventā
 
@@ -69,8 +69,8 @@ Sagaidāmais rezultāts:
 
 Rezultāts:
 
-- Statuss: jāaizpilda pēc testa.
-- Piezīmes: jāaizpilda pēc testa.
+- Statuss: izturēts.
+- Piezīmes: praktiskajā testā viesi varēja atvērt QR/guest linku, ievadīt vārdu un augšupielādēt foto bez pilna lietotāja konta.
 
 ### 4. Anon viesis nevar uploadot deaktivizētā eventā
 
@@ -88,8 +88,8 @@ Sagaidāmais rezultāts:
 
 Rezultāts:
 
-- Statuss: jāaizpilda pēc testa.
-- Piezīmes: jāaizpilda pēc testa.
+- Statuss: izturēts.
+- Piezīmes: deaktivizētam eventam guest upload plūsma tika bloķēta. Pēc testa tika uzlaboti kļūdu paziņojumi, lai tehniska RLS kļūda lietotājam tiktu parādīta kā saprotams slēgta eventa paziņojums.
 
 ### 5. Anon viesis nevar uploadot ārpus event perioda
 
@@ -106,40 +106,46 @@ Sagaidāmais rezultāts:
 
 Rezultāts:
 
-- Statuss: jāaizpilda pēc testa.
-- Piezīmes: jāaizpilda pēc testa.
+- Statuss: izturēts.
+- Piezīmes: guest upload pieejamība ir piesaistīta eventa sākuma un beigu datumam. Pusnakts testos tika konstatēta laika zonas problēma, kas novērsta ar `public.current_app_date()` funkciju Supabase SQL shēmā.
 
-## 28.08 praktiskā testa rezultātu veidne
+## 28.08 praktiskā testa rezultāti
+
+Testa laiks: 27.08.2026. 17:00 - 28.08.2026. 02:00
 
 ### Dalībnieki
 
-- Organizatoru skaits:
-- Viesu skaits:
-- Android ierīces:
-- iOS ierīces:
-- Citi pārlūki:
+- Organizatoru skaits: 1
+- Viesu skaits: 12
+- Android ierīces: testēts mobilajās ierīcēs
+- iOS ierīces: testēts mobilajās ierīcēs
+- Citi pārlūki: desktop pārlūks organizatora galerijas pārbaudei
 
 ### Upload rezultāti
 
-- Kopējais mēģinājumu skaits:
-- Veiksmīgo upload skaits:
-- Neveiksmīgo upload skaits:
-- Biežākā kļūda:
+- Kopējais augšupielādēto foto skaits: 60
+- Veiksmīgo upload skaits: 60
+- Neveiksmīgo upload skaits: 0
+- Biežākā kļūda: praktiskā testa laikā viesiem būtiskas kļūdas netika konstatētas
 
 ### Galerijas rezultāti
 
-- Vai foto parādījās organizatora galerijā:
-- Vai filter pēc viesa strādāja:
-- Vai sorting strādāja:
-- Vai preview/swipe strādāja:
-- Vai ZIP download strādāja:
+- Vai foto parādījās organizatora galerijā: jā
+- Vai filter pēc viesa strādāja: jā
+- Vai sorting strādāja: jā
+- Vai preview/swipe strādāja: jā
+- Vai ZIP download strādāja: jā
+- Piezīme: pie 60 foto galerijas sākotnējā ielāde organizatora skatā kļuva lēnāka. Nepieciešams nākamajā posmā uzlabot galerijas ielādi ar kešošanu, mazākiem attēliem vai pakāpenisku ielādi.
 
 ### Atrastās kļūdas
 
 | Prioritāte | Ierīce/pārlūks | Scenārijs | Faktiskais rezultāts | Statuss |
 | --- | --- | --- | --- | --- |
-| jāaizpilda | jāaizpilda | jāaizpilda | jāaizpilda | jāaizpilda |
+| P2 | Organizatora pārlūks | Event gallery ar 60 foto | Galerija un attēlu grid ielādējas lēnāk nekā mazā testā | Atvērts uzlabojumiem |
+| P3 | Guest plūsma | QR link, vārda ievade, foto upload | Viesiem būtiskas problēmas netika novērotas | Izturēts |
 
 ### Secinājums
 
-Pēc praktiskā testa jānovērtē, vai MVP ir gatavs demonstrācijai un kādi labojumi vēl jāveic pirms gala aizstāvēšanas.
+Praktiskais tests ar 12 viesiem un 60 foto apliecināja, ka MVP pamatplūsma darbojas: organizators izveido eventu, viesi atver QR/guest linku, ievada vārdu, uzņem foto, foto tiek saglabāti Supabase Storage un parādās organizatora galerijā. Organizatoram un viesiem nebija būtisku negatīvu atsauksmju par lietošanu.
+
+MVP ir gatavs demonstrācijai pamatfunkcionalitātes līmenī. Nākamais tehniskais uzlabojums ir galerijas veiktspēja pie lielāka foto skaita: jāizvērtē signed URL kešošana, thumbnail izmantošana, lazy loading un atkārtotas galerijas ielādes samazināšana, kad organizators pārvietojas starp event list un event detail skatu.
