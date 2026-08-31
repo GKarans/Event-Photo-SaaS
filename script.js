@@ -228,6 +228,7 @@ async function handleAuthSubmit(event) {
 }
 
 async function renderAuthConfirmationRoute() {
+    setPageMode("auth");
     authPanel.classList.add("hidden");
     dashboardPanel.classList.add("hidden");
     guestPanel.classList.add("hidden");
@@ -258,6 +259,7 @@ async function renderAuthConfirmationRoute() {
 async function handleGoToLogin() {
     await supabase.auth.signOut();
     history.replaceState({}, "", "/");
+    setPageMode("auth");
     authConfirmationPanel.classList.add("hidden");
     dashboardPanel.classList.add("hidden");
     guestPanel.classList.add("hidden");
@@ -289,6 +291,7 @@ async function handleLogout() {
 function renderSession(session) {
     const isLoggedIn = Boolean(session?.user);
     currentSession = session;
+    setPageMode(isLoggedIn ? "dashboard" : "auth");
 
     authPanel.classList.toggle("hidden", isLoggedIn);
     authConfirmationPanel.classList.add("hidden");
@@ -305,6 +308,12 @@ function renderSession(session) {
         renderEvents([]);
         showEventsList();
     }
+}
+
+function setPageMode(mode) {
+    document.body.classList.toggle("is-auth-view", mode === "auth");
+    document.body.classList.toggle("is-dashboard-view", mode === "dashboard");
+    document.body.classList.toggle("is-guest-view", mode === "guest");
 }
 
 async function loadOrganizerProfile(user) {
@@ -339,6 +348,7 @@ async function loadOrganizerProfile(user) {
 }
 
 async function renderGuestRoute(slug) {
+    setPageMode("guest");
     authPanel.classList.add("hidden");
     authConfirmationPanel.classList.add("hidden");
     dashboardPanel.classList.add("hidden");
