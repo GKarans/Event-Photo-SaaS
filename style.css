@@ -721,6 +721,21 @@ code {
     gap: 10px;
 }
 
+.confirm-dialog {
+    width: min(92vw, 480px);
+}
+
+.confirm-detail {
+    margin: 0;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--surface-muted);
+    color: var(--muted);
+    font-size: 0.92rem;
+    line-height: 1.45;
+}
+
 .event-detail-heading {
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: start;
@@ -739,11 +754,18 @@ code {
 
 .event-card-info {
     min-width: 0;
+    border-radius: 10px;
+    cursor: pointer;
 }
 
 .event-card-info h3,
 .event-card-info p {
     overflow-wrap: anywhere;
+}
+
+.event-card-info:focus-visible {
+    outline: 3px solid var(--gold-soft);
+    outline-offset: 4px;
 }
 
 .status-card span {

@@ -105,6 +105,14 @@ const previewTitle = document.getElementById("preview-title");
 const previewSubtitle = document.getElementById("preview-subtitle");
 const downloadPhotoButton = document.getElementById("download-photo-button");
 const deletePhotoButton = document.getElementById("delete-photo-button");
+const confirmModal = document.getElementById("confirm-modal");
+const confirmForm = document.getElementById("confirm-form");
+const confirmTitle = document.getElementById("confirm-title");
+const confirmMessage = document.getElementById("confirm-message");
+const confirmDetail = document.getElementById("confirm-detail");
+const confirmCloseButton = document.getElementById("confirm-close-button");
+const confirmCancelButton = document.getElementById("confirm-cancel-button");
+const confirmActionButton = document.getElementById("confirm-action-button");
 const guestPanel = document.getElementById("guest-panel");
 const guestCover = document.getElementById("guest-cover");
 const guestEventTitle = document.getElementById("guest-event-title");
@@ -138,6 +146,7 @@ let selectedGuestCoverPreviewUrl = "";
 let shouldRemoveGuestCover = false;
 let messageHideTimeout = null;
 let uploadStateHideTimeout = null;
+let pendingConfirmResolve = null;
 const galleryCache = new Map();
 const activeEventSlug = getEventSlugFromPath();
 const isAuthConfirmationRoute = window.location.pathname === "/auth/confirmed";
@@ -158,6 +167,7 @@ eventSearchInput.addEventListener("input", renderFilteredEvents);
 eventStatusFilter.addEventListener("change", renderFilteredEvents);
 eventSort.addEventListener("change", renderFilteredEvents);
 eventsList.addEventListener("click", handleEventsListClick);
+eventsList.addEventListener("keydown", handleEventsListKeydown);
 backToEventsButton.addEventListener("click", showEventsList);
 copyEventLinkButton.addEventListener("click", handleCopyEventLink);
 editEventButton.addEventListener("click", handleEditSelectedEvent);
@@ -184,9 +194,14 @@ previewNextButton.addEventListener("click", () => showAdjacentPhoto(1));
 downloadPhotoButton.addEventListener("click", handleDownloadPhoto);
 deletePhotoButton.addEventListener("click", handleDeletePhoto);
 photoDialog.addEventListener("click", handlePreviewBackdropClick);
-photoDialog.addEventListener("close", () => document.body.classList.remove("is-dialog-open"));
+photoDialog.addEventListener("close", syncDialogOpenState);
 photoDialog.addEventListener("touchstart", handlePreviewTouchStart, { passive: true });
 photoDialog.addEventListener("touchend", handlePreviewTouchEnd);
+confirmCloseButton.addEventListener("click", () => closeConfirmModal(false));
+confirmCancelButton.addEventListener("click", () => closeConfirmModal(false));
+confirmActionButton.addEventListener("click", () => closeConfirmModal(true));
+confirmModal.addEventListener("click", handleConfirmBackdropClick);
+confirmModal.addEventListener("close", () => closeConfirmModal(false));
 document.addEventListener("keydown", handlePreviewKeydown);
 guestForm.addEventListener("submit", handleGuestStart);
 changeGuestButton.addEventListener("click", handleChangeGuest);
@@ -1162,7 +1177,7 @@ function renderFilteredEvents() {
         const displayStatus = getDisplayEventStatus(event);
 
         card.innerHTML = `
-            <div class="event-card-info">
+            <div class="event-card-info" role="button" tabindex="0">
                 <h3></h3>
                 <p></p>
             </div>
@@ -1174,6 +1189,7 @@ function renderFilteredEvents() {
         `;
 
         card.dataset.eventId = event.id;
+        card.querySelector(".event-card-info").setAttribute("aria-label", `Open ${event.name}`);
         card.querySelector("h3").textContent = event.name;
         card.querySelector("p").textContent = eventDate;
         card.querySelector(".status-pill").textContent = formatStatus(displayStatus);
@@ -1221,17 +1237,15 @@ function getFilteredEvents() {
 async function handleEventsListClick(event) {
     const openButton = event.target.closest(".open-event-button");
     const deleteButton = event.target.closest(".delete-event-button");
+    const cardInfo = event.target.closest(".event-card-info");
     const button = openButton || deleteButton;
-
-    if (!button) {
-        return;
-    }
-
-    const card = button.closest(".event-card");
+    const card = event.target.closest(".event-card");
     const eventData = currentEvents.find(item => item.id === card?.dataset.eventId);
 
     if (!eventData) {
-        showMessage("Could not find this event in the list.", "error");
+        if (button || cardInfo) {
+            showMessage("Could not find this event in the list.", "error");
+        }
         return;
     }
 
@@ -1240,11 +1254,48 @@ async function handleEventsListClick(event) {
         return;
     }
 
+    if (!openButton && !cardInfo && !isMobileViewport()) {
+        return;
+    }
+
     showEventDetail(eventData);
 }
 
+function handleEventsListKeydown(event) {
+    if (event.key !== "Enter" && event.key !== " ") {
+        return;
+    }
+
+    const cardInfo = event.target.closest(".event-card-info");
+
+    if (!cardInfo) {
+        return;
+    }
+
+    event.preventDefault();
+
+    const card = cardInfo.closest(".event-card");
+    const eventData = currentEvents.find(item => item.id === card?.dataset.eventId);
+
+    if (!eventData) {
+        showMessage("Could not find this event in the list.", "error");
+        return;
+    }
+
+    showEventDetail(eventData);
+}
+
+function isMobileViewport() {
+    return window.matchMedia("(max-width: 760px)").matches;
+}
+
 async function handleDeleteEvent(eventData, button) {
-    const confirmed = window.confirm(`Delete "${eventData.name}"? Guests will no longer be able to upload photos to this event.`);
+    const confirmed = await requestConfirmation({
+        title: "Delete event?",
+        message: `Delete "${eventData.name}"? Guests will no longer be able to upload photos to this event.`,
+        detail: "The event will be hidden from your list.",
+        confirmText: "Delete"
+    });
 
     if (!confirmed) {
         return;
@@ -1272,6 +1323,52 @@ async function handleDeleteEvent(eventData, button) {
     } finally {
         setButtonLoading(button, false, "Delete");
     }
+}
+
+function requestConfirmation({ title, message, detail, confirmText = "Delete" }) {
+    if (!confirmModal || typeof confirmModal.showModal !== "function") {
+        return Promise.resolve(false);
+    }
+
+    confirmTitle.textContent = title;
+    confirmMessage.textContent = message;
+    confirmDetail.textContent = detail || "";
+    confirmDetail.classList.toggle("hidden", !detail);
+    confirmActionButton.textContent = confirmText;
+
+    document.body.classList.add("is-dialog-open");
+
+    return new Promise(resolve => {
+        pendingConfirmResolve = resolve;
+        confirmModal.showModal();
+        confirmActionButton.focus();
+    });
+}
+
+function closeConfirmModal(confirmed) {
+    const resolver = pendingConfirmResolve;
+    pendingConfirmResolve = null;
+
+    if (confirmModal.open) {
+        confirmModal.close();
+    }
+
+    syncDialogOpenState();
+
+    if (resolver) {
+        resolver(confirmed);
+    }
+}
+
+function handleConfirmBackdropClick(event) {
+    if (event.target === confirmModal) {
+        closeConfirmModal(false);
+    }
+}
+
+function syncDialogOpenState() {
+    const hasOpenDialog = [photoDialog, confirmModal, createEventModal, guestDesignModal].some(dialog => dialog?.open);
+    document.body.classList.toggle("is-dialog-open", hasOpenDialog);
 }
 
 async function showEventDetail(eventData) {
@@ -2063,7 +2160,7 @@ function closePhotoPreview() {
 
     previewImage.src = "";
     currentPreviewIndex = -1;
-    document.body.classList.remove("is-dialog-open");
+    syncDialogOpenState();
 }
 
 function handlePreviewBackdropClick(event) {
@@ -2155,7 +2252,12 @@ async function handleDeletePhoto() {
         return;
     }
 
-    const confirmed = window.confirm("Delete this photo from the gallery?");
+    const confirmed = await requestConfirmation({
+        title: "Delete photo?",
+        message: "Delete this photo from the gallery?",
+        detail: "The original photo and thumbnail will be removed from Storage, and the gallery item will be marked as deleted.",
+        confirmText: "Delete"
+    });
 
     if (!confirmed) {
         return;

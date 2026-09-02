@@ -328,6 +328,27 @@
         </form>
     </dialog>
 
+    <dialog class="event-dialog confirm-dialog" id="confirm-modal">
+        <form class="modal-form" id="confirm-form" method="dialog">
+            <div class="modal-header">
+                <div class="section-heading">
+                    <h2 id="confirm-title">Delete event?</h2>
+                    <p id="confirm-message">Guests will no longer be able to upload photos to this event.</p>
+                </div>
+                <button class="icon-button modal-close" id="confirm-close-button" type="button" aria-label="Close confirmation">
+                    <span aria-hidden="true">×</span>
+                </button>
+            </div>
+
+            <p class="confirm-detail" id="confirm-detail">This action cannot be undone.</p>
+
+            <div class="modal-actions">
+                <button class="secondary-button" id="confirm-cancel-button" type="button">Cancel</button>
+                <button class="danger-button" id="confirm-action-button" type="button">Delete</button>
+            </div>
+        </form>
+    </dialog>
+
     <dialog class="photo-dialog" id="photo-dialog">
         <button class="icon-button dialog-close" id="close-preview-button" type="button" aria-label="Close preview">
             <span aria-hidden="true">×</span>
