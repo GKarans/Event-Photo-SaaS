@@ -69,12 +69,12 @@ Sagaidāmais rezultāts: deaktivizēts events bloķē viesu upload; aktivizēts 
 2. Pārbauda galerijas foto grid.
 3. Atver foto preview.
 4. Pāršķir foto ar bultiņām vai swipe.
-5. Lejupielādē vienu foto.
-6. Lejupielādē visus redzamos foto ZIP arhīvā.
-7. Pārbauda filtrēšanu pēc viesa.
-8. Pārbauda kārtošanu pēc jaunākā, vecākā un viesa vārda.
+5. Pārbauda filtrēšanu pēc viesa.
+6. Pārbauda kārtošanu pēc jaunākā, vecākā un viesa vārda.
+7. Pēc eventa beigām lejupielādē visus foto ZIP arhīvā.
+8. Pārbauda, ka ZIP nav pieejams atkārtotai lejupielādei.
 
-Sagaidāmais rezultāts: galerija ir pārskatāma, foto atveras, filtrējas un lejupielādējas.
+Sagaidāmais rezultāts: galerija ir pārskatāma, foto atveras, filtrējas un pēc eventa beigām ir pieejams vienreizējs ZIP.
 
 ## Viesa testēšanas scenāriji
 
@@ -149,7 +149,7 @@ Tests tiek uzskatīts par veiksmīgu, ja:
 - QR kods atver guest lapu Android un iOS ierīcēs.
 - Vismaz 80% viesu var veiksmīgi augšupielādēt foto bez palīdzības.
 - Organizatora galerijā redzami viesu foto.
-- Preview, filter, sort un download funkcijas strādā.
+- Preview, filter, sort, delete un ZIP funkcijas strādā atbilstoši MVP ierobežojumiem.
 - Neviens organizators neredz cita organizatora eventus vai foto.
 - Nav kritisku kļūdu, kas bloķē pamata plūsmu.
 

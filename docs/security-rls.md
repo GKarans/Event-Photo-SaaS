@@ -26,7 +26,7 @@ Organizators ir autentificēts Supabase Auth lietotājs. Viņš var:
 - redzēt tikai savus pasākumus;
 - redzēt tikai savu pasākumu viesus un foto;
 - dzēst savas galerijas foto;
-- lejupielādēt savas galerijas foto.
+- pēc pasākuma beigām vienu reizi lejupielādēt savas galerijas ZIP arhīvu.
 
 Organizators nedrīkst redzēt cita organizatora eventus, viesus vai foto.
 
@@ -179,7 +179,7 @@ Foto dzēšana MVP līmenī tiek apstrādāta kā Storage faila dzēšana un `me
 Anon vai authenticated viesis var izveidot `media` ierakstu tikai tad, ja:
 
 - `file_type like 'image/%'`;
-- `file_size <= 10485760`;
+- `file_size <= 6291456`;
 - events ir `active`;
 - šodienas datums ir event periodā.
 
@@ -211,7 +211,7 @@ Atļautie MIME tipi:
 Maksimālais faila izmērs:
 
 ```text
-10 MB
+6 MB
 ```
 
 ## Storage upload policy
@@ -234,7 +234,7 @@ Tas nozīmē, ka viesis nevar vienkārši augšupielādēt failu jebkurā Storag
 Organizators var lasīt Storage failus tikai tad, ja:
 
 - fails ir bucketā `event-photos`;
-- faila `storage_path` ir piesaistīts `media` ierakstam;
+- faila `storage_path` vai `thumbnail_path` ir piesaistīts `media` ierakstam;
 - `media` ieraksts pieder eventam, kura īpašnieks ir ielogotais organizators;
 - `media.status = 'uploaded'`.
 
@@ -248,7 +248,7 @@ Organizators var dzēst Storage failu tikai tad, ja fails pieder viņa eventam. 
 storage.objects.name -> media.storage_path -> events.owner_id
 ```
 
-Ja `events.owner_id` neatbilst `auth.uid()`, dzēšana tiek bloķēta.
+Tas pats princips attiecas arī uz thumbnail failiem. Ja `events.owner_id` neatbilst `auth.uid()`, dzēšana tiek bloķēta.
 
 ## Frontend validācija
 
@@ -261,7 +261,7 @@ Frontend pārbauda:
 - event periods nav pagātnē, veidojot jaunu eventu;
 - viesis ievada vārdu;
 - fails ir attēls;
-- fails nepārsniedz 10 MB;
+- fails nepārsniedz 6 MB;
 - event ir aktīvs pirms foto upload.
 
 Svarīgi: pat ja lietotājs mēģina apiet frontend validāciju, Supabase RLS un Storage policies joprojām bloķē neatļautas darbības.
@@ -287,7 +287,8 @@ MVP līmenī nav ieviests:
 - maks. foto skaits uz vienu viesi;
 - detalizēts audit log katrai darbībai;
 - custom SMTP production e-pastiem;
-- server-side image compression vai thumbnail generation;
+- server-side image processing;
+- server-side ZIP generation;
 - automātisks scheduled cleanup ar backend funkciju.
 
 Šie punkti nav bloķējoši MVP testam, bet tie jāplāno production versijai.

@@ -144,7 +144,7 @@ Storage bucket:
 Bucket konfigurācija:
 
 - private bucket;
-- maksimālais foto izmērs: 10 MB;
+- maksimālais foto izmērs: 6 MB;
 - atļautie formāti: `image/jpeg`, `image/png`, `image/webp`, `image/gif`, `image/heic`, `image/heif`.
 
 Storage ceļa struktūra:
@@ -153,6 +153,10 @@ Storage ceļa struktūra:
 event-name-1234/
   guest-name-5678/
     guest-name_2026-08-16_14-37-11.jpg
+    thumb_guest-name_2026-08-16_14-37-11.jpg
+event-covers/
+  event-name-1234/
+    cover_2026-08-31_18-45-20.jpg
 ```
 
 Storage piekļuves princips:
@@ -160,7 +164,9 @@ Storage piekļuves princips:
 - viesis var tikai augšupielādēt foto aktīvam eventam;
 - viesis neredz Storage failu sarakstu;
 - organizators var lasīt un dzēst tikai sava eventa Storage failus;
-- galerijā tiek izmantotas īslaicīgas signed URLs.
+- galerijas grid izmanto īslaicīgas signed URLs thumbnail failiem;
+- oriģinālie foto tiek pieprasīti tikai preview, dzēšanai un ZIP sagatavošanai;
+- cover attēli tiek izmantoti tikai konkrētā eventa guest ekrānam.
 
 ## Environment variables un secrets
 
@@ -195,7 +201,7 @@ Standarta deploy process:
    - QR;
    - upload;
    - gallery;
-   - download.
+   - ZIP download pēc eventa beigām.
 
 Ja mainīta Supabase SQL shēma, tad pirms production testa:
 
@@ -211,7 +217,8 @@ Svarīgākie riski:
 - Supabase SQL shēma nav palaista pēc policy izmaiņām;
 - e-pasta confirmation link atver nepareizu URL, ja Auth settings nav pareizi;
 - viesu upload var tikt bloķēts, ja events nav aktīvs vai ir ārpus perioda;
-- galerijas ielāde kļūst lēnāka pie lielāka foto skaita.
+- galerijas ielāde kļūst lēnāka pie lielāka foto skaita;
+- Supabase egress var pieaugt, ja bieži tiek ielādēti oriģinālie foto vai atkārtoti veidots ZIP.
 
 Risinājumi:
 
@@ -219,7 +226,9 @@ Risinājumi:
 - pēc SQL izmaiņām vienmēr palaist pilnu aktuālo shēmu vai konkrētu migration bloku;
 - uzturēt pareizu Site URL un Redirect URL Supabase Auth konfigurācijā;
 - pirms testa pārbaudīt event statusu un datuma periodu;
-- optimizēt galeriju ar signed URL batch pieprasījumiem, cache un lazy loading.
+- optimizēt galeriju ar thumbnails, signed URL batch pieprasījumiem, cache un lazy loading;
+- ierobežot ZIP lejupielādi līdz vienai reizei pēc eventa beigām;
+- samazināt augšupielādējamo foto izmēru ar client-side optimizāciju.
 
 ## Praktiskais secinājums
 

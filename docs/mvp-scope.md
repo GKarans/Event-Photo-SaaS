@@ -1,10 +1,29 @@
-# Event Photo SaaS MVP scope
+# Event Photo SaaS MVP scope un nākotnes funkcijas
 
 ## Dokumenta mērķis
 
-Šis dokuments definē Event Photo SaaS MVP robežas: kas ir iekļauts praktiskajā versijā, kas apzināti netiek iekļauts prakses laikā un kādas funkcijas paliek nākotnes attīstībai.
+Šis dokuments definē Event Photo SaaS MVP robežas: kas ir iekļauts pašreizējā praktiskajā versijā, kas apzināti nav iekļauts prakses laikā un ko var attīstīt pēc prakses.
 
-MVP mērķis nav izveidot pilnu komerciālu platformu ar visām biznesa funkcijām. MVP mērķis ir pierādīt galveno produkta plūsmu: organizators izveido eventu, viesi ar QR linku augšupielādē foto, un organizators pēc tam redz, pārskata, dzēš un lejupielādē eventa foto.
+MVP mērķis nav izveidot pilnu komerciālu platformu ar maksājumiem, abonementiem un sarežģītu administrēšanu. MVP mērķis ir pierādīt galveno produkta vērtību:
+
+```text
+Viens QR kods -> viesi pievieno foto -> organizators redz privātu galeriju
+```
+
+## Galvenais MVP scenārijs
+
+MVP ir uzskatāms par veiksmīgu, ja pilnībā darbojas šī ķēde:
+
+1. Organizators reģistrējas un pieslēdzas.
+2. Organizators izveido eventu.
+3. Sistēma izveido unikālu guest URL un QR kodu.
+4. Viesis bez konta atver QR/linku.
+5. Viesis ievada vārdu un uzvārdu.
+6. Viesis uzņem vai izvēlas foto telefonā.
+7. Foto tiek optimizēts un augšupielādēts Supabase Storage.
+8. Datubāzē tiek saglabāti foto metadati.
+9. Organizators redz foto savā galerijā.
+10. Organizators var filtrēt, pārskatīt, dzēst un pēc eventa beigām lejupielādēt ZIP.
 
 ## MVP iekļautā funkcionalitāte
 
@@ -13,11 +32,11 @@ MVP mērķis nav izveidot pilnu komerciālu platformu ar visām biznesa funkcij�
 MVP iekļauj:
 
 - organizatora reģistrāciju;
-- organizatora login/logout;
+- vārda, uzvārda, e-pasta un paroles ievadi;
 - e-pasta apstiprināšanas redirect uz produkta lapu;
-- organizatora profila vārdu un uzvārdu;
-- dashboard sveicienu ar organizatora vārdu;
-- sesijas uzturēšanu pārlūkā.
+- login/logout;
+- sesijas saglabāšanu pārlūkā;
+- dashboard sveicienu ar organizatora vārdu.
 
 ### Event pārvaldība
 
@@ -25,54 +44,88 @@ MVP iekļauj:
 
 - event izveidi;
 - event nosaukumu;
-- event sākuma un beigu datumu;
+- sākuma un beigu datumu;
 - maksimālo event periodu līdz 3 dienām;
 - aizliegumu veidot eventu pagātnē;
-- event edit funkciju;
-- event activate/deactivate funkciju;
+- event aktivizēšanu un deaktivizēšanu;
 - soft delete ar `status = deleted`;
-- automātisku beigušos eventu paslēpšanu no organizatora saraksta pēc noteikta laika.
+- beigušos eventu automātisku paslēpšanu pēc noteikta laika;
+- event detail skatu ar statusu, guest linku un QR kodu.
 
-### QR un guest link
+### Guest link un QR
 
 MVP iekļauj:
 
-- unikālu event slug;
-- guest URL;
+- unikālu `slug` katram eventam;
+- publisku guest URL formā `/event/{slug}`;
 - QR koda ģenerēšanu;
 - QR koda lejupielādi;
 - linka kopēšanu;
-- guest link pieejamību tikai aktīvam eventam tā perioda laikā.
+- guest link pieejamību tikai aktīvam eventam tā datumu periodā.
 
-### Viesa plūsma
+### Guest plūsma
 
 MVP iekļauj:
 
-- guest link atvēršanu bez konta;
-- event nosaukuma un datuma attēlošanu;
-- viesa vārda un uzvārda ievadi;
-- foto uzņemšanas sākšanu;
-- telefona kameras atvēršanu ar faila input/capture plūsmu;
-- foto augšupielādi uz Supabase Storage;
-- upload statusu un kļūdu paziņojumus;
-- bloķēšanu, ja events ir inactive, deleted vai ārpus datuma perioda.
+- guest piekļuvi bez konta;
+- vārda un uzvārda ievadi;
+- lokālu viesa sesijas saglabāšanu pārlūkā;
+- iespēju mainīt viesa vārdu;
+- `Let's go` sākuma soli;
+- organizatora pielāgotu camera button text;
+- telefona kameras/faila izvēles atvēršanu;
+- upload statusu;
+- saprotamus kļūdu paziņojumus.
+
+### Guest UX pielāgošana
+
+MVP iekļauj eventa viesu ekrāna pielāgošanu:
+
+- cover photo;
+- title;
+- subtitle;
+- camera button text;
+- cover horizontal position;
+- cover vertical position;
+- cover zoom;
+- live preview pirms saglabāšanas.
+
+Šī funkcija ļauj organizatoram pielāgot viesu ekrānu konkrētam pasākumam, nepievienojot sarežģītu dizaina sistēmu vai vairākas tēmas.
+
+### Foto upload
+
+MVP ir tikai photo-only.
+
+MVP iekļauj:
+
+- tikai `image/*` failu upload;
+- 6 MB maksimālo foto limitu;
+- client-side foto optimizāciju;
+- thumbnail ģenerēšanu pirms upload;
+- oriģinālā foto un thumbnail saglabāšanu Supabase Storage;
+- `media` ierakstu ar `storage_path`, `thumbnail_path`, file type un file size;
+- bloķēšanu, ja events nav aktīvs vai ir ārpus perioda.
+
+Video nav MVP daļa.
 
 ### Organizatora galerija
 
 MVP iekļauj:
 
 - foto ielādi no `media` tabulas;
-- signed URL ģenerēšanu Supabase Storage failiem;
-- foto grid skatu;
+- thumbnail signed URLs galerijas gridam;
 - lazy loading;
+- pakāpenisku grid renderēšanu;
+- īslaicīgu browser cache galerijas datiem;
 - foto preview;
-- preview navigāciju ar bultiņām;
-- viena foto lejupielādi;
-- visu galerijas foto ZIP lejupielādi;
-- foto dzēšanu;
+- preview navigāciju ar bultiņām un swipe;
 - filtrēšanu pēc viesa;
 - kārtošanu pēc jaunākā, vecākā un viesa vārda;
-- galerijas ielādes optimizāciju ar batch signed URL un īslaicīgu pārlūka cache.
+- foto dzēšanu;
+- ZIP lejupielādi tikai pēc eventa beigām;
+- ZIP lejupielādi tikai vienu reizi vienam eventam.
+
+Individuāla foto download poga pašreizējā UI ir paslēpta, lai samazinātu nejaušu Supabase egress patēriņu.
 
 ### Drošība
 
@@ -81,67 +134,111 @@ MVP iekļauj:
 - Supabase Auth organizatoriem;
 - RLS visām galvenajām tabulām;
 - organizatoru datu izolāciju;
-- anon guest upload tikai aktīvam eventam;
+- anon guest upload tikai konkrētam aktīvam eventam;
 - Storage upload policy pēc event mapes un event perioda;
 - Storage read/delete tikai event īpašniekam;
+- privātu Storage bucket;
+- signed URLs attēlu rādīšanai;
 - publishable key izmantošanu frontendā;
-- secret/service role key neiekļaušanu frontend kodā un repo.
+- service role key un secrets neiekļaušanu repozitorijā.
 
-## MVP apzinātie ierobežojumi
+## Apzināti neiekļauts MVP
 
-MVP apzināti neiekļauj:
+Šīs funkcijas nav iekļautas prakses MVP, jo tās palielinātu sarežģītību vai nav nepieciešamas galvenās produkta vērtības pierādīšanai:
 
 - video upload;
-- maksājumu sistēmu;
-- subscription/plānu pārvaldību;
-- publisku viesu galeriju;
-- viesu kontus;
-- organizatora komandas vai vairākus admin vienam eventam;
-- pielāgotu domēnu katram klientam;
-- e-pasta paziņojumus pēc eventa;
-- automātisku server-side thumbnail ģenerēšanu;
-- server-side ZIP ģenerēšanu;
-- pilnu audit log;
-- custom rate limiting ārpus Supabase platformas iespējām;
-- pilnu analytics dashboard.
+- video glabāšana, video preview vai video thumbnails;
+- maksājumu sistēma;
+- subscription/plānu pārvaldība;
+- publiska viesu galerija;
+- viesu konti;
+- vairāki organizatori vienam eventam;
+- team/admin role sistēma;
+- custom domēni klientiem;
+- e-pasta paziņojumi pēc eventa;
+- analytics dashboard;
+- server-side image processing;
+- server-side ZIP generation;
+- automātisks scheduled Storage cleanup;
+- pilns audit log;
+- custom rate limiting ārpus Supabase iespējām;
+- daudzvalodu UI pārslēgs.
 
-Šie ierobežojumi samazina izstrādes risku un ļauj pabeigt stabilu prakses MVP.
+Šie ierobežojumi ir apzināti, lai prakses laikā pabeigtu stabilu un saprotamu MVP.
 
 ## Nākotnes funkcijas pēc prakses
 
-Pēc MVP pabeigšanas var plānot:
+Pēc prakses produktu var attīstīt vairākos virzienos.
 
-- server-side thumbnail ģenerēšanu;
-- server-side ZIP export ar Supabase Edge Function vai Netlify Function;
-- PWA režīmu ērtākai lietošanai telefonā;
-- custom event dizainu: fona attēls, teksts, krāsas;
-- event expiration cleanup, kas fiziski dzēš vecos failus no Storage;
-- pricing modeļus pēc event skaita vai storage apjoma;
-- Stripe maksājumus;
-- organizatora statistiku par foto un viesiem;
-- guest upload limitus;
-- labāku kameras UI ar priekšējo/aizmugurējo kameru, ja pārlūka iespējas to ļauj;
-- ielūgumu un QR plakātu ģenerēšanu;
-- daudzvalodu UI.
+### Veiktspēja un izmaksas
+
+- Server-side thumbnails ar Supabase Edge Function.
+- Server-side ZIP export, lai lielas galerijas neveidotu ZIP pārlūkā.
+- Automātiska veco eventu un Storage failu tīrīšana.
+- Foto skaita limits vienam eventam.
+- Foto skaita limits vienam viesim.
+- Storage limits pēc klienta plāna.
+- Labāka CDN/cache stratēģija.
+
+### Produkta funkcijas
+
+- Pricing un subscription modeļi.
+- Stripe maksājumi.
+- Custom event URL.
+- QR plakātu ģenerēšana drukai.
+- Organizatora analytics: viesu skaits, foto skaits, upload dinamika.
+- Event templates dažādiem pasākumu tipiem.
+- E-pasta vai SMS paziņojumi organizatoram.
+- PWA režīms telefonam.
+
+### Drošība un administrēšana
+
+- Audit log organizatora darbībām.
+- Custom rate limiting viesu uploadam.
+- Abuse detection pie pārāk daudz upload mēģinājumiem.
+- Production SMTP konfigurācija Auth e-pastiem.
+- Admin panelis sistēmas īpašniekam.
+
+### UX uzlabojumi
+
+- Plašāka guest design pielāgošana.
+- Vairākas krāsu tēmas.
+- Labāka mobile camera pieredze, ja pārlūka iespējas to ļauj.
+- Iespēja izvēlēties priekšējo/aizmugurējo kameru, ja pārlūks to stabili atbalsta.
+- Organizatora galerijas multi-select darbības.
 
 ## MVP gatavības kritēriji
 
-MVP uzskatāms par gatavu demonstrācijai, ja:
+MVP ir gatavs demonstrācijai, ja:
 
 - organizators var reģistrēties un ielogoties;
 - organizators var izveidot eventu;
+- organizators var pielāgot guest ekrānu;
 - QR kods un guest links atver pareizo eventu;
-- viesis bez konta var augšupielādēt foto;
-- foto nonāk Supabase Storage;
-- organizators redz foto savā galerijā;
-- organizators var pārskatīt, filtrēt, dzēst un lejupielādēt foto;
-- cita organizatora eventi un foto nav redzami;
-- deaktivizēts vai beidzies events bloķē guest upload;
+- viesis bez konta var ievadīt vārdu un augšupielādēt foto;
+- fails tiek optimizēts un saglabāts Supabase Storage;
+- galerijas grid izmanto thumbnails;
+- organizators redz foto tikai savam eventam;
+- organizators var filtrēt, kārtot, apskatīt un dzēst foto;
+- ZIP download ir pieejams pēc eventa beigām;
+- ZIP download nav atkārtoti izmantojams;
+- cita organizatora dati nav redzami;
+- inactive vai ārpus perioda esošs events bloķē guest upload;
 - kļūdu teksti ir saprotami lietotājam;
-- mobilā plūsma ir pārbaudīta Android/iOS ierīcēs.
+- plūsma ir pārbaudīta Android un iOS ierīcēs.
 
-## Pašreizējais secinājums
+## Secinājums pēc praktiskā testa
 
-Pēc praktiskā testa ar 12 viesiem un 60 foto MVP pamatplūsma strādā. Lietotāji varēja augšupielādēt foto, organizators varēja tos apskatīt galerijā, un būtiskas negatīvas atsauksmes netika saņemtas.
+Pēc praktiskā testa ar 12 viesiem un 60 foto MVP pamatplūsma strādāja. Viesi varēja atvērt QR/linku, ievadīt vārdu, uzņemt foto un augšupielādēt tos Supabase Storage. Organizators varēja atvērt galeriju un pārskatīt augšupielādētos foto.
 
-Galvenais atlikušais tehniskais uzlabojums nav jauna funkcija, bet veiktspēja: galerijai jābūt ērtākai arī pie lielāka foto skaita. Šim nolūkam tika sākta galerijas ielādes optimizācija ar signed URL batch pieprasījumu, īslaicīgu cache un pakāpenisku grid renderēšanu.
+Pēc testa tika pieņemti vairāki arhitektūras lēmumi:
+
+- galerijas grid izmanto thumbnails;
+- upload limits samazināts līdz 6 MB;
+- foto tiek optimizēti klienta pusē;
+- cover photo tiek optimizēts pirms upload;
+- ZIP download ierobežots līdz vienai reizei;
+- ZIP pieejams tikai pēc eventa beigām;
+- individuāla foto download poga paslēpta.
+
+Šobrīd MVP nevajag papildināt ar lielām jaunām funkcijām. Līdz prakses beigām prioritāte ir testēšana, dokumentācija, drošības skaidrojums, deploy pārbaude un prakses atskaite.

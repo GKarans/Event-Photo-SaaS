@@ -45,15 +45,17 @@ Rezultāts: dashboard rāda organizatora sveicienu un tikai viņa eventus.
 
 Rezultāts: events parādās `My Events` sarakstā.
 
-### 4. Event labošana
+### 4. Guest design labošana
 
-1. Organizators nospiež `Edit`.
-2. Atveras tas pats modal logs ar esošajiem event datiem.
-3. Organizators labo nosaukumu vai periodu.
-4. Sistēma pārbauda perioda validāciju.
-5. Izmaiņas tiek saglabātas Supabase.
+1. Organizators atver event detail skatu.
+2. Nospiež `Edit Event`.
+3. Atveras guest design modal logs.
+4. Organizators var labot cover photo, title, subtitle un camera button text.
+5. Organizators var pielāgot cover photo pozīciju un zoom.
+6. Preview rāda, kā izskatīsies viesu ekrāns.
+7. Izmaiņas tiek saglabātas Supabase.
 
-Rezultāts: event sarakstā un event detail skatā redzama aktuālā informācija.
+Rezultāts: viesa QR/link skats izmanto organizatora pielāgoto vizuālo noformējumu.
 
 ### 5. Event deaktivizēšana vai aktivizēšana
 
@@ -85,8 +87,7 @@ Rezultāts: organizators var nodot linku viesiem vai parādīt QR kodu.
    - kārtot pēc jaunākā, vecākā vai viesa vārda;
    - atvērt preview;
    - pāršķirt foto ar bultiņām vai swipe;
-   - lejupielādēt vienu foto;
-   - lejupielādēt redzamos foto ZIP arhīvā;
+   - lejupielādēt ZIP arhīvu pēc eventa beigām;
    - dzēst nevēlamu foto.
 
 Rezultāts: organizators var pārskatīt un savākt pasākuma foto vienuviet.
@@ -107,7 +108,7 @@ Rezultāts: ja events ir pieejams, viesis redz event lapu. Ja nav, viesis redz z
 ### 2. Viesa identifikācija
 
 1. Viesis ievada vārdu un uzvārdu.
-2. Nospiež `Start`.
+2. Nospiež `Let's go`.
 3. Sistēma izveido ierakstu `guests` tabulā.
 4. Viesa lokālā sesija tiek saglabāta pārlūkā `localStorage`.
 
@@ -120,17 +121,19 @@ Rezultāts: viesim nav jāveido konts, bet organizators vēlāk redz, kurš uzņ
 3. Viesis uzņem foto.
 4. Sistēma pārbauda:
    - fails ir attēls;
-   - fails nepārsniedz 10 MB;
+   - fails nepārsniedz 6 MB;
    - events joprojām ir aktīvs un periodā.
 
 Rezultāts: tikai derīgs foto tiek sūtīts uz Storage.
 
 ### 4. Foto augšupielāde
 
-1. Foto tiek augšupielādēts Supabase Storage bucketā `event-photos`.
-2. Storage path satur event folderi, viesa folderi un cilvēkam saprotamu faila nosaukumu.
-3. Pēc faila augšupielādes tiek izveidots `media` ieraksts datubāzē.
-4. Viesis redz veiksmīgu upload paziņojumu.
+1. Foto tiek optimizēts klienta pusē.
+2. Tiek izveidots thumbnail galerijas grid skatam.
+3. Foto un thumbnail tiek augšupielādēti Supabase Storage bucketā `event-photos`.
+4. Storage path satur event folderi, viesa folderi un cilvēkam saprotamu faila nosaukumu.
+5. Pēc failu augšupielādes tiek izveidots `media` ieraksts datubāzē.
+6. Viesis redz veiksmīgu upload paziņojumu.
 
 Rezultāts: organizators redz foto savā galerijā.
 
@@ -188,10 +191,11 @@ Lietotāja rezultāts: dati netiek ielādēti vai darbība tiek bloķēta.
 MVP lietotāju plūsmas ir pabeigtas, ja:
 
 - Organizators var reģistrēties un ielogoties.
-- Organizators var izveidot, labot, deaktivizēt un atvērt eventu.
+- Organizators var izveidot, deaktivizēt un atvērt eventu.
+- Organizators var pielāgot viesa ekrāna dizainu.
 - Organizators var iegūt QR/linku.
 - Viesis var atvērt linku bez konta.
 - Viesis var ievadīt vārdu un augšupielādēt foto.
 - Organizators redz foto galerijā.
-- Organizators var filtrēt, kārtot, apskatīt, dzēst un lejupielādēt foto.
+- Organizators var filtrēt, kārtot, apskatīt, dzēst foto un pēc eventa beigām lejupielādēt ZIP.
 - Cita organizatora dati nav redzami.

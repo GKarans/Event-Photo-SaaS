@@ -127,7 +127,7 @@ Pārbaudītie scenāriji:
 - foto uzņemšana un augšupielāde;
 - organizatora galerijas atvēršana;
 - foto preview pārbaude;
-- ZIP download pārbaude organizatora pusē.
+- ZIP download pārbaude organizatora pusē pēc eventa beigām.
 
 Rezultāts:
 
@@ -163,7 +163,7 @@ Pārbaudītie scenāriji:
 - deaktivizēts events bloķē guest upload;
 - ārpus event perioda guest upload nav pieejams;
 - organizatora galerija ielādē foto;
-- foto preview, filter, sort un ZIP download funkcijas saglabājas pieejamas.
+- foto preview, filter, sort un ZIP download funkcijas saglabājas pieejamas atbilstoši MVP ierobežojumiem.
 
 Rezultāts:
 
@@ -207,18 +207,18 @@ Rezultāts:
 - Vai filter pēc viesa strādāja: jā
 - Vai sorting strādāja: jā
 - Vai preview/swipe strādāja: jā
-- Vai ZIP download strādāja: jā
-- Piezīme: pie 60 foto galerijas sākotnējā ielāde organizatora skatā kļuva lēnāka. Nepieciešams nākamajā posmā uzlabot galerijas ielādi ar kešošanu, mazākiem attēliem vai pakāpenisku ielādi.
+- Vai ZIP download strādāja: jā; pēc egress izvērtēšanas ZIP pašreizējā MVP ir pieejams tikai pēc eventa beigām un tikai vienu reizi.
+- Piezīme: pie 60 foto galerijas sākotnējā ielāde organizatora skatā kļuva lēnāka. Pēc testa tika ieviesti thumbnails, cache un pakāpeniska ielāde.
 
 ### Atrastās kļūdas
 
 | Prioritāte | Ierīce/pārlūks | Scenārijs | Faktiskais rezultāts | Statuss |
 | --- | --- | --- | --- | --- |
-| P2 | Organizatora pārlūks | Event gallery ar 60 foto | Galerija un attēlu grid ielādējas lēnāk nekā mazā testā | Atvērts uzlabojumiem |
+| P2 | Organizatora pārlūks | Event gallery ar 60 foto | Galerija un attēlu grid ielādējās lēnāk nekā mazā testā | Labots ar thumbnails/cache/lazy loading |
 | P3 | Guest plūsma | QR link, vārda ievade, foto upload | Viesiem būtiskas problēmas netika novērotas | Izturēts |
 
 ### Secinājums
 
 Praktiskais tests ar 12 viesiem un 60 foto apliecināja, ka MVP pamatplūsma darbojas: organizators izveido eventu, viesi atver QR/guest linku, ievada vārdu, uzņem foto, foto tiek saglabāti Supabase Storage un parādās organizatora galerijā. Organizatoram un viesiem nebija būtisku negatīvu atsauksmju par lietošanu.
 
-MVP ir gatavs demonstrācijai pamatfunkcionalitātes līmenī. Nākamais tehniskais uzlabojums ir galerijas veiktspēja pie lielāka foto skaita: jāizvērtē signed URL kešošana, thumbnail izmantošana, lazy loading un atkārtotas galerijas ielādes samazināšana, kad organizators pārvietojas starp event list un event detail skatu.
+MVP ir gatavs demonstrācijai pamatfunkcionalitātes līmenī. Pēc testa tika ieviesti galerijas veiktspējas un Supabase egress samazināšanas uzlabojumi: thumbnails, signed URL cache, lazy loading, client-side foto optimizācija, 6 MB limits un ZIP lejupielāde tikai pēc eventa beigām vienu reizi. Turpmāk production versijai jāvērtē server-side ZIP, automātisks Storage cleanup un precīzāki lietošanas limiti.

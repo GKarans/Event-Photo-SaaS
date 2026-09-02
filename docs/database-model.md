@@ -31,6 +31,8 @@ erDiagram
     USERS {
         uuid id PK
         text email
+        text first_name
+        text last_name
         timestamptz created_at
     }
 
@@ -39,8 +41,19 @@ erDiagram
         uuid owner_id FK
         text name
         date date
+        date start_date
+        date end_date
         text slug
+        text storage_folder
         text status
+        text guest_title
+        text guest_subtitle
+        text guest_button_text
+        text cover_image_path
+        integer cover_position_x
+        integer cover_position_y
+        integer cover_zoom
+        timestamptz zip_downloaded_at
         timestamptz created_at
     }
 
@@ -56,6 +69,7 @@ erDiagram
         uuid event_id FK
         uuid guest_id FK
         text storage_path
+        text thumbnail_path
         text file_type
         bigint file_size
         text status
@@ -71,6 +85,8 @@ erDiagram
 | --- | --- | --- |
 | `id` | `uuid` | Lietotaja ID, kas sakrit ar `auth.users.id` |
 | `email` | `text` | Organizatora e-pasts |
+| `first_name` | `text` | Organizatora vards |
+| `last_name` | `text` | Organizatora uzvards |
 | `created_at` | `timestamptz` | Profila izveides laiks |
 
 Kad Supabase Auth izveido jaunu lietotaju, trigger funkcija `handle_new_user()` izveido vai atjauno ierakstu `public.users` tabula.
@@ -86,9 +102,20 @@ Drošibas princips: lietotajs var lasit un atjaunot tikai savu profilu.
 | `id` | `uuid` | Pasakuma unikals ID |
 | `owner_id` | `uuid` | Organizatora `users.id` |
 | `name` | `text` | Pasakuma nosaukums |
-| `date` | `date` | Pasakuma datums |
+| `date` | `date` | Savietojamibas datums, kas sakrit ar `start_date` |
+| `start_date` | `date` | Pasakuma sakuma datums |
+| `end_date` | `date` | Pasakuma beigu datums |
 | `slug` | `text` | Publiskaja guest URL izmantots identifikators |
+| `storage_folder` | `text` | Lasams Storage pirmais folderis ar event nosaukumu un isu sufiksu |
 | `status` | `text` | `active`, `inactive` vai `deleted` |
+| `guest_title` | `text` | Viesu ekrana virsraksts |
+| `guest_subtitle` | `text` | Viesu ekrana papildteksts |
+| `guest_button_text` | `text` | Foto pogas teksts viesu ekrana |
+| `cover_image_path` | `text` | Eventa viesu ekrana cover attela Storage cels |
+| `cover_position_x` | `integer` | Cover attela horizontala pozicija procentos |
+| `cover_position_y` | `integer` | Cover attela vertikala pozicija procentos |
+| `cover_zoom` | `integer` | Cover attela palielinajums procentos |
+| `zip_downloaded_at` | `timestamptz` | Laiks, kad ZIP arhivs lejupieladets pirmo reizi |
 | `created_at` | `timestamptz` | Pasakuma izveides laiks |
 
 `owner_id` ir galvena kolonna organizatoru datu izolacijai. Organizatora dashboard vaicajumi filtre eventus pec `owner_id`, un RLS politika papildus nodrošina, ka organizators lasa tikai savus eventus.
@@ -104,6 +131,8 @@ Piemers:
 ```text
 https://event-photo-saas.netlify.app/event/kazas-qkyx7b
 ```
+
+`start_date` un `end_date` nosaka periodu, kura viesu QR/link ir pieejams foto augšupieladei. MVP periods nedrikst parsniegt 3 dienas. `guest_title`, `guest_subtitle`, `guest_button_text` un cover lauki tiek izmantoti viesu UX pielagošanai.
 
 ## `guests`
 
@@ -130,15 +159,15 @@ Organizators var lasit tikai tos viesus, kas piesaistiti vina eventiem.
 | `event_id` | `uuid` | Pasakums, kuram foto pieder |
 | `guest_id` | `uuid` | Viesis, kas augšupieladeja foto |
 | `file_url` | `text` | Rezervets nakotnes vajadzibam |
-| `thumbnail_url` | `text` | Rezervets nakotnes thumbnail vajadzibam |
+| `thumbnail_url` | `text` | Rezervets nakotnes publiska thumbnail URL vajadzibam |
 | `storage_path` | `text` | Supabase Storage faila cels |
-| `thumbnail_path` | `text` | Rezervets nakotnes thumbnail failam |
+| `thumbnail_path` | `text` | Supabase Storage thumbnail faila cels |
 | `file_type` | `text` | Faila MIME tips, piemeram `image/jpeg` |
 | `file_size` | `bigint` | Faila izmers baitos |
 | `created_at` | `timestamptz` | Augšupielades laiks |
 | `status` | `text` | `uploaded` vai `deleted` |
 
-`media` ieraksts ir galvena saikne starp datubazi un Storage failu. Organizatora galerija lasa `media` ierakstus, pec tam izveido signed URLs no `storage_path`.
+`media` ieraksts ir galvena saikne starp datubazi un Storage failiem. Organizatora galerija lasa `media` ierakstus, pec tam grid skatam izveido signed URLs no `thumbnail_path`, bet oriģinalo `storage_path` izmanto preview, dzēšanai un ZIP sagatavošanai.
 
 Dzeshanas gadijuma Storage fails tiek dzests pirmais, pec tam `media.status` tiek mainits uz `deleted`. Tas palidz saglabat korektu stavokli, ja Storage dzeshana neizdodas.
 
@@ -153,10 +182,10 @@ event-photos
 Bucket konfiguracija:
 
 - `public = false`;
-- maksimlais faila izmers: 10 MB;
+- maksimlais faila izmers: 6 MB;
 - atlautie tipi: `image/jpeg`, `image/png`, `image/webp`, `image/gif`, `image/heic`, `image/heif`.
 
-Galerijas atteli netiek padariti publiski. Organizatora skatam tiek veidotas pagaidu signed URLs.
+Galerijas atteli netiek padariti publiski. Organizatora skatam tiek veidotas pagaidu signed URLs. Grid skatā tiek izmantoti thumbnail faili, lai samazinatu Supabase egress.
 
 ## Storage path struktura
 
@@ -168,6 +197,7 @@ Struktura:
 event-name-1234/
   guest-name-5678/
     guest-name_yyyy-mm-dd_hh-mm-ss.jpg
+    thumb_guest-name_yyyy-mm-dd_hh-mm-ss.jpg
 ```
 
 Piemers:
@@ -176,9 +206,18 @@ Piemers:
 kazas-4821/
   janis-berzins-7394/
     janis-berzins_2026-08-16_14-37-11.jpg
+    thumb_janis-berzins_2026-08-16_14-37-11.jpg
 ```
 
 Šada struktura ir noderiga ari ZIP lejupieladei, jo ZIP faila var saglabat mapju dalijumu pec eventa un viesa.
+
+Cover atteli tiek glabati atsevišķa pirma limena folderi:
+
+```text
+event-covers/
+  event-storage-folder/
+    cover_yyyy-mm-dd_hh-mm-ss.jpg
+```
 
 ## Indeksi
 
@@ -201,7 +240,8 @@ Galvenie drošibas noteikumi:
 - `events.owner_id = auth.uid()` nosaka, kurš organizators drikst redzet eventu;
 - `guests.event_id` lauj parbaudit, vai viesis pieder organizatora eventam;
 - `media.event_id` lauj parbaudit, vai foto pieder organizatora eventam;
-- `media.storage_path = storage.objects.name` sasaista datubazes media ierakstu ar Storage objektu.
+- `media.storage_path = storage.objects.name` sasaista datubazes media ierakstu ar originalo Storage objektu;
+- `media.thumbnail_path = storage.objects.name` sasaista datubazes media ierakstu ar thumbnail objektu.
 
 Tas nozime, ka organizatora piekluve galerijai netiek balstita tikai uz frontend filtru. To nodrošina ari Supabase RLS un Storage politikas.
 
@@ -209,12 +249,11 @@ Tas nozime, ka organizatora piekluve galerijai netiek balstita tikai uz frontend
 
 Nakotne datu modeli varetu paplašinat ar:
 
-- event sakuma un beigu laiku;
-- guest page customization laukiem;
-- cover image Storage path;
 - foto limitu vienam viesim;
 - reveal-after-event iestatijumu;
-- thumbnails un automatisku attelu apstradi;
+- server-side attelu apstradi un thumbnail ģenerēšanu;
+- server-side ZIP ģenerēšanu;
+- automātisku Storage cleanup;
 - audit log ierakstiem organizatora darbibam.
 
 Šie papildinajumi ir planoti ka MVP+ funkcijas, bet pašreizejais modelis jau nodrošina galveno mērķi: drošu eventu, viesu un foto sasaisti.
