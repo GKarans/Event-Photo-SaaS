@@ -4,7 +4,8 @@ const SUPABASE_URL = "https://ojcvnsbhphvijmzjfenl.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_5tHxxBuBgQJagyqIKuVVyg_2ZtruZ6J";
 const APP_URL = "https://event-photo-saas.netlify.app";
 const PHOTO_BUCKET = "event-photos";
-const MAX_PHOTO_SIZE = 10 * 1024 * 1024;
+const MAX_PHOTO_SIZE_MB = 6;
+const MAX_PHOTO_SIZE = MAX_PHOTO_SIZE_MB * 1024 * 1024;
 const ORIGINAL_IMAGE_MAX_DIMENSION = 2200;
 const ORIGINAL_IMAGE_QUALITY = 0.82;
 const THUMBNAIL_IMAGE_MAX_DIMENSION = 560;
@@ -12,7 +13,7 @@ const THUMBNAIL_IMAGE_QUALITY = 0.72;
 const SIGNED_URL_EXPIRES_IN_SECONDS = 60 * 10;
 const GALLERY_CACHE_TTL_MS = 8 * 60 * 1000;
 const GALLERY_RENDER_BATCH_SIZE = 24;
-const EVENT_SELECT_FIELDS = "id,name,date,start_date,end_date,slug,status,storage_folder,guest_title,guest_subtitle,guest_button_text,cover_image_path,cover_position_x,cover_position_y,cover_zoom,created_at";
+const EVENT_SELECT_FIELDS = "id,name,date,start_date,end_date,slug,status,storage_folder,guest_title,guest_subtitle,guest_button_text,cover_image_path,cover_position_x,cover_position_y,cover_zoom,zip_downloaded_at,created_at";
 const PUBLIC_EVENT_SELECT_FIELDS = "id,name,date,start_date,end_date,slug,status,storage_folder,guest_title,guest_subtitle,guest_button_text,cover_image_path,cover_position_x,cover_position_y,cover_zoom";
 const EVENT_SELECT_FIELDS_WITHOUT_ZOOM = "id,name,date,start_date,end_date,slug,status,storage_folder,guest_title,guest_subtitle,guest_button_text,cover_image_path,cover_position_x,cover_position_y,created_at";
 const PUBLIC_EVENT_SELECT_FIELDS_WITHOUT_ZOOM = "id,name,date,start_date,end_date,slug,status,storage_folder,guest_title,guest_subtitle,guest_button_text,cover_image_path,cover_position_x,cover_position_y";
@@ -505,6 +506,7 @@ function isBrandingSchemaMissingError(error) {
         || message.includes("cover_position_x")
         || message.includes("cover_position_y")
         || message.includes("cover_zoom")
+        || message.includes("zip_downloaded_at")
         || message.includes("column")
         && message.includes("events");
 }
@@ -522,6 +524,7 @@ function addGuestDesignDefaults(eventData) {
         cover_position_x: 50,
         cover_position_y: 50,
         cover_zoom: 108,
+        zip_downloaded_at: null,
         ...eventData
     };
 }
@@ -1273,6 +1276,8 @@ async function handleDeleteEvent(eventData, button) {
 
 async function showEventDetail(eventData) {
     selectedEvent = eventData;
+    allGalleryPhotos = [];
+    currentGalleryPhotos = [];
     const eventUrl = getEventUrl(eventData);
 
     eventsListHeader.classList.add("hidden");
@@ -1285,6 +1290,7 @@ async function showEventDetail(eventData) {
     eventDetailStatus.textContent = formatStatus(getDisplayEventStatus(eventData));
     setEventStatusButtonState(eventData);
     eventDetailUrl.textContent = eventUrl;
+    updateDownloadGalleryState();
 
     await renderQrCode(eventUrl);
     await loadGallery(eventData.id);
@@ -1574,6 +1580,7 @@ function showEventsList() {
     galleryGuestFilter.innerHTML = '<option value="">All guests</option>';
     gallerySort.value = "newest";
     downloadGalleryButton.disabled = true;
+    downloadGalleryButton.classList.add("hidden");
     eventDetail.classList.add("hidden");
     eventsListHeader.classList.remove("hidden");
     eventsControls.classList.remove("hidden");
@@ -1585,7 +1592,7 @@ function setGalleryLoadingState() {
     galleryCount.textContent = "Loading photos...";
     galleryGrid.innerHTML = "";
     currentGalleryPhotos = [];
-    downloadGalleryButton.disabled = true;
+    updateDownloadGalleryState();
 }
 
 function getCachedGallery(eventId) {
@@ -1663,6 +1670,7 @@ async function loadGallery(eventId) {
                 <span>Guest uploads will appear here.</span>
             </div>
         `;
+        updateDownloadGalleryState();
         return;
     }
 
@@ -1800,6 +1808,38 @@ function applyGalleryControls() {
     renderGallery(photos);
 }
 
+function canDownloadGalleryZip() {
+    return Boolean(selectedEvent && hasEventPeriodEnded(selectedEvent) && !selectedEvent.zip_downloaded_at);
+}
+
+function getGalleryDownloadUnavailableText() {
+    if (!selectedEvent) {
+        return "Download ZIP";
+    }
+
+    if (selectedEvent.zip_downloaded_at) {
+        return "ZIP already downloaded";
+    }
+
+    if (!hasEventPeriodEnded(selectedEvent)) {
+        return "ZIP available after event";
+    }
+
+    if (!currentGalleryPhotos.length) {
+        return "No photos to download";
+    }
+
+    return "Download ZIP";
+}
+
+function updateDownloadGalleryState() {
+    const canDownload = canDownloadGalleryZip() && currentGalleryPhotos.length > 0;
+
+    downloadGalleryButton.classList.toggle("hidden", !canDownload);
+    downloadGalleryButton.disabled = !canDownload;
+    downloadGalleryButton.textContent = canDownload ? "Download ZIP" : getGalleryDownloadUnavailableText();
+}
+
 function handleClearGalleryFilters() {
     galleryGuestFilter.value = "";
     gallerySort.value = "newest";
@@ -1813,7 +1853,7 @@ function renderGallery(photos) {
 
     if (!photos.length) {
         galleryCount.textContent = allGalleryPhotos.length ? "No photos match this filter." : "No photos yet.";
-        downloadGalleryButton.disabled = true;
+        updateDownloadGalleryState();
         galleryGrid.innerHTML = `
             <div class="empty-state gallery-empty">
                 <strong>${allGalleryPhotos.length ? "No matching photos" : "No available photos"}</strong>
@@ -1825,7 +1865,7 @@ function renderGallery(photos) {
 
     const filterSuffix = photos.length === allGalleryPhotos.length ? "" : ` of ${allGalleryPhotos.length}`;
     galleryCount.textContent = `${photos.length}${filterSuffix} photo${photos.length === 1 ? "" : "s"}`;
-    downloadGalleryButton.disabled = false;
+    updateDownloadGalleryState();
 
     const fragment = document.createDocumentFragment();
     renderGalleryBatch(photos, fragment, 0, renderToken);
@@ -1876,8 +1916,15 @@ function renderGalleryBatch(photos, fragment, startIndex, renderToken) {
 }
 
 async function handleDownloadGallery() {
+    if (!canDownloadGalleryZip()) {
+        showMessage(getGalleryDownloadUnavailableText(), "error");
+        updateDownloadGalleryState();
+        return;
+    }
+
     if (!currentGalleryPhotos.length) {
         showMessage("There are no photos to download yet.", "error");
+        updateDownloadGalleryState();
         return;
     }
 
@@ -1915,6 +1962,22 @@ async function handleDownloadGallery() {
 
         downloadGalleryButton.textContent = "Preparing ZIP...";
         const zipBlob = await zip.generateAsync({ type: "blob" });
+        const { data: updatedEvent, error: zipMarkerError } = await supabase
+            .from("events")
+            .update({ zip_downloaded_at: new Date().toISOString() })
+            .eq("id", selectedEvent.id)
+            .is("zip_downloaded_at", null)
+            .select(EVENT_SELECT_FIELDS)
+            .single();
+
+        if (zipMarkerError) {
+            console.error("ZIP marker error", zipMarkerError);
+            showMessage("Could not confirm ZIP access. Refresh the page and try again.", "error");
+            return;
+        }
+
+        selectedEvent = updatedEvent;
+        currentEvents = currentEvents.map(item => item.id === updatedEvent.id ? updatedEvent : item);
         const objectUrl = URL.createObjectURL(zipBlob);
         triggerDownload(objectUrl, getGalleryZipFileName());
         setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
@@ -1923,8 +1986,7 @@ async function handleDownloadGallery() {
         console.error("Gallery download error", error);
         showMessage("Could not prepare the gallery ZIP. Try again in a moment.", "error");
     } finally {
-        downloadGalleryButton.disabled = !currentGalleryPhotos.length;
-        downloadGalleryButton.textContent = "Download All";
+        updateDownloadGalleryState();
     }
 }
 
@@ -2303,7 +2365,7 @@ function validatePhoto(file) {
     }
 
     if (file.size > MAX_PHOTO_SIZE) {
-        return "The photo is too large. Maximum size is 10 MB.";
+        return `The photo is too large. Maximum size is ${MAX_PHOTO_SIZE_MB} MB.`;
     }
 
     return "";
@@ -2499,7 +2561,7 @@ function toFriendlyStorageError(message, context = "general") {
     }
 
     if (normalized.includes("exceeded") || normalized.includes("too large")) {
-        return "The photo is too large. Maximum size is 10 MB.";
+        return `The photo is too large. Maximum size is ${MAX_PHOTO_SIZE_MB} MB.`;
     }
 
     return "Photo upload failed. Check your connection and try again.";

@@ -37,6 +37,10 @@ create table if not exists public.events (
     guest_subtitle text,
     guest_button_text text,
     cover_image_path text,
+    cover_position_x integer not null default 50 check (cover_position_x >= 0 and cover_position_x <= 100),
+    cover_position_y integer not null default 50 check (cover_position_y >= 0 and cover_position_y <= 100),
+    cover_zoom integer not null default 108 check (cover_zoom >= 100 and cover_zoom <= 140),
+    zip_downloaded_at timestamptz,
     slug text not null unique,
     status text not null default 'active' check (status in ('active', 'inactive', 'deleted')),
     created_at timestamptz not null default now()
@@ -71,6 +75,9 @@ add column if not exists cover_position_y integer not null default 50 check (cov
 
 alter table public.events
 add column if not exists cover_zoom integer not null default 108 check (cover_zoom >= 100 and cover_zoom <= 140);
+
+alter table public.events
+add column if not exists zip_downloaded_at timestamptz;
 
 update public.events
 set start_date = coalesce(start_date, date, public.current_app_date()),
@@ -152,7 +159,7 @@ create table if not exists public.media (
     storage_path text not null,
     thumbnail_path text,
     file_type text not null check (file_type like 'image/%'),
-    file_size bigint not null check (file_size > 0 and file_size <= 10485760),
+    file_size bigint not null check (file_size > 0 and file_size <= 6291456),
     created_at timestamptz not null default now(),
     status text not null default 'uploaded' check (status in ('uploaded', 'deleted'))
 );
@@ -163,6 +170,17 @@ create index if not exists events_period_idx on public.events(start_date, end_da
 create index if not exists guests_event_id_idx on public.guests(event_id);
 create index if not exists media_event_id_idx on public.media(event_id);
 create index if not exists media_guest_id_idx on public.media(guest_id);
+
+do $$
+begin
+    alter table public.media
+    drop constraint if exists media_file_size_check;
+
+    alter table public.media
+    add constraint media_file_size_check
+    check (file_size > 0 and file_size <= 6291456);
+end;
+$$;
 
 alter table public.users enable row level security;
 alter table public.events enable row level security;
@@ -328,7 +346,7 @@ on public.media for insert
 to anon, authenticated
 with check (
     file_type like 'image/%'
-    and file_size <= 10485760
+    and file_size <= 6291456
     and exists (
         select 1
         from public.events
@@ -344,7 +362,7 @@ values (
     'event-photos',
     'event-photos',
     false,
-    10485760,
+    6291456,
     array['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif']
 )
 on conflict (id) do update
