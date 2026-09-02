@@ -1,127 +1,296 @@
-# Event Photo SaaS MVP arhitektura
+# Event Photo SaaS MVP arhitektūra
 
-## Merkis
+## Mērķis
 
-Event Photo SaaS MVP ir photo-only pasakumu foto apkopošanas risinajums. Organizators izveido pasakumu, sanem viesu saiti un QR kodu, bet viesi bez konta var augšupieladet foto. Organizators pec pieslegšanas savam kontam redz tikai savus pasakumus un to galerijas.
+Event Photo SaaS MVP ir photo-only risinājums pasākumu fotogrāfiju apkopošanai. Organizators izveido pasākumu, saņem unikālu viesu saiti un QR kodu, bet viesi bez konta var uzņemt un augšupielādēt foto. Organizators pēc pieslēgšanās savā kontā redz tikai savus pasākumus un tiem piesaistītās galerijas.
 
-## Galvenas sistemas dalas
+MVP galvenā ķēde:
 
-### Frontend
+```text
+Organizer register/login
+-> Create event
+-> QR/link
+-> Guest name
+-> Take photo
+-> Supabase Storage
+-> Organizer gallery
+-> Delete photo / Download ZIP after event
+```
 
-Frontend ir statiska HTML, CSS un JavaScript lietotne:
-
-- `index.html` nosaka lapas strukturu, autentifikacijas skatu, organizatora dashboard, event detail, guest upload un foto preview dialogu.
-- `style.css` nosaka vizualo noformejumu, responsivo izkartojumu un komponentu stavoklus.
-- `script.js` satur Supabase klienta inicializaciju, autentifikaciju, eventu izveidi, QR saiti, guest upload, galeriju, preview, dzesanu un lejupieladi.
-
-Frontend izmanto Supabase publishable key. Projekta kodā netiek glabatas service role vai citas slepenas atslegas.
-
-### Hosting
-
-Hostings tiek nodrošinats ar Netlify:
-
-- build komanda nav vajadziga, jo lietotne ir statiska;
-- publish directory ir projekta sakne (`.`);
-- `netlify.toml` nodrošina, ka `/event/*` saites tiek parvirzitas uz `index.html`, lai guest event route strada ari pec lapas refresh vai QR atveršanas.
-
-### Supabase
-
-Supabase nodrošina trīs MVP backend funkcijas:
-
-- Supabase Auth organizatoru kontiem;
-- Supabase Database datu glabašanai;
-- Supabase Storage foto failiem.
-
-Sakotneja datubazes un RLS konfiguracija atrodas `supabase/schema.sql`.
-
-## Augsta limena arhitekturas schema
+## Augsta līmeņa arhitektūra
 
 ```mermaid
 flowchart LR
-    Organizer["Organizators"] --> Frontend["Netlify frontend"]
-    Guest["Viesis ar QR saiti"] --> Frontend
-    Frontend --> Auth["Supabase Auth"]
-    Frontend --> DB["Supabase Database"]
-    Frontend --> Storage["Supabase Storage"]
-    DB --> RLS["RLS politikas"]
-    Storage --> StoragePolicies["Storage politikas"]
+    Organizer["Organizators"] --> Netlify["Netlify static frontend"]
+    Guest["Viesis ar QR/link"] --> Netlify
+    Netlify --> Auth["Supabase Auth"]
+    Netlify --> DB["Supabase PostgreSQL"]
+    Netlify --> Storage["Supabase Storage"]
+    DB --> RLS["Row Level Security"]
+    Storage --> Policies["Storage policies"]
+```
+
+## Sistēmas daļas
+
+### Frontend
+
+Frontend ir statiska HTML, CSS un JavaScript aplikācija:
+
+- `index.html` satur galvenos skatus: autentifikāciju, dashboard, event detail, guest upload, guest design modal un photo preview dialogu.
+- `style.css` nosaka dark/light mode dizainu, responsive izkārtojumu un mobile guest pieredzi.
+- `script.js` satur Supabase savienojumu, Auth plūsmu, eventu loģiku, QR ģenerēšanu, guest upload, galeriju, thumbnails, ZIP un kļūdu apstrādi.
+
+Frontend izmanto Supabase publishable key. Service role key, paroles un citi secrets netiek glabāti repozitorijā.
+
+### Netlify
+
+Netlify nodrošina tikai frontend hostingu.
+
+Konfigurācija:
+
+```text
+Build command: nav vajadzīgs
+Publish directory: projekta sakne
+Deploy branch: main
+```
+
+`netlify.toml` izmanto redirect uz `index.html`, lai tiešās saites strādātu arī pēc refresh:
+
+- `/event/{slug}`
+- `/auth/confirmed`
+
+### Supabase
+
+Supabase ir backend slānis:
+
+- Supabase Auth: organizatoru reģistrācija, login, logout un e-pasta apstiprināšana.
+- Supabase PostgreSQL: lietotāju, eventu, viesu un media metadati.
+- Supabase Storage: oriģinālie foto, thumbnails un guest cover images.
+- RLS un Storage policies: datu izolācija starp organizatoriem.
+
+Pilnā shēma un politikas atrodas:
+
+```text
+supabase/schema.sql
 ```
 
 ## Datu modelis
 
-MVP izmanto četras galvenas tabulas:
+### `users`
 
-- `users` - organizatora profils, kas sasaistits ar `auth.users`;
-- `events` - organizatora izveidotie pasakumi;
-- `guests` - viesa ieraksts konkreta pasakuma ietvaros;
-- `media` - foto metadati, kas sasaista eventu, viesi un Storage faila celu.
+Glabā organizatora profila datus un ir sasaistīts ar `auth.users`.
 
-Foto faili netiek glabati datubaze. Datubaze glaba tikai metadatus un `storage_path`, bet pats fails atrodas Supabase Storage bucket `event-photos`.
+Galvenie lauki:
 
-## Organizatora datu plusma
+- `id`
+- `email`
+- `first_name`
+- `last_name`
+- `created_at`
 
-1. Organizators atver Netlify lapu.
-2. Organizators registrejas vai piesledzas ar Supabase Auth.
-3. Frontend ielade tikai tos `events`, kuru `owner_id` sakrit ar pieslegta lietotaja `auth.uid()`.
-4. Organizators izveido eventu.
-5. Frontend saglaba eventu Supabase Database tabula `events`.
-6. Organizators atver event detail skatu.
-7. Frontend izveido guest URL un QR kodu.
-8. Organizators redz galeriju, kuras dati tiek lasiti no `media`, bet atteli tiek paraditi ar Supabase Storage signed URLs.
-9. Organizators var atvert preview, parslegties starp foto, dzest foto, lejupieladet vienu foto vai visu galeriju ZIP formata.
+### `events`
 
-## Viesa datu plusma
+Glabā organizatora izveidotos pasākumus.
 
-1. Viesis noskene QR kodu vai atver `/event/{slug}` saiti.
-2. Frontend pec `slug` atrod aktivo eventu.
-3. Viesis ievada vardu un uzvardu.
-4. Frontend izveido `guests` ierakstu konkreta eventa ietvaros.
-5. Viesis izvelas vai uznem foto.
-6. Frontend parbauda faila tipu un 10 MB limitu.
-7. Foto tiek augšupieladets Supabase Storage bucket `event-photos`.
-8. Frontend izveido `media` ierakstu ar `event_id`, `guest_id`, `storage_path`, faila tipu un faila izmeru.
-9. Viesis neredz galeriju; galerija ir paredzeta tikai organizatoram.
+Galvenie lauki:
 
-## Foto failu glabašanas struktura
+- `id`
+- `owner_id`
+- `name`
+- `slug`
+- `status`
+- `start_date`
+- `end_date`
+- `storage_folder`
+- `guest_title`
+- `guest_subtitle`
+- `guest_button_text`
+- `cover_image_path`
+- `cover_position_x`
+- `cover_position_y`
+- `cover_zoom`
+- `zip_downloaded_at`
+- `created_at`
 
-Storage faili tiek kartoti lasami, lai organizatoram vajadzigas gadijuma butu vieglak saprast failu izcelsmi:
+Svarīgi ierobežojumi:
+
+- event periods nedrīkst būt garāks par 3 dienām;
+- pagātnes eventus nevar izmantot viesu uploadam;
+- pēc event perioda beigām guest upload vairs nav pieejams;
+- ZIP download ir pieejams tikai pēc eventa beigām un tikai vienu reizi.
+
+### `guests`
+
+Glabā viesa ierakstu konkrētam eventam.
+
+Galvenie lauki:
+
+- `id`
+- `event_id`
+- `name`
+- `created_at`
+
+Viesis nav pilns sistēmas lietotājs un neveido Supabase Auth kontu.
+
+### `media`
+
+Glabā foto metadatus, nevis pašus failus.
+
+Galvenie lauki:
+
+- `id`
+- `event_id`
+- `guest_id`
+- `storage_path`
+- `thumbnail_path`
+- `file_type`
+- `file_size`
+- `status`
+- `created_at`
+
+Faili atrodas Supabase Storage bucket `event-photos`.
+
+## Storage struktūra
+
+Foto faili tiek glabāti lasāmā mapju struktūrā:
 
 ```text
 event-name-1234/
   guest-name-5678/
     guest-name_2026-08-16_14-37-11.jpg
+    thumb_guest-name_2026-08-16_14-37-11.jpg
 ```
 
-Event mape izmanto event nosaukumu un isu sufiksu, viesa mape izmanto viesa vardu/uzvardu un isu sufiksu, bet foto faila nosaukuma tiek ieklauts viesa vards un augšupielades datums/laiks.
+Cover images tiek glabāti atsevišķā sadaļā:
 
-## Drošibas robežas
+```text
+event-covers/
+  {event_id}/
+    cover_2026-08-31_18-45-20.jpg
+```
 
-MVP drošiba balstas uz Supabase RLS un Storage politikam:
+## Photo upload un thumbnails
 
-- organizators lasa un labo tikai savus `events`;
-- organizators redz tikai saviem eventiem piesaistitos `guests` un `media`;
-- anon viesis var nolasit tikai aktiva eventa landing datus;
-- anon viesis var pievienoties aktivam eventam un pievienot media ierakstu;
-- organizators var lasit un dzest tikai saviem eventiem piesaistitos Storage failus;
-- Storage bucket ir privats, galerijai tiek izmantotas signed URLs.
+Upload plūsma:
 
-Svarigs princips: frontend ari filtre datus pec pieslegta lietotaja, bet patiesa piekluves kontrole notiek datubaze ar RLS.
+1. Viesis izvēlas vai uzņem foto.
+2. Frontend pārbauda, vai fails ir attēls.
+3. Frontend pārbauda 6 MB limitu.
+4. Pārlūkā tiek mēģināts optimizēt oriģinālo foto.
+5. Tiek izveidots thumbnail.
+6. Oriģināls un thumbnail tiek augšupielādēti Supabase Storage.
+7. `media` tabulā tiek saglabāti `storage_path` un `thumbnail_path`.
 
-## Deploy un konfiguracija
+Galerijas grid izmanto `thumbnail_path`, lai samazinātu Supabase egress. Oriģinālais `storage_path` tiek prasīts tikai tad, kad organizators atver preview vai lejupielādē ZIP.
 
-Netlify paliek tikai hostingam. Supabase ir backend slanis Auth, Database un Storage funkcijam. MVP nav atseviška servera vai Netlify Function, iznemot iespejamu nakotnes paplašinasanu, ja ZIP izveide velak bus javeic servera puse lielam galerijam.
+## Auth un autorizācija
 
-Pašreizeja ZIP lejupielade tiek veidota parluuka puse, izmantojot galerijas signed URLs. Šis risinajums ir pietiekams MVP un mazam/vidējam foto skaitam.
+Organizators:
+
+- reģistrējas ar vārdu, uzvārdu, e-pastu un paroli;
+- apstiprina e-pastu;
+- pieslēdzas ar Supabase Auth;
+- redz tikai savus eventus;
+- redz tikai saviem eventiem piesaistītos viesus un media ierakstus.
+
+Viesis:
+
+- neveido kontu;
+- atver tikai konkrētā eventa publisko linku;
+- var izveidot guest ierakstu tikai aktīvam eventam tā norādītajā periodā;
+- var augšupielādēt foto tikai aktīvam eventam;
+- neredz organizatora dashboard vai galeriju.
+
+## RLS un Storage politikas
+
+RLS tiek izmantots kā galvenā drošības robeža.
+
+Datubāzes līmenī:
+
+- `users`: lietotājs lasa/labo tikai savu profilu.
+- `events`: organizators lasa/labo tikai savus eventus.
+- `guests`: organizators lasa tikai saviem eventiem piesaistītos viesus; anon viesis var pievienoties tikai aktīvam eventam.
+- `media`: organizators lasa/labo tikai saviem eventiem piesaistītos media ierakstus; anon viesis var izveidot media ierakstu tikai aktīvam eventam.
+
+Storage līmenī:
+
+- bucket `event-photos` ir privāts;
+- viesis var uploadot tikai aktīva eventa mapē;
+- organizators var lasīt un dzēst tikai tos failus, kas piesaistīti viņa eventiem;
+- organizators var lasīt/dzēst gan oriģinālos foto, gan thumbnails;
+- guest cover image drīkst lasīt viesis tikai aktīvam eventam.
+
+## ZIP ierobežojums
+
+Sākotnēji ZIP tika veidots pārlūkā no signed URLs. Pēc praktiskā testa tika secināts, ka atkārtota ZIP un oriģinālo bilžu lejupielāde ātri palielina Supabase egress.
+
+Tāpēc MVP ierobežojums:
+
+- ZIP poga netiek rādīta, kamēr events vēl nav beidzies;
+- ZIP var lejupielādēt tikai vienu reizi;
+- pēc veiksmīgas ZIP sagatavošanas `events.zip_downloaded_at` tiek aizpildīts;
+- individuāla foto lejupielādes poga organizatora UI ir paslēpta.
+
+Šis risinājums samazina nejaušu egress patēriņu Free plāna ietvaros.
+
+## Guest UX customization
+
+Organizators event detail skatā var pielāgot viesu ekrānu:
+
+- cover photo;
+- title;
+- subtitle;
+- camera button text;
+- cover horizontal position;
+- cover vertical position;
+- cover zoom.
+
+Modalī tiek rādīts preview, lai organizators pirms saglabāšanas redzētu, kā guest lapa izskatīsies.
+
+## Kļūdu apstrāde
+
+MVP apstrādā galvenos kļūdu scenārijus:
+
+- nepareizs login;
+- nav apstiprināts vai kļūdains e-pasts;
+- event nav atrasts;
+- event ir slēgts;
+- event periods ir beidzies;
+- fails nav attēls;
+- fails ir lielāks par 6 MB;
+- upload neizdodas;
+- nav tiesību piekļūt galerijai;
+- nav tiesību dzēst Storage failu;
+- ZIP nav pieejams.
+
+Lietotājam tiek rādīti saprotami teksti, nevis tehniski SQL vai Storage kļūdu kodi.
+
+## Pēc reālā testa veiktie secinājumi
+
+Reālajā testā tika izmantots viens organizators un vairāki viesi ar mobilajām ierīcēm. Upload plūsma strādāja, bet tika pamanīts, ka lielāks foto skaits var palielināt galerijas ielādes laiku un Supabase egress patēriņu.
+
+Pēc testa arhitektūrā tika nostiprināti šādi risinājumi:
+
+- thumbnails galerijas gridam;
+- client-side image optimization;
+- 6 MB upload limits;
+- cover image optimizācija;
+- ZIP lejupielāde tikai pēc eventa beigām;
+- viena ZIP lejupielāde vienam eventam;
+- individuāla foto download ierobežošana.
 
 ## MVP robežas
 
-Šaja MVP versija ir apzinati atstatas vienkaršas šadas lietas:
+Šajā MVP nav iekļauts:
 
-- nav maksajumu un abonementu;
-- nav publiskas viesu galerijas;
-- nav organizatora komandas vai vairaku administratoru;
-- nav server-side bilžu apstrades;
-- nav automatiska bilžu kompresija;
-- nav atseviškas audit log sistēmas.
+- video upload;
+- maksājumi un abonementi;
+- publiska viesu galerija;
+- organizatora komandas;
+- analytics dashboard;
+- server-side image processing;
+- server-side ZIP generation;
+- audit log sistēma;
+- automātiska Storage tīrīšana fonā.
 
-Tas palidz saglabat MVP fokusu: organizators izveido pasakumu, viesi augšupielade foto, organizators tos droši apskata un lejupielade.
+Šīs funkcijas var pievienot pēc prakses, ja produkts tiek attīstīts tālāk.
