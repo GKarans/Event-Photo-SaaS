@@ -202,6 +202,75 @@ Rezultāts:
 - Statuss: labots lokāli.
 - Piezīmes: pēc deploy jāpārbauda iPhone Safari/Chrome un Android Chrome ar reālu guest linku.
 
+## Production smoke test
+
+Šī sadaļa atbilst 5. dienas testēšanas darbam: production smoke test pēc jaunākajiem MVP labojumiem.
+
+Testa datums: 03.09.2026.
+
+Testēšanas vide:
+
+- Frontend: `https://event-photo-saas.netlify.app`
+- Backend: Supabase Auth, Database, Storage
+- Testa tips: production smoke test un pamata pieejamības pārbaude
+
+Automātiski pārbaudītie scenāriji:
+
+| Scenārijs | Sagaidāmais rezultāts | Rezultāts |
+| --- | --- | --- |
+| Production sākumlapa | Lapa atbild ar HTTP 200 | Izturēts |
+| Nepareizs guest route `/event/not-a-real-event-smoke-test` | Netlify SPA route atgriež `index.html`, un frontend var parādīt kļūdas skatu | Izturēts, HTTP 200 |
+| Aktīva guest route atvēršana | Guest lapa ir sasniedzama production vidē | Izturēts, HTTP 200 |
+| Anon `events` REST vaicājums | Publiski redzami tikai aktīvi event dati, kas vajadzīgi guest landing skatam | Izturēts |
+| Anon `media` REST vaicājums | Organizatora galerijas foto nav publiski nolasāmi | Izturēts, rezultāts tukšs |
+
+Manuāli pārbaudāmie scenāriji ar testa organizatora kontu:
+
+- register ar e-pasta apstiprināšanu;
+- login;
+- event create;
+- guest design edit un preview;
+- QR/link kopēšana;
+- guest upload ar reālu telefonu;
+- organizer gallery;
+- photo preview;
+- delete photo custom modal.
+
+Rezultāts:
+
+- Statuss: daļēji izturēts.
+- Piezīmes: bez testa organizatora konta un e-pasta piekļuves pilnu register/login/event create plūsmu nevar korekti apstiprināt automātiski. Production pieejamība un anon drošības robežas tika pārbaudītas.
+
+## Drošības un permission tests
+
+Šī sadaļa atbilst 6. dienas testēšanas darbam: permission pārbaude ar anon piekļuvi, nepareizu linku un organizatora datu aizsardzību.
+
+Testa datums: 03.09.2026.
+
+Pārbaudītie scenāriji:
+
+| Scenārijs | Sagaidāmais rezultāts | Rezultāts |
+| --- | --- | --- |
+| Anon lietotājs lasa `media` tabulu | Foto metadati un Storage ceļi nav publiski pieejami | Izturēts, anon vaicājums neatgrieza media ierakstus |
+| Anon lietotājs mēģina izveidot `guests` ierakstu neesošam eventam | RLS bloķē darbību | Izturēts, HTTP 401 |
+| Anon lietotājs mēģina izveidot `media` ierakstu neesošam eventam | RLS bloķē darbību | Izturēts, HTTP 401 |
+| Nepareizs guest links | Route ir sasniedzams, bet eventam nav jābūt pieejamam upload plūsmai | Izturēts tehniskā route līmenī |
+| Publisks active event vaicājums | Guest landing vajadzībām pieejami tikai ierobežoti event dati | Izturēts |
+
+Manuāli pārbaudāmie scenāriji ar diviem organizatoriem:
+
+- organizators A izveido eventu un augšupielādē foto;
+- organizators B ielogojas citā kontā;
+- organizators B neredz organizatora A eventus;
+- organizators B neredz organizatora A foto;
+- inactive event neatļauj guest upload;
+- guest upload strādā tikai aktīvam eventam perioda laikā.
+
+Rezultāts:
+
+- Statuss: daļēji izturēts.
+- Piezīmes: anon permission un public/private robežas pārbaudītas. Pilna divu organizatoru izolācija production vidē jāapstiprina ar diviem reāliem testa kontiem, jo bez autentificētas sesijas nevar korekti izpildīt organizatora A/B scenāriju.
+
 ### Dalībnieki
 
 - Organizatoru skaits: 1
