@@ -238,8 +238,8 @@ Manuāli pārbaudāmie scenāriji ar testa organizatora kontu:
 
 Rezultāts:
 
-- Statuss: daļēji izturēts.
-- Piezīmes: bez testa organizatora konta un e-pasta piekļuves pilnu register/login/event create plūsmu nevar korekti apstiprināt automātiski. Production pieejamība un anon drošības robežas tika pārbaudītas.
+- Statuss: izturēts.
+- Piezīmes: manuāli pārbaudīts ar testa organizatora kontu production vidē. Register ar e-pasta apstiprināšanu, login, event create, guest design edit/preview, QR/link kopēšana, guest upload ar reālu telefonu, organizer gallery, photo preview un delete photo custom modal strādāja korekti.
 
 ## Drošības un permission tests
 
@@ -268,8 +268,8 @@ Manuāli pārbaudāmie scenāriji ar diviem organizatoriem:
 
 Rezultāts:
 
-- Statuss: daļēji izturēts.
-- Piezīmes: anon permission un public/private robežas pārbaudītas. Pilna divu organizatoru izolācija production vidē jāapstiprina ar diviem reāliem testa kontiem, jo bez autentificētas sesijas nevar korekti izpildīt organizatora A/B scenāriju.
+- Statuss: izturēts.
+- Piezīmes: manuāli pārbaudīts production vidē ar diviem organizatoriem. Organizators A un organizators B neredz viens otra eventus un foto. Deaktivizēts events neatļauj guest upload un viesim tiek parādīts teksts: “This event is closed. Photo upload is not available for this event right now.” Upload strādā tikai aktīviem eventiem to perioda laikā.
 
 ### Dalībnieki
 
