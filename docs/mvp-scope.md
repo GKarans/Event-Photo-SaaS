@@ -215,6 +215,7 @@ MVP ir gatavs demonstrācijai, ja:
 - organizators var izveidot eventu;
 - organizators var pielāgot guest ekrānu;
 - QR kods un guest links atver pareizo eventu;
+- guest skats ir centrēts iPhone un Android ierīcēs bez horizontālas pārbīdes;
 - viesis bez konta var ievadīt vārdu un augšupielādēt foto;
 - fails tiek optimizēts un saglabāts Supabase Storage;
 - galerijas grid izmanto thumbnails;

@@ -186,6 +186,22 @@ Rezultāts:
 - Statuss: ieviests.
 - Piezīmes: šis uzlabojums samazina atkārtotas ielādes gaidīšanas laiku, īpaši gadījumos, kad organizators atver eventu, atgriežas sarakstā un atkal atver to pašu galeriju.
 
+## Mobile guest viewport labojums
+
+Pēc pārbaudes iPhone 13 Pro un iPhone 16 Pro ierīcēs tika konstatēts, ka guest logs var nebūt centrēts un poga var atrasties pārāk tuvu pārlūka apakšējai navigācijas joslai.
+
+Veiktie labojumi:
+
+- guest skats ierobežots ar phone viewport platumu, lai neveidotos horizontāla pārbīde;
+- mobile guest režīmā izmantots `100svh`, lai izvairītos no dinamisko pārlūka joslu radītām nobīdēm;
+- pievienota lielāka apakšējā safe-area atstarpe, lai `Let's go` un `Take Photo` pogas netiktu aizsegtas;
+- foto režīmā `Take Photo` poga noturēta redzamā apakšējā daļā, bet ne zem pārlūka joslas.
+
+Rezultāts:
+
+- Statuss: labots lokāli.
+- Piezīmes: pēc deploy jāpārbauda iPhone Safari/Chrome un Android Chrome ar reālu guest linku.
+
 ### Dalībnieki
 
 - Organizatoru skaits: 1

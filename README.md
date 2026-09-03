@@ -14,6 +14,7 @@ Production URL: https://event-photo-saas.netlify.app/
 - Unikāla guest saite un QR kods katram eventam.
 - Guest flow bez konta: QR/link -> vārds -> Take Photo -> upload.
 - Guest UX pielāgošana: cover photo, title, subtitle, camera button text un cover pozīcija.
+- Mobile guest skats centrēts iPhone/Android viewportā ar safe-area atstarpi pārlūka apakšējai joslai.
 - Photo-only upload ar 6 MB limitu.
 - Client-side foto optimizācija un thumbnail ģenerēšana pirms upload.
 - Organizatora galerija ar thumbnails, preview, filtrēšanu pēc viesa un kārtošanu.
