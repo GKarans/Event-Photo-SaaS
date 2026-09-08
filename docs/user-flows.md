@@ -85,10 +85,11 @@ Rezultāts: organizators var ātri aizvērt vai atvērt foto upload piekļuvi.
 
 1. Organizators nospiež `Open`.
 2. Atveras event detail skats.
-3. Organizators redz statusu, datumu periodu, guest URL un QR kodu.
+3. Ja events ir aktīvs un periods vēl nav beidzies, organizators redz statusu, datumu periodu, guest URL un QR kodu.
 4. Organizators var nokopēt linku vai lejupielādēt QR.
+5. Ja events ir inactive vai periods ir beidzies, guest URL, QR kods un kopīgošanas pogas netiek rādītas.
 
-Rezultāts: organizators var nodot linku viesiem vai parādīt QR kodu.
+Rezultāts: organizators var nodot linku viesiem tikai aktīva eventa laikā. Pēc eventa beigām detail skats koncentrējas uz galeriju un ZIP lejupielādi.
 
 ### 8. Galerijas pārvaldība
 
@@ -105,6 +106,18 @@ Rezultāts: organizators var nodot linku viesiem vai parādīt QR kodu.
    - dzēst nevēlamu foto.
 
 Rezultāts: organizators var pārskatīt un savākt pasākuma foto vienuviet.
+
+### 9. Event arhivēšana
+
+1. Organizators dashboardā nospiež eventa `Delete` pogu.
+2. Sistēma parāda custom confirmation modal.
+3. Pēc apstiprināšanas `events.status` tiek nomainīts uz `deleted`.
+4. Events pazūd no `My Events` saraksta.
+5. Organizators var atvērt `Archive` pogu zem `Logout`.
+6. Archive modal rāda arhivēto eventu nosaukumus un periodus.
+7. Arhīvā iespējama meklēšana un kārtošana pēc nosaukuma, izveides laika vai event datuma.
+
+Rezultāts: galvenais dashboard paliek tīrs, bet organizators vēl redz arhivēto eventu sarakstu.
 
 ## Viesa plūsma
 

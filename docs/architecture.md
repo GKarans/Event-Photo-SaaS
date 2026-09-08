@@ -36,9 +36,9 @@ flowchart LR
 
 Frontend ir statiska HTML, CSS un JavaScript aplikācija:
 
-- `index.html` satur galvenos skatus: autentifikāciju, dashboard, event detail, guest upload, guest design modal un photo preview dialogu.
+- `index.html` satur galvenos skatus: autentifikāciju, dashboard, event detail, archive modal, guest upload, guest design modal un photo preview dialogu.
 - `style.css` nosaka dark/light mode dizainu, responsive izkārtojumu un mobile guest pieredzi, tostarp iPhone/Android viewport centrēšanu un safe-area atstarpi pārlūka joslām.
-- `script.js` satur Supabase savienojumu, Auth plūsmu, eventu loģiku, QR ģenerēšanu, guest upload, galeriju, thumbnails, ZIP un kļūdu apstrādi.
+- `script.js` satur Supabase savienojumu, Auth plūsmu, eventu loģiku, QR ģenerēšanu, archive sarakstu, guest upload, galeriju, thumbnails, ZIP un kļūdu apstrādi.
 
 Frontend izmanto Supabase publishable key. Service role key, paroles un citi secrets netiek glabāti repozitorijā.
 

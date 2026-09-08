@@ -53,7 +53,8 @@ MVP iekļauj:
 - event aktivizēšanu un deaktivizēšanu;
 - soft delete ar `status = deleted`;
 - beigušos eventu automātisku paslēpšanu pēc noteikta laika;
-- event detail skatu ar statusu, guest linku un QR kodu.
+- event detail skatu ar statusu, guest linku un QR kodu aktīviem eventiem;
+- vienkāršu arhīvu, kur paslēptie/deleted eventi redzami pēc nosaukuma un perioda.
 
 ### Guest link un QR
 
@@ -64,7 +65,8 @@ MVP iekļauj:
 - QR koda ģenerēšanu;
 - QR koda lejupielādi;
 - linka kopēšanu;
-- guest link pieejamību tikai aktīvam eventam tā datumu periodā.
+- guest link pieejamību tikai aktīvam eventam tā datumu periodā;
+- guest URL, QR un kopīgošanas darbību paslēpšanu inactive vai period ended event detail skatā.
 
 ### Guest plūsma
 
