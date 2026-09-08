@@ -144,7 +144,10 @@
                     <h1 id="dashboard-title">Welcome!</h1>
                     <p class="subtitle" id="user-email"></p>
                 </div>
-                <button class="secondary-button compact-button logout-button" id="logout-button" type="button">Logout</button>
+                <div class="sidebar-actions">
+                    <button class="secondary-button compact-button logout-button" id="logout-button" type="button">Logout</button>
+                    <button class="secondary-button compact-button archive-button" id="archive-button" type="button">Archive</button>
+                </div>
             </div>
 
             <section class="events-section" aria-labelledby="events-title">
@@ -201,7 +204,7 @@
                         </div>
                     </div>
 
-                    <div class="event-tools">
+                    <div class="event-tools" id="event-tools">
                         <div class="event-share-panel">
                             <div class="detail-grid">
                                 <div>
@@ -414,6 +417,41 @@
                 <button class="secondary-button" id="confirm-cancel-button" type="button">Cancel</button>
                 <button class="danger-button" id="confirm-action-button" type="button">Delete</button>
             </div>
+        </form>
+    </dialog>
+
+    <dialog class="event-dialog archive-dialog" id="archive-modal">
+        <form class="modal-form" id="archive-form" method="dialog">
+            <div class="modal-header">
+                <div class="section-heading">
+                    <h2>Archive</h2>
+                    <p>Past and deleted events are listed here without guest links or QR codes.</p>
+                </div>
+                <button class="icon-button modal-close" id="close-archive-button" type="button" aria-label="Close archive">
+                    <span aria-hidden="true">×</span>
+                </button>
+            </div>
+
+            <div class="event-filter-bar archive-filter-bar" aria-label="Archive filters">
+                <label class="event-search">
+                    <span>Search</span>
+                    <input id="archive-search" type="search" placeholder="Search archived events" autocomplete="off">
+                </label>
+
+                <label>
+                    <span>Sort</span>
+                    <select id="archive-sort">
+                        <option value="newest">Newest first</option>
+                        <option value="oldest">Oldest first</option>
+                        <option value="date-desc">Event date newest</option>
+                        <option value="date-asc">Event date oldest</option>
+                        <option value="name">Event name</option>
+                    </select>
+                </label>
+            </div>
+
+            <p class="archive-count" id="archive-count">Loading archive...</p>
+            <div class="archive-list" id="archive-list"></div>
         </form>
     </dialog>
 

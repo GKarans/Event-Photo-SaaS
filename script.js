@@ -61,6 +61,7 @@ const resetGoToLoginButton = document.getElementById("reset-go-to-login-button")
 const resetBackToLoginButton = document.getElementById("reset-back-to-login-button");
 const goToLoginButton = document.getElementById("go-to-login-button");
 const logoutButton = document.getElementById("logout-button");
+const archiveButton = document.getElementById("archive-button");
 const dashboardTitle = document.getElementById("dashboard-title");
 const userEmail = document.getElementById("user-email");
 const messageBox = document.getElementById("message");
@@ -83,6 +84,7 @@ const eventsList = document.getElementById("events-list");
 const eventsCount = document.getElementById("events-count");
 const eventsListHeader = document.getElementById("events-list-header");
 const eventDetail = document.getElementById("event-detail");
+const eventTools = document.getElementById("event-tools");
 const backToEventsButton = document.getElementById("back-to-events-button");
 const eventDetailTitle = document.getElementById("event-detail-title");
 const eventDetailDate = document.getElementById("event-detail-date");
@@ -133,6 +135,13 @@ const confirmDetail = document.getElementById("confirm-detail");
 const confirmCloseButton = document.getElementById("confirm-close-button");
 const confirmCancelButton = document.getElementById("confirm-cancel-button");
 const confirmActionButton = document.getElementById("confirm-action-button");
+const archiveModal = document.getElementById("archive-modal");
+const archiveForm = document.getElementById("archive-form");
+const closeArchiveButton = document.getElementById("close-archive-button");
+const archiveSearchInput = document.getElementById("archive-search");
+const archiveSort = document.getElementById("archive-sort");
+const archiveCount = document.getElementById("archive-count");
+const archiveList = document.getElementById("archive-list");
 const guestPanel = document.getElementById("guest-panel");
 const guestCover = document.getElementById("guest-cover");
 const guestEventTitle = document.getElementById("guest-event-title");
@@ -153,6 +162,7 @@ const themeToggleLabel = document.getElementById("theme-toggle-label");
 let authMode = "login";
 let currentSession = null;
 let currentEvents = [];
+let archivedEvents = [];
 let selectedEvent = null;
 let currentGuest = null;
 let editingEventId = "";
@@ -193,6 +203,7 @@ document.querySelectorAll("[data-password-target]").forEach(button => {
     button.addEventListener("click", handlePasswordVisibilityToggle);
 });
 logoutButton.addEventListener("click", handleLogout);
+archiveButton.addEventListener("click", openArchiveModal);
 openCreateEventButton.addEventListener("click", openCreateEventModal);
 closeCreateEventButton.addEventListener("click", closeCreateEventModal);
 cancelCreateEventButton.addEventListener("click", closeCreateEventModal);
@@ -236,6 +247,11 @@ confirmCloseButton.addEventListener("click", () => closeConfirmModal(false));
 confirmCancelButton.addEventListener("click", () => closeConfirmModal(false));
 confirmActionButton.addEventListener("click", () => closeConfirmModal(true));
 confirmModal.addEventListener("click", handleConfirmBackdropClick);
+closeArchiveButton.addEventListener("click", closeArchiveModal);
+archiveModal.addEventListener("click", handleArchiveBackdropClick);
+archiveSearchInput.addEventListener("input", renderArchiveEvents);
+archiveSort.addEventListener("change", renderArchiveEvents);
+archiveModal.addEventListener("close", syncDialogOpenState);
 confirmModal.addEventListener("close", () => closeConfirmModal(false));
 document.addEventListener("keydown", handlePreviewKeydown);
 guestForm.addEventListener("submit", handleGuestStart);
@@ -1418,6 +1434,45 @@ async function queryOrganizerEvents() {
     };
 }
 
+async function queryArchivedEvents() {
+    const response = await supabase
+        .from("events")
+        .select(EVENT_SELECT_FIELDS)
+        .eq("owner_id", currentSession.user.id)
+        .eq("status", "deleted")
+        .order("end_date", { ascending: false });
+
+    if (!isBrandingSchemaMissingError(response.error)) {
+        return response;
+    }
+
+    const noZoomResponse = await supabase
+        .from("events")
+        .select(EVENT_SELECT_FIELDS_WITHOUT_ZOOM)
+        .eq("owner_id", currentSession.user.id)
+        .eq("status", "deleted")
+        .order("end_date", { ascending: false });
+
+    if (!isBrandingSchemaMissingError(noZoomResponse.error)) {
+        return {
+            ...noZoomResponse,
+            data: (noZoomResponse.data || []).map(addGuestDesignDefaults)
+        };
+    }
+
+    const fallbackResponse = await supabase
+        .from("events")
+        .select(LEGACY_EVENT_SELECT_FIELDS)
+        .eq("owner_id", currentSession.user.id)
+        .eq("status", "deleted")
+        .order("end_date", { ascending: false });
+
+    return {
+        ...fallbackResponse,
+        data: (fallbackResponse.data || []).map(addGuestDesignDefaults)
+    };
+}
+
 function renderEvents(events) {
     if (!eventsList || !eventsCount) {
         return;
@@ -1587,11 +1642,116 @@ function isMobileViewport() {
     return window.matchMedia("(max-width: 760px)").matches;
 }
 
+async function openArchiveModal() {
+    if (!currentSession?.user || !archiveModal || typeof archiveModal.showModal !== "function") {
+        showMessage("Log in before opening the archive.", "error");
+        return;
+    }
+
+    archivedEvents = [];
+    archiveSearchInput.value = "";
+    archiveSort.value = "newest";
+    archiveCount.textContent = "Loading archive...";
+    archiveList.innerHTML = "";
+    document.body.classList.add("is-dialog-open");
+    archiveModal.showModal();
+
+    const { data, error } = await queryArchivedEvents();
+
+    if (error) {
+        archiveCount.textContent = "Could not load archive.";
+        archiveList.innerHTML = `
+            <div class="empty-state">
+                <strong>Archive unavailable</strong>
+                <span>Refresh the page and try again.</span>
+            </div>
+        `;
+        showMessage(toFriendlyDatabaseError(error.message, "organizer-events"), "error");
+        return;
+    }
+
+    archivedEvents = data || [];
+    renderArchiveEvents();
+}
+
+function closeArchiveModal() {
+    if (archiveModal.open) {
+        archiveModal.close();
+    }
+
+    syncDialogOpenState();
+}
+
+function handleArchiveBackdropClick(event) {
+    if (event.target === archiveModal) {
+        closeArchiveModal();
+    }
+}
+
+function renderArchiveEvents() {
+    if (!archiveList || !archiveCount) {
+        return;
+    }
+
+    const searchTerm = archiveSearchInput.value.trim().toLowerCase();
+    const sortMode = archiveSort.value;
+    const visibleEvents = archivedEvents
+        .filter(event => !searchTerm || event.name.toLowerCase().includes(searchTerm))
+        .sort((a, b) => {
+            if (sortMode === "oldest") {
+                return new Date(a.created_at) - new Date(b.created_at);
+            }
+
+            if (sortMode === "date-asc") {
+                return new Date(a.start_date || a.date) - new Date(b.start_date || b.date);
+            }
+
+            if (sortMode === "date-desc") {
+                return new Date(b.start_date || b.date) - new Date(a.start_date || a.date);
+            }
+
+            if (sortMode === "name") {
+                return a.name.localeCompare(b.name);
+            }
+
+            return new Date(b.created_at) - new Date(a.created_at);
+        });
+
+    archiveCount.textContent = `${visibleEvents.length} archived event${visibleEvents.length === 1 ? "" : "s"}`;
+
+    if (!visibleEvents.length) {
+        archiveList.innerHTML = `
+            <div class="empty-state">
+                <strong>No archived events</strong>
+                <span>Deleted and automatically archived past events will appear here.</span>
+            </div>
+        `;
+        return;
+    }
+
+    const fragment = document.createDocumentFragment();
+
+    for (const event of visibleEvents) {
+        const item = document.createElement("article");
+        item.className = "archive-item";
+        item.innerHTML = `
+            <h3></h3>
+            <p></p>
+        `;
+        item.querySelector("h3").textContent = event.name;
+        item.querySelector("p").textContent = formatEventDateRange(event);
+        fragment.appendChild(item);
+    }
+
+    archiveList.innerHTML = "";
+    archiveList.appendChild(fragment);
+}
+
 async function handleDeleteEvent(eventData, button) {
     const confirmed = await requestConfirmation({
         title: "Delete event?",
         message: `Delete "${eventData.name}"? Guests will no longer be able to upload photos to this event.`,
-        detail: "The event will be hidden from your list.",
+        detail: "The event will move to Archive.",
         confirmText: "Delete"
     });
 
@@ -1613,7 +1773,7 @@ async function handleDeleteEvent(eventData, button) {
         }
 
         invalidateGalleryCache(eventData.id);
-        showMessage("Event deleted.", "success");
+        showMessage("Event moved to Archive.", "success");
         await loadEvents();
     } catch (error) {
         console.error("Event delete error", error);
@@ -1665,7 +1825,7 @@ function handleConfirmBackdropClick(event) {
 }
 
 function syncDialogOpenState() {
-    const hasOpenDialog = [photoDialog, confirmModal, createEventModal, guestDesignModal].some(dialog => dialog?.open);
+    const hasOpenDialog = [photoDialog, confirmModal, createEventModal, guestDesignModal, archiveModal].some(dialog => dialog?.open);
     document.body.classList.toggle("is-dialog-open", hasOpenDialog);
 }
 
@@ -1674,6 +1834,7 @@ async function showEventDetail(eventData) {
     allGalleryPhotos = [];
     currentGalleryPhotos = [];
     const eventUrl = getEventUrl(eventData);
+    const isShareAvailable = getDisplayEventStatus(eventData) === "active";
 
     eventsListHeader.classList.add("hidden");
     eventsControls.classList.add("hidden");
@@ -1682,12 +1843,19 @@ async function showEventDetail(eventData) {
 
     eventDetailTitle.textContent = eventData.name;
     eventDetailDate.textContent = formatEventDateRange(eventData);
-    eventDetailStatus.textContent = formatStatus(getDisplayEventStatus(eventData));
+    eventDetailStatus.textContent = getEventDetailStatusLabel(eventData);
     setEventStatusButtonState(eventData);
-    eventDetailUrl.textContent = eventUrl;
+    eventTools.classList.toggle("hidden", !isShareAvailable);
+    eventDetailUrl.textContent = isShareAvailable ? eventUrl : "";
     updateDownloadGalleryState();
 
-    await renderQrCode(eventUrl);
+    if (isShareAvailable) {
+        await renderQrCode(eventUrl);
+    } else {
+        qrImage.removeAttribute("src");
+        qrImage.alt = "";
+    }
+
     await loadGallery(eventData.id);
 }
 
@@ -3121,6 +3289,18 @@ function formatStatus(status) {
     };
 
     return labels[status] || status.charAt(0).toUpperCase() + status.slice(1);
+}
+
+function getEventDetailStatusLabel(eventData) {
+    if (eventData?.status === "deleted") {
+        return "Archived";
+    }
+
+    if (hasEventPeriodEnded(eventData)) {
+        return "Period ended";
+    }
+
+    return formatStatus(getDisplayEventStatus(eventData));
 }
 
 function getIsoDate(date) {

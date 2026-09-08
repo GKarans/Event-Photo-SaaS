@@ -139,8 +139,11 @@ Deploy branch: main
 4. Organizators pieslēdzas dashboardā.
 5. Organizators izveido eventu.
 6. Organizators atver event detail skatu.
-7. Organizators nokopē guest linku vai lejupielādē QR kodu.
-8. Organizators pēc eventa beigām pārskata galeriju un lejupielādē ZIP.
+7. Aktīvam eventam organizators nokopē guest linku vai lejupielādē QR kodu.
+8. Kad events ir inactive vai periods ir beidzies, guest linka un QR darbības vairs netiek rādītas.
+9. Organizators pēc eventa beigām pārskata galeriju un lejupielādē ZIP.
+10. Delete event galvenajā sarakstā pārvieto eventu uz `Archive`, nevis uzreiz fiziski dzēš failus.
+11. `Archive` pogā zem `Logout` organizators redz arhivētos eventus ar nosaukumu un periodu.
 
 ## Guest flow
 
@@ -176,6 +179,8 @@ Pirms deploy vai pēc būtiskām izmaiņām pārbaudi:
 - organizer A neredz organizer B eventus/foto;
 - inactive event neļauj upload;
 - event ārpus perioda neļauj upload;
+- inactive vai period ended event detail nerāda guest URL, QR un kopīgošanas pogas;
+- archive modal rāda paslēptos/deleted eventus ar meklēšanu un kārtošanu;
 - ZIP poga parādās tikai pēc eventa beigām;
 - ZIP var lejupielādēt tikai vienu reizi.
 

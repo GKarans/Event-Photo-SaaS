@@ -617,6 +617,12 @@ button.is-loading::before,
     gap: 10px;
 }
 
+.sidebar-actions {
+    display: grid;
+    gap: 10px;
+    justify-items: start;
+}
+
 .event-card,
 .empty-state {
     border: 1px solid var(--line);
@@ -783,6 +789,51 @@ code {
 
 .confirm-dialog {
     width: min(92vw, 480px);
+}
+
+.archive-dialog {
+    width: min(94vw, 680px);
+}
+
+.archive-filter-bar {
+    grid-template-columns: minmax(180px, 1fr) minmax(170px, 220px);
+}
+
+.archive-count {
+    margin: 0;
+    color: var(--muted);
+    font-weight: 700;
+}
+
+.archive-list {
+    display: grid;
+    gap: 10px;
+    max-height: min(54vh, 520px);
+    overflow: auto;
+    padding-right: 4px;
+}
+
+.archive-item {
+    display: grid;
+    gap: 4px;
+    padding: 14px 16px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--surface-muted);
+}
+
+.archive-item h3,
+.archive-item p {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.archive-item h3 {
+    font-size: 1rem;
+}
+
+.archive-item p {
+    color: var(--muted);
 }
 
 .confirm-detail {
@@ -1432,7 +1483,7 @@ code {
 }
 
 .hidden {
-    display: none;
+    display: none !important;
 }
 
 @keyframes spin {
@@ -1492,6 +1543,10 @@ code {
     }
 
     .is-dashboard-view .logout-button {
+        justify-self: start;
+    }
+
+    .is-dashboard-view .archive-button {
         justify-self: start;
     }
 
@@ -1723,6 +1778,10 @@ code {
     }
 
     .event-filter-bar {
+        grid-template-columns: 1fr;
+    }
+
+    .archive-filter-bar {
         grid-template-columns: 1fr;
     }
 
