@@ -199,8 +199,22 @@ Veiktie labojumi:
 
 Rezultāts:
 
-- Statuss: labots lokāli.
-- Piezīmes: pēc deploy jāpārbauda iPhone Safari/Chrome un Android Chrome ar reālu guest linku.
+- Statuss: labots un pārbaudīts lokāli; iepriekšējie production testi iPhone un Android ierīcēs ir dokumentēti atsevišķi.
+- Piezīmes: pēc deploy jāatkārto īss iPhone Safari un Android Chrome tests ar reālu guest linku.
+
+### Slēgta eventa statusa vizuālā regresija
+
+2026. gada 4. septembra mobile Chrome screenshotā tika konstatēts, ka slēgta eventa teksts un logo atrodas pārāk augstu, bet zem tiem paliek nesamērīgi liels tukšs laukums. Statusa skats tika nodalīts no aktīvās guest formas un centrēts kā viena satura grupa.
+
+Lokāli pārbaudītie viewporti:
+
+| Viewport | Tēma | Rezultāts |
+| --- | --- | --- |
+| 390 x 844, iPhone izmērs | Dark un light | Logo, virsraksts un paskaidrojums centrēti; horizontālas pārplūdes nav |
+| 412 x 915, Android izmērs | Light | Saturs centrēts panelī un teksts ir salasāms |
+| 1440 x 900, desktop | Light | Statusa panelis un saturs centrēti, saglabājot vienādu vizuālo hierarhiju |
+
+Tas pats statusa režīms tiek izmantots loading, nepareiza event linka, slēgta eventa un savienojuma kļūdas skatam, lai šie stāvokļi dažādās ierīcēs neatšķirtos.
 
 ## Production smoke test
 
@@ -307,3 +321,119 @@ Rezultāts:
 Praktiskais tests ar 12 viesiem un 60 foto apliecināja, ka MVP pamatplūsma darbojas: organizators izveido eventu, viesi atver QR/guest linku, ievada vārdu, uzņem foto, foto tiek saglabāti Supabase Storage un parādās organizatora galerijā. Organizatoram un viesiem nebija būtisku negatīvu atsauksmju par lietošanu.
 
 MVP ir gatavs demonstrācijai pamatfunkcionalitātes līmenī. Pēc testa tika ieviesti galerijas veiktspējas un Supabase egress samazināšanas uzlabojumi: thumbnails, signed URL cache, lazy loading, client-side foto optimizācija, 6 MB limits un ZIP lejupielāde tikai pēc eventa beigām vienu reizi. Turpmāk production versijai jāvērtē server-side ZIP, automātisks Storage cleanup un precīzāki lietošanas limiti.
+
+## Starptautiskais mobile tests Tartu
+
+Testa periods: 2026. gada septembra pirmā nedēļas nogale, 3 dienu events.
+
+Testa vieta un konteksts:
+
+- Tartu, Igaunija;
+- Puhaste alus darītavas 10 gadu jubileja;
+- 17 viesi jeb aldari no vairākām Eiropas valstīm;
+- production vide un reāli viesu telefoni;
+- kopā Supabase Storage un organizatora galerijā saglabāti 57 foto.
+
+Pārbaudītie mobile scenāriji:
+
+- event linka un QR plūsmas lietošana reālā pasākumā;
+- guest name ievade un saglabātā vārda maiņa;
+- camera upload vairākos secīgos mēģinājumos;
+- pielāgotā cover dizaina attēlojums;
+- light un dark mode lietojamība;
+- foto parādīšanās organizatora galerijā.
+
+Rezultāts:
+
+- Statuss: izturēts ar vienu atkārtojamu riska novērojumu.
+- 57 foto tika veiksmīgi augšupielādēti un bija pieejami organizatora galerijā.
+- Dalībniekiem nebija būtisku problēmu ar QR, guest plūsmu vai foto augšupielādi.
+- Aptuveni četros organizatora atkārtotas fotografēšanas mēģinājumos pēc kameras apstiprināšanas neparādījās ne loading, ne success/error paziņojums, un foto nenonāca Supabase Storage.
+- Simptoms norāda, ka pārlūks atsevišķos gadījumos nav nodevis faila izvēles notikumu frontendam, jo upload funkcija vispār netika sākta.
+
+### Mobile testa atrastā kļūda
+
+| Prioritāte | Ierīce/pārlūks | Scenārijs | Faktiskais rezultāts | Statuss |
+| --- | --- | --- | --- | --- |
+| P2 | Mobilais pārlūks un telefona kamera | Atkārtoti uzņemt foto un apstiprināt to kamerā | Aptuveni 4 reizes nebija loading/statusa un fails netika augšupielādēts | Labots kodā; jāapstiprina ar 10 secīgu foto mobile regresijas testu |
+
+Ieviestais labojums:
+
+- pirms katras kameras atvēršanas file input vērtība tiek atiestatīta;
+- tiek apstrādāti gan `input`, gan `change` notikumi, vienlaikus nepieļaujot dubultu upload;
+- kameras atvēršanas brīdī tiek rādīts `Opening camera...` statuss;
+- pēc atgriešanās bez saņemta faila tiek rādīts saprotams paziņojums, nevis kluss stāvoklis.
+
+## Performance un egress pārbaude
+
+Šī sadaļa atbilst performance testēšanas darbam ar lielākām galerijām un Supabase egress izvērtējumu.
+
+Pārbaudes dati:
+
+- iepriekšējais praktiskais tests: 60 foto vienā eventā;
+- Tartu praktiskais tests: 57 foto vienā eventā;
+- galerijā tiek pieprasīts `thumbnail_path`, un grid prioritāri izmanto thumbnail signed URL;
+- pilna izmēra fails tiek pieprasīts tikai preview vai atļautā ZIP scenārijā;
+- atkārtotai event galerijas atvēršanai izmantota īslaicīga klienta cache atmiņa;
+- grid attēliem izmantots lazy loading un asinhrona dekodēšana.
+
+ZIP un egress ierobežojumi:
+
+- ZIP poga ir pieejama tikai pēc eventa beigām;
+- ZIP lejupielāde vienam eventam ir atļauta tikai vienu reizi;
+- atsevišķa oriģinālā foto lejupielāde MVP ir ierobežota;
+- guest foto pirms upload tiek samazināts un saspiests klienta pusē;
+- maksimālais ienākošā foto izmērs ir 6 MB;
+- thumbnail un oriģinālam Storage tiek norādīts cache laiks.
+
+Rezultāts:
+
+- Statuss: izturēts funkcionalitātes līmenī.
+- Galerijas ar 57 un 60 foto saglabāja pilnu apskates, filtrēšanas un preview funkcionalitāti.
+- Thumbnail izmantošana ir apstiprināta frontend datu plūsmā; tā samazina pilna izmēra failu lejupielādi galerijas grid skatā.
+- Precīzs ielādes ilgums un egress apjoms vienai galerijas sesijai netika instrumentēts, tāpēc turpmākam slodzes testam jāfiksē pārsūtīto datu apjoms un ielādes laiks ar pārlūka Network rīkiem.
+
+## Auth UX lokālā pārbaude
+
+Pārbaudīts pēc paroles drošības un atjaunošanas funkcijas ieviešanas:
+
+- register skatā ir atkārtotas paroles lauks;
+- nesakrītošas paroles tiek bloķētas pirms Supabase pieprasījuma;
+- parolei tiek prasīti vismaz 8 simboli, lielais un mazais burts, cipars un simbols;
+- katram paroles laukam ir show/hide kontrole ar pieejamu `aria-label`;
+- login skatā ir `Forgot password?` plūsma;
+- `/auth/reset-password` route parāda reset formu tikai ar derīgu recovery sesiju;
+- nederīgai vai novecojušai saitei tiek parādīts saprotams kļūdas teksts;
+- pēc veiksmīgas paroles maiņas paredzēts success skats un atgriešanās uz login.
+
+Production e-pasta saņemšana un paroles maiņas drošības paziņojums jāapstiprina pēc abu URL pievienošanas Supabase Auth redirect allow list un `Password changed` paziņojuma ieslēgšanas.
+
+## Projekta failu un konfigurācijas audits
+
+Audita datums: 08.09.2026.
+
+Pārbaudīts:
+
+- JavaScript sintakse un projekta `npm test` komanda;
+- frontend datubāzes vaicājumos tiek atlasīti konkrēti lauki, nevis izmantots `select('*')`;
+- `.env`, `.netlify` un `node_modules` nav Git repozitorijā;
+- repozitorijā nav atrasts `service_role`, Dropbox app secret vai refresh token;
+- `users`, `events`, `guests` un `media` tabulām SQL shēmā ir ieslēgts RLS;
+- SQL shēmā ir organizer ownership, anon guest upload un Storage read/delete politikas;
+- galerijas grid prioritāri izmanto `thumbnail_path`, bet oriģinālu pieprasa preview/ZIP vajadzībām;
+- 6 MB limits ir saskaņots frontend validācijā, `media` tabulas constraint un Storage bucket konfigurācijā;
+- ZIP pieejamība tiek noteikta pēc eventa beigām un `zip_downloaded_at` nepieļauj atkārtotu ZIP lejupielādi.
+
+Audita laikā sakārtots:
+
+- izņemts nejauši repozitorijā palikušais `script.js.new` placeholder fails;
+- nederīgais 1 baita `favicon.ico` aizstāts ar projektam atbilstošu aperture SVG favicon;
+- tukšās noklusējuma testa komandas vietā pievienota reāla JavaScript sintakses pārbaude.
+
+Atlikušie riski:
+
+- pēc deploy vēl jāizpilda 10 secīgu camera upload regresijas tests reālā telefonā;
+- nav automātiska end-to-end testa ar diviem autentificētiem organizer kontiem;
+- precīzs galerijas ielādes laiks un egress vienai sesijai vēl nav instrumentēts;
+- Supabase CDN importa major versija ir norādīta kā `@2`, nevis piesaistīta konkrētai patch versijai;
+- klienta pusē veidots ZIP lielām galerijām nākotnē jāaizstāj ar servera puses procesu.

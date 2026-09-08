@@ -59,3 +59,16 @@ Reālais rezultāts:
 - organizatora galerijā foto bija pieejami;
 - būtiskas negatīvas atsauksmes no organizatora vai viesiem netika saņemtas;
 - pēc testa kā uzlabojums fiksēta galerijas ielādes veiktspēja pie lielāka foto skaita.
+
+## Tartu starptautiskā testa kopsavilkums
+
+2026. gada septembra pirmajā nedēļas nogalē MVP tika darbināts 3 dienu eventā Tartu, Igaunijā, Puhaste alus darītavas 10 gadu jubilejā.
+
+Reālais rezultāts:
+
+- piedalījās 17 aldari no vairākām Eiropas valstīm;
+- kopā augšupielādēti 57 foto;
+- QR, guest name, cover dizains un organizatora galerija darbojās reālā starptautiskā pasākumā;
+- dalībniekiem būtiskas lietošanas problēmas netika novērotas;
+- aptuveni četros atkārtotas fotografēšanas mēģinājumos kamera atgriezās pārlūkā bez loading vai rezultāta paziņojuma, un fails netika saglabāts;
+- klusais kameras atgriešanās scenārijs reģistrēts kā P2 kļūda turpmākai labošanai un regresijas testam.

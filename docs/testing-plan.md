@@ -164,3 +164,16 @@ Pēc testa jāizveido `docs/testing-report.md`, kurā jāiekļauj:
 - Atrastās kļūdas
 - Labojumu saraksts
 - Secinājums par MVP gatavību
+
+## Atkārtotas mobile kameras pārbaude
+
+Pēc Tartu praktiskā testa turpmākajos mobile testos papildus jāpārbauda:
+
+1. Ar vienu un to pašu viesi secīgi uzņemt vismaz 10 foto.
+2. Pēc katra kameras apstiprinājuma pārliecināties, ka uzreiz parādās loading stāvoklis.
+3. Sagaidīt success vai error paziņojumu pirms nākamā foto.
+4. Salīdzināt veiksmīgo paziņojumu skaitu ar Supabase Storage un `media` ierakstu skaitu.
+5. Atkārtot Android Chrome un iPhone Safari/Chrome.
+6. Atsevišķi pārbaudīt kameras atcelšanu, lai tā netiktu uzskatīta par upload kļūdu.
+
+Pieņemšanas kritērijs: katrs apstiprinātais foto sāk upload plūsmu un beidzas ar redzamu success vai error rezultātu; nedrīkst būt kluss stāvoklis bez lietotāja atgriezeniskās saites.
