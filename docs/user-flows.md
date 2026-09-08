@@ -15,9 +15,11 @@ MVP ir divas galvenās lomas:
 
 1. Organizators atver `https://event-photo-saas.netlify.app`.
 2. Izvēlas `Register`.
-3. Ievada vārdu, uzvārdu, e-pastu un paroli.
-4. Sistēma izveido Supabase Auth lietotāju.
-5. `public.users` tabulā tiek saglabāts lietotāja profils.
+3. Ievada vārdu, uzvārdu, e-pastu, paroli un atkārtotu paroli.
+4. Frontend pārbauda, ka paroles sakrīt un satur vismaz 8 simbolus, lielo un mazo burtu, ciparu un simbolu.
+5. Sistēma izveido Supabase Auth lietotāju.
+6. `public.users` tabulā tiek saglabāts lietotāja profils.
+7. Organizators apstiprina e-pastu un atgriežas produkta confirmation lapā.
 
 Rezultāts: organizators var izmantot dashboard pēc autentifikācijas.
 
@@ -30,7 +32,19 @@ Rezultāts: organizators var izmantot dashboard pēc autentifikācijas.
 
 Rezultāts: dashboard rāda organizatora sveicienu un tikai viņa eventus.
 
-### 3. Event izveide
+### 3. Paroles atjaunošana
+
+1. Organizators login skatā nospiež `Forgot password?`.
+2. Ievada e-pasta adresi.
+3. Supabase nosūta reset saiti, neatklājot, vai konkrētais e-pasts ir reģistrēts.
+4. Saite atver `/auth/reset-password` produkta lapā.
+5. Organizators divas reizes ievada jauno drošo paroli.
+6. Frontend izsauc Supabase `updateUser`, izraksta lietotāju un parāda veiksmīgu rezultātu ar `Go to login` pogu.
+7. Ja Supabase projektā ir ieslēgts paroles maiņas drošības paziņojums, lietotājs saņem apstiprinājuma e-pastu.
+
+Rezultāts: organizators var droši atgūt piekļuvi bez administratora palīdzības.
+
+### 4. Event izveide
 
 1. Organizators nospiež `Create Event`.
 2. Atveras modal logs.
@@ -45,7 +59,7 @@ Rezultāts: dashboard rāda organizatora sveicienu un tikai viņa eventus.
 
 Rezultāts: events parādās `My Events` sarakstā.
 
-### 4. Guest design labošana
+### 5. Guest design labošana
 
 1. Organizators atver event detail skatu.
 2. Nospiež `Edit Event`.
@@ -57,7 +71,7 @@ Rezultāts: events parādās `My Events` sarakstā.
 
 Rezultāts: viesa QR/link skats izmanto organizatora pielāgoto vizuālo noformējumu.
 
-### 5. Event deaktivizēšana vai aktivizēšana
+### 6. Event deaktivizēšana vai aktivizēšana
 
 1. Organizators nospiež `Deactivate`.
 2. Sistēma nomaina `events.status` uz `inactive`.
@@ -67,7 +81,7 @@ Rezultāts: viesa QR/link skats izmanto organizatora pielāgoto vizuālo noform�
 
 Rezultāts: organizators var ātri aizvērt vai atvērt foto upload piekļuvi.
 
-### 6. Event detail un QR
+### 7. Event detail un QR
 
 1. Organizators nospiež `Open`.
 2. Atveras event detail skats.
@@ -76,7 +90,7 @@ Rezultāts: organizators var ātri aizvērt vai atvērt foto upload piekļuvi.
 
 Rezultāts: organizators var nodot linku viesiem vai parādīt QR kodu.
 
-### 7. Galerijas pārvaldība
+### 8. Galerijas pārvaldība
 
 1. Organizators atver event detail skatu.
 2. Sistēma ielādē `media` ierakstus tikai šim organizatora eventam.
@@ -119,7 +133,8 @@ Rezultāts: viesim nav jāveido konts, bet organizators vēlāk redz, kurš uzņ
 1. Viesis nospiež `Take Photo`.
 2. Telefons atver kameru vai faila izvēli.
 3. Viesis uzņem foto.
-4. Sistēma pārbauda:
+4. Atgriežoties no kameras, saskarne uzreiz rāda kameras/upload statusu; ja pārlūks failu nenodod, viesis saņem norādi mēģināt vēlreiz.
+5. Sistēma pārbauda:
    - fails ir attēls;
    - fails nepārsniedz 6 MB;
    - events joprojām ir aktīvs un periodā.

@@ -12,7 +12,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/style.css">
-    <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 </head>
 <body>
@@ -31,7 +30,7 @@
                 </p>
             </div>
 
-            <div class="mode-tabs" role="tablist" aria-label="Authentication mode">
+            <div class="mode-tabs" id="auth-mode-tabs" role="tablist" aria-label="Authentication mode">
                 <button class="mode-tab is-active" id="login-tab" type="button">Login</button>
                 <button class="mode-tab" id="register-tab" type="button">Register</button>
             </div>
@@ -49,9 +48,35 @@
                 <input id="email" type="email" autocomplete="email" required>
 
                 <label for="password">Password</label>
-                <input id="password" type="password" autocomplete="current-password" minlength="6" required>
+                <div class="password-field">
+                    <input id="password" type="password" autocomplete="current-password" minlength="8" required>
+                    <button class="password-toggle" type="button" data-password-target="password" aria-label="Show password" aria-pressed="false">
+                        <span aria-hidden="true">&#128065;</span>
+                    </button>
+                </div>
+
+                <div class="register-password-fields hidden" id="register-password-fields">
+                    <label for="confirm-password">Confirm password</label>
+                    <div class="password-field">
+                        <input id="confirm-password" type="password" autocomplete="new-password" minlength="8">
+                        <button class="password-toggle" type="button" data-password-target="confirm-password" aria-label="Show confirmed password" aria-pressed="false">
+                            <span aria-hidden="true">&#128065;</span>
+                        </button>
+                    </div>
+                    <p class="password-requirements">Use at least 8 characters with uppercase, lowercase, a number, and a symbol.</p>
+                </div>
+
+                <button class="text-action forgot-password-button" id="forgot-password-button" type="button">Forgot password?</button>
 
                 <button class="primary-button" id="submit-button" type="submit">Login</button>
+            </form>
+
+            <form class="auth-form hidden" id="forgot-password-form">
+                <label for="recovery-email">Email</label>
+                <input id="recovery-email" type="email" autocomplete="email" required>
+                <p class="field-hint" id="recovery-hint">We will email you a secure link to choose a new password.</p>
+                <button class="primary-button" id="send-recovery-button" type="submit">Send reset link</button>
+                <button class="secondary-button" id="back-to-login-button" type="button">Back to login</button>
             </form>
 
             <p class="form-hint" id="form-hint">
@@ -67,6 +92,49 @@
             </div>
 
             <button class="primary-button" id="go-to-login-button" type="button">Go to login</button>
+        </section>
+
+        <section class="auth-confirmation-panel hidden" id="password-reset-panel">
+            <div class="brand">
+                <p class="eyebrow">Password recovery</p>
+                <h1>Choose a new password.</h1>
+                <p class="subtitle">Use a password that you do not use on another website.</p>
+            </div>
+
+            <p class="auth-route-status hidden" id="password-reset-route-status" role="alert"></p>
+
+            <form class="auth-form" id="password-reset-form">
+                <label for="new-password">New password</label>
+                <div class="password-field">
+                    <input id="new-password" type="password" autocomplete="new-password" minlength="8" required>
+                    <button class="password-toggle" type="button" data-password-target="new-password" aria-label="Show new password" aria-pressed="false">
+                        <span aria-hidden="true">&#128065;</span>
+                    </button>
+                </div>
+
+                <label for="confirm-new-password">Confirm new password</label>
+                <div class="password-field">
+                    <input id="confirm-new-password" type="password" autocomplete="new-password" minlength="8" required>
+                    <button class="password-toggle" type="button" data-password-target="confirm-new-password" aria-label="Show confirmed new password" aria-pressed="false">
+                        <span aria-hidden="true">&#128065;</span>
+                    </button>
+                </div>
+
+                <p class="password-requirements">Use at least 8 characters with uppercase, lowercase, a number, and a symbol.</p>
+                <button class="primary-button" id="update-password-button" type="submit">Update password</button>
+            </form>
+
+            <button class="secondary-button" id="reset-back-to-login-button" type="button">Back to login</button>
+        </section>
+
+        <section class="auth-confirmation-panel hidden" id="password-reset-success-panel">
+            <div class="brand">
+                <p class="eyebrow">Password updated</p>
+                <h1>Your new password is ready.</h1>
+                <p class="subtitle">You can now log in with your new password.</p>
+            </div>
+
+            <button class="primary-button" id="reset-go-to-login-button" type="button">Go to login</button>
         </section>
 
         <section class="dashboard-panel hidden" id="dashboard-panel">

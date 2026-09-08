@@ -30,15 +30,35 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
 
 const authPanel = document.getElementById("auth-panel");
 const authConfirmationPanel = document.getElementById("auth-confirmation-panel");
+const passwordResetPanel = document.getElementById("password-reset-panel");
+const passwordResetSuccessPanel = document.getElementById("password-reset-success-panel");
 const dashboardPanel = document.getElementById("dashboard-panel");
 const authForm = document.getElementById("auth-form");
+const authModeTabs = document.getElementById("auth-mode-tabs");
 const registerFields = document.getElementById("register-fields");
+const registerPasswordFields = document.getElementById("register-password-fields");
 const firstNameInput = document.getElementById("first-name");
 const lastNameInput = document.getElementById("last-name");
+const emailInput = document.getElementById("email");
+const passwordInput = document.getElementById("password");
+const confirmPasswordInput = document.getElementById("confirm-password");
 const loginTab = document.getElementById("login-tab");
 const registerTab = document.getElementById("register-tab");
 const submitButton = document.getElementById("submit-button");
 const formHint = document.getElementById("form-hint");
+const forgotPasswordButton = document.getElementById("forgot-password-button");
+const forgotPasswordForm = document.getElementById("forgot-password-form");
+const recoveryEmailInput = document.getElementById("recovery-email");
+const recoveryHint = document.getElementById("recovery-hint");
+const sendRecoveryButton = document.getElementById("send-recovery-button");
+const backToLoginButton = document.getElementById("back-to-login-button");
+const passwordResetForm = document.getElementById("password-reset-form");
+const passwordResetRouteStatus = document.getElementById("password-reset-route-status");
+const newPasswordInput = document.getElementById("new-password");
+const confirmNewPasswordInput = document.getElementById("confirm-new-password");
+const updatePasswordButton = document.getElementById("update-password-button");
+const resetGoToLoginButton = document.getElementById("reset-go-to-login-button");
+const resetBackToLoginButton = document.getElementById("reset-back-to-login-button");
 const goToLoginButton = document.getElementById("go-to-login-button");
 const logoutButton = document.getElementById("logout-button");
 const dashboardTitle = document.getElementById("dashboard-title");
@@ -146,17 +166,32 @@ let selectedGuestCoverPreviewUrl = "";
 let shouldRemoveGuestCover = false;
 let messageHideTimeout = null;
 let uploadStateHideTimeout = null;
+let photoPickerReturnTimeout = null;
+let photoPickerPending = false;
+let photoPickerOpenedAt = 0;
+let photoPickerRequestId = 0;
+let handledPhotoPickerRequestId = 0;
 let pendingConfirmResolve = null;
 const galleryCache = new Map();
 const activeEventSlug = getEventSlugFromPath();
 const isAuthConfirmationRoute = window.location.pathname === "/auth/confirmed";
+const isPasswordResetRoute = window.location.pathname === "/auth/reset-password";
 
 syncThemeToggle();
 themeToggle.addEventListener("click", handleThemeToggle);
 loginTab.addEventListener("click", () => setAuthMode("login"));
 registerTab.addEventListener("click", () => setAuthMode("register"));
 goToLoginButton.addEventListener("click", handleGoToLogin);
+resetGoToLoginButton.addEventListener("click", handleGoToLogin);
+resetBackToLoginButton.addEventListener("click", handleGoToLogin);
 authForm.addEventListener("submit", handleAuthSubmit);
+forgotPasswordButton.addEventListener("click", showForgotPasswordForm);
+forgotPasswordForm.addEventListener("submit", handleForgotPasswordSubmit);
+backToLoginButton.addEventListener("click", () => setAuthMode("login"));
+passwordResetForm.addEventListener("submit", handlePasswordResetSubmit);
+document.querySelectorAll("[data-password-target]").forEach(button => {
+    button.addEventListener("click", handlePasswordVisibilityToggle);
+});
 logoutButton.addEventListener("click", handleLogout);
 openCreateEventButton.addEventListener("click", openCreateEventModal);
 closeCreateEventButton.addEventListener("click", closeCreateEventModal);
@@ -205,8 +240,12 @@ confirmModal.addEventListener("close", () => closeConfirmModal(false));
 document.addEventListener("keydown", handlePreviewKeydown);
 guestForm.addEventListener("submit", handleGuestStart);
 changeGuestButton.addEventListener("click", handleChangeGuest);
-takePhotoButton.addEventListener("click", () => photoInput.click());
+takePhotoButton.addEventListener("click", handleTakePhotoClick);
+photoInput.addEventListener("input", handlePhotoSelected);
 photoInput.addEventListener("change", handlePhotoSelected);
+photoInput.addEventListener("cancel", handlePhotoPickerCancelled);
+window.addEventListener("focus", handlePhotoPickerReturn);
+document.addEventListener("visibilitychange", handlePhotoPickerVisibilityChange);
 
 function handleThemeToggle() {
     const currentTheme = document.documentElement.dataset.theme === "light" ? "light" : "dark";
@@ -230,7 +269,7 @@ function capitalizeFirstLetter(value) {
 }
 
 supabase.auth.onAuthStateChange((_event, session) => {
-    if (activeEventSlug || isAuthConfirmationRoute) {
+    if (activeEventSlug || isAuthConfirmationRoute || isPasswordResetRoute) {
         return;
     }
 
@@ -239,6 +278,8 @@ supabase.auth.onAuthStateChange((_event, session) => {
 
 if (isAuthConfirmationRoute) {
     await renderAuthConfirmationRoute();
+} else if (isPasswordResetRoute) {
+    await renderPasswordResetRoute();
 } else if (activeEventSlug) {
     await renderGuestRoute(activeEventSlug);
 } else {
@@ -251,17 +292,54 @@ function setAuthMode(mode) {
     authMode = mode;
     const isLogin = mode === "login";
 
+    authForm.classList.remove("hidden");
+    forgotPasswordForm.classList.add("hidden");
+    authModeTabs.classList.remove("hidden");
+    formHint.classList.remove("hidden");
     loginTab.classList.toggle("is-active", isLogin);
     registerTab.classList.toggle("is-active", !isLogin);
     registerFields.classList.toggle("hidden", isLogin);
+    registerPasswordFields.classList.toggle("hidden", isLogin);
     firstNameInput.required = !isLogin;
     lastNameInput.required = !isLogin;
+    confirmPasswordInput.required = !isLogin;
+    passwordInput.autocomplete = isLogin ? "current-password" : "new-password";
+    forgotPasswordButton.classList.toggle("hidden", !isLogin);
     submitButton.textContent = isLogin ? "Login" : "Register";
     formHint.textContent = isLogin
         ? "Log in as an organizer to manage your events and photo galleries."
-        : "Create an organizer account. If email confirmation is enabled, check your inbox.";
+        : "Create an organizer account, then confirm your email address.";
+
+    if (isLogin) {
+        confirmPasswordInput.value = "";
+    }
 
     hideMessage();
+}
+
+function showForgotPasswordForm() {
+    recoveryEmailInput.value = emailInput.value.trim();
+    recoveryHint.textContent = "We will email you a secure link to choose a new password.";
+    authForm.classList.add("hidden");
+    authModeTabs.classList.add("hidden");
+    forgotPasswordForm.classList.remove("hidden");
+    formHint.classList.add("hidden");
+    recoveryEmailInput.focus();
+    hideMessage();
+}
+
+function handlePasswordVisibilityToggle(event) {
+    const button = event.currentTarget;
+    const target = document.getElementById(button.dataset.passwordTarget || "");
+
+    if (!target) {
+        return;
+    }
+
+    const isVisible = target.type === "text";
+    target.type = isVisible ? "password" : "text";
+    button.setAttribute("aria-pressed", String(!isVisible));
+    button.setAttribute("aria-label", isVisible ? "Show password" : "Hide password");
 }
 
 async function handleAuthSubmit(event) {
@@ -269,8 +347,8 @@ async function handleAuthSubmit(event) {
 
     const firstName = firstNameInput.value.trim();
     const lastName = lastNameInput.value.trim();
-    const email = document.getElementById("email").value.trim();
-    const password = document.getElementById("password").value;
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
 
     if (authMode === "register" && (!firstName || !lastName)) {
         showMessage("Enter your first and last name.", "error");
@@ -280,6 +358,21 @@ async function handleAuthSubmit(event) {
     if (!email || !password) {
         showMessage("Enter your email and password.", "error");
         return;
+    }
+
+    if (authMode === "register") {
+        const passwordError = validateSecurePassword(password);
+
+        if (passwordError) {
+            showMessage(passwordError, "error");
+            return;
+        }
+
+        if (password !== confirmPasswordInput.value) {
+            showMessage("Passwords do not match.", "error");
+            confirmPasswordInput.focus();
+            return;
+        }
     }
 
     const defaultText = authMode === "login" ? "Login" : "Register";
@@ -320,9 +413,143 @@ async function handleAuthSubmit(event) {
     }
 }
 
+async function handleForgotPasswordSubmit(event) {
+    event.preventDefault();
+
+    const email = recoveryEmailInput.value.trim();
+
+    if (!email) {
+        showMessage("Enter your email address.", "error");
+        return;
+    }
+
+    setButtonLoading(sendRecoveryButton, true, "Sending...");
+
+    try {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: `${APP_URL}/auth/reset-password`
+        });
+
+        if (error) {
+            showMessage(toFriendlyAuthError(error.message), "error");
+            return;
+        }
+
+        recoveryHint.textContent = "If an account exists for this email, a password reset link has been sent. Check your inbox and spam folder.";
+        showMessage("Password reset email requested.", "success");
+    } catch (error) {
+        console.error("Password recovery request error", error);
+        showMessage("Could not request a password reset. Check your connection and try again.", "error");
+    } finally {
+        setButtonLoading(sendRecoveryButton, false, "Send reset link");
+    }
+}
+
+async function renderPasswordResetRoute() {
+    setPageMode("auth");
+    authPanel.classList.add("hidden");
+    authConfirmationPanel.classList.add("hidden");
+    passwordResetSuccessPanel.classList.add("hidden");
+    dashboardPanel.classList.add("hidden");
+    guestPanel.classList.add("hidden");
+    passwordResetPanel.classList.remove("hidden");
+    passwordResetRouteStatus.classList.add("hidden");
+    passwordResetForm.classList.remove("hidden");
+    hideMessage();
+
+    const recoveryCode = new URLSearchParams(window.location.search).get("code");
+
+    try {
+        if (recoveryCode) {
+            const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(recoveryCode);
+
+            if (exchangeError) {
+                throw exchangeError;
+            }
+
+            history.replaceState({}, "", "/auth/reset-password");
+        }
+
+        const { data, error } = await supabase.auth.getSession();
+
+        if (error || !data.session) {
+            throw error || new Error("Password recovery session is missing");
+        }
+    } catch (error) {
+        console.error("Password recovery session error", error);
+        passwordResetForm.classList.add("hidden");
+        passwordResetRouteStatus.textContent = "This password reset link is invalid or has expired. Request a new link from the login page.";
+        passwordResetRouteStatus.classList.remove("hidden");
+    }
+}
+
+async function handlePasswordResetSubmit(event) {
+    event.preventDefault();
+
+    const password = newPasswordInput.value;
+    const confirmedPassword = confirmNewPasswordInput.value;
+    const passwordError = validateSecurePassword(password);
+
+    if (passwordError) {
+        showMessage(passwordError, "error");
+        return;
+    }
+
+    if (password !== confirmedPassword) {
+        showMessage("Passwords do not match.", "error");
+        confirmNewPasswordInput.focus();
+        return;
+    }
+
+    setButtonLoading(updatePasswordButton, true, "Updating...");
+
+    try {
+        const { error } = await supabase.auth.updateUser({ password });
+
+        if (error) {
+            showMessage(toFriendlyAuthError(error.message), "error");
+            return;
+        }
+
+        await supabase.auth.signOut();
+        passwordResetPanel.classList.add("hidden");
+        passwordResetSuccessPanel.classList.remove("hidden");
+        hideMessage();
+    } catch (error) {
+        console.error("Password update error", error);
+        showMessage("Could not update the password. Request a new reset link and try again.", "error");
+    } finally {
+        setButtonLoading(updatePasswordButton, false, "Update password");
+    }
+}
+
+function validateSecurePassword(password) {
+    if (password.length < 8) {
+        return "Use at least 8 characters.";
+    }
+
+    if (!/[a-z]/.test(password) || !/[A-Z]/.test(password)) {
+        return "Add at least one uppercase and one lowercase letter.";
+    }
+
+    if (!/[0-9]/.test(password)) {
+        return "Add at least one number.";
+    }
+
+    const allowedSymbols = "!@#$%^&*()_+-=[]{};'\\:\"|<>?,./`~";
+
+    if (![...password].some(character => allowedSymbols.includes(character))) {
+        return "Add at least one symbol.";
+    }
+
+    return "";
+}
+
 async function renderAuthConfirmationRoute() {
     setPageMode("auth");
     authPanel.classList.add("hidden");
+    passwordResetPanel.classList.add("hidden");
+    passwordResetSuccessPanel.classList.add("hidden");
     dashboardPanel.classList.add("hidden");
     guestPanel.classList.add("hidden");
     authConfirmationPanel.classList.remove("hidden");
@@ -354,6 +581,8 @@ async function handleGoToLogin() {
     history.replaceState({}, "", "/");
     setPageMode("auth");
     authConfirmationPanel.classList.add("hidden");
+    passwordResetPanel.classList.add("hidden");
+    passwordResetSuccessPanel.classList.add("hidden");
     dashboardPanel.classList.add("hidden");
     guestPanel.classList.add("hidden");
     authPanel.classList.remove("hidden");
@@ -388,6 +617,8 @@ function renderSession(session) {
 
     authPanel.classList.toggle("hidden", isLoggedIn);
     authConfirmationPanel.classList.add("hidden");
+    passwordResetPanel.classList.add("hidden");
+    passwordResetSuccessPanel.classList.add("hidden");
     dashboardPanel.classList.toggle("hidden", !isLoggedIn);
     dashboardTitle.textContent = "Welcome!";
     userEmail.textContent = isLoggedIn ? session.user.email : "";
@@ -444,27 +675,23 @@ async function renderGuestRoute(slug) {
     setPageMode("guest");
     authPanel.classList.add("hidden");
     authConfirmationPanel.classList.add("hidden");
+    passwordResetPanel.classList.add("hidden");
+    passwordResetSuccessPanel.classList.add("hidden");
     dashboardPanel.classList.add("hidden");
     guestPanel.classList.remove("hidden");
-    guestPanel.classList.remove("is-photo-mode");
     hideMessage();
-
-    guestEventTitle.textContent = "Loading event...";
-    guestEventDate.textContent = "";
+    showGuestStatus("Loading event...", "");
 
     const { data, error } = await queryEventBySlug(slug);
 
     if (error) {
-        guestEventTitle.textContent = "Could not load event";
+        showGuestStatus("Could not load event", "Please check your connection and try again.");
         showMessage(toFriendlyDatabaseError(error.message, "guest-load"), "error");
         return;
     }
 
     if (!data) {
-        guestEventTitle.textContent = "Event not found";
-        guestEventDate.textContent = "Check the QR code or link and try again.";
-        guestForm.classList.add("hidden");
-        photoPanel.classList.add("hidden");
+        showGuestStatus("Event not found", "Check the QR code or link and try again.");
         return;
     }
 
@@ -546,14 +773,14 @@ function addGuestDesignDefaults(eventData) {
 
 async function renderLoadedGuestEvent(data) {
     if (!isEventOpenForGuests(data)) {
-        guestEventTitle.textContent = "This event is closed";
-        guestEventDate.textContent = "Photo upload is not available for this event right now.";
-        guestForm.classList.add("hidden");
-        photoPanel.classList.add("hidden");
+        showGuestStatus("This event is closed", "Photo upload is not available for this event right now.");
         return;
     }
 
     selectedEvent = data;
+    guestPanel.classList.remove("is-status-mode", "is-photo-mode");
+    guestForm.classList.remove("hidden");
+    photoPanel.classList.add("hidden");
     await applyGuestLandingDesign(data);
     guestEventDate.textContent = formatEventDateRange(data);
 
@@ -563,6 +790,21 @@ async function renderLoadedGuestEvent(data) {
         currentGuest = savedGuest;
         showPhotoPanel(savedGuest.name);
     }
+}
+
+function showGuestStatus(title, detail) {
+    selectedEvent = null;
+    currentGuest = null;
+    guestPanel.classList.remove("is-photo-mode");
+    guestPanel.classList.add("is-status-mode");
+    guestEventSubtitle.textContent = "";
+    guestEventSubtitle.classList.add("hidden");
+    guestEventTitle.textContent = title;
+    guestEventDate.textContent = detail;
+    guestForm.classList.add("hidden");
+    photoPanel.classList.add("hidden");
+    setCoverImage(guestCover, "");
+    hideUploadState();
 }
 
 async function applyGuestLandingDesign(eventData) {
@@ -873,8 +1115,64 @@ async function syncExpiredEvents() {
     }
 }
 
+function handleTakePhotoClick() {
+    clearTimeout(photoPickerReturnTimeout);
+    photoInput.value = "";
+    photoPickerPending = true;
+    photoPickerOpenedAt = Date.now();
+    photoPickerRequestId += 1;
+    photoInput.dataset.requestId = String(photoPickerRequestId);
+    hideMessage();
+    showUploadState("Opening camera...", "loading");
+    photoInput.click();
+}
+
+function handlePhotoPickerVisibilityChange() {
+    if (document.visibilityState === "visible") {
+        handlePhotoPickerReturn();
+    }
+}
+
+function handlePhotoPickerReturn() {
+    if (!photoPickerPending || Date.now() - photoPickerOpenedAt < 500) {
+        return;
+    }
+
+    clearTimeout(photoPickerReturnTimeout);
+    photoPickerReturnTimeout = setTimeout(() => {
+        if (!photoPickerPending) {
+            return;
+        }
+
+        photoPickerPending = false;
+        showUploadState("No photo was received. Tap the button and try again.", "error", true);
+    }, 1500);
+}
+
+function handlePhotoPickerCancelled() {
+    if (!photoPickerPending) {
+        return;
+    }
+
+    clearTimeout(photoPickerReturnTimeout);
+    photoPickerPending = false;
+    showUploadState("No photo selected.", "error", true);
+}
+
 async function handlePhotoSelected() {
     const file = photoInput.files?.[0];
+    const requestId = Number(photoInput.dataset.requestId || 0);
+
+    if (file && requestId && handledPhotoPickerRequestId === requestId) {
+        return;
+    }
+
+    if (file && requestId) {
+        handledPhotoPickerRequestId = requestId;
+    }
+
+    clearTimeout(photoPickerReturnTimeout);
+    photoPickerPending = false;
     photoInput.value = "";
 
     if (!file) {
@@ -2595,7 +2893,7 @@ function toFriendlyAuthError(message) {
     }
 
     if (normalized.includes("password")) {
-        return "Password does not meet the requirements. Use at least 6 characters.";
+        return "Password does not meet the requirements. Use at least 8 characters with uppercase, lowercase, a number, and a symbol.";
     }
 
     if (normalized.includes("email")) {

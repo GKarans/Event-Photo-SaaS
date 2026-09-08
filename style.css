@@ -336,6 +336,65 @@ h1 {
     gap: 10px;
 }
 
+.register-password-fields {
+    display: grid;
+    gap: 10px;
+}
+
+.password-field {
+    position: relative;
+}
+
+.password-field input {
+    padding-right: 52px;
+}
+
+.password-toggle {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 40px;
+    min-height: 40px;
+    border: 0;
+    border-radius: 10px;
+    padding: 0;
+    background: transparent;
+    color: var(--gold);
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    font-size: 1.05rem;
+}
+
+.password-toggle:hover,
+.password-toggle:focus-visible {
+    background: var(--surface-muted);
+    outline: 2px solid var(--gold-soft);
+}
+
+.password-requirements {
+    margin: -2px 0 2px;
+    color: var(--muted);
+    font-size: 0.82rem;
+    line-height: 1.45;
+}
+
+.auth-route-status {
+    margin: 0 0 16px;
+    border: 1px solid rgba(180, 35, 24, 0.28);
+    border-radius: 12px;
+    padding: 12px 14px;
+    background: var(--danger-soft);
+    color: var(--danger);
+    font-size: 0.9rem;
+    line-height: 1.45;
+}
+
+.forgot-password-button {
+    justify-self: end;
+    margin-top: -4px;
+}
+
 .section-heading {
     display: grid;
     gap: 4px;
@@ -983,6 +1042,49 @@ code {
     gap: 22px;
 }
 
+.is-guest-view .guest-panel.is-status-mode {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    padding: clamp(28px, 7vw, 58px);
+    text-align: center;
+}
+
+.guest-panel.is-status-mode .guest-cover {
+    opacity: 0;
+}
+
+.guest-panel.is-status-mode .guest-product-mark {
+    position: relative;
+    inset: auto;
+    flex: 0 0 auto;
+    width: 48px;
+    height: 48px;
+}
+
+.guest-panel.is-status-mode .brand {
+    width: min(100%, 500px);
+    margin: 0;
+    text-align: center;
+}
+
+.guest-panel.is-status-mode .brand h1 {
+    color: var(--gold);
+    font-size: clamp(2.25rem, 8vw, 4.4rem);
+    line-height: 1.02;
+    overflow-wrap: anywhere;
+}
+
+.guest-panel.is-status-mode .brand .subtitle {
+    width: min(100%, 440px);
+    margin: 18px auto 0;
+    color: var(--muted);
+    font-size: clamp(1rem, 3vw, 1.2rem);
+    line-height: 1.5;
+}
+
 .guest-panel .brand::before,
 .guest-panel .eyebrow {
     display: none;
@@ -1545,6 +1647,16 @@ code {
         padding: clamp(16px, 4svh, 22px) 18px;
         border-color: var(--line-strong);
         box-shadow: 0 20px 54px rgba(15, 23, 42, 0.12);
+    }
+
+    .is-guest-view .guest-panel.is-status-mode {
+        justify-content: center;
+        gap: 16px;
+        padding: clamp(24px, 8svh, 48px) 24px;
+    }
+
+    .guest-panel.is-status-mode .brand h1 {
+        font-size: clamp(2.15rem, 11vw, 3.15rem);
     }
 
     .is-guest-view .brand {

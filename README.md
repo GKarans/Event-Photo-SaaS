@@ -6,7 +6,8 @@ Production URL: https://event-photo-saas.netlify.app/
 
 ## Galvenās funkcijas
 
-- Organizatora register, login, logout un sesijas saglabāšana.
+- Organizatora register, login, logout, paroles atjaunošana un sesijas saglabāšana.
+- Paroles atkārtošana, show/hide kontroles un 8+ simbolu drošības prasības.
 - Organizatora profils ar vārdu, uzvārdu un e-pastu.
 - Event izveide ar sākuma un beigu datumu.
 - Maksimālais event periods: 3 dienas.
@@ -15,6 +16,7 @@ Production URL: https://event-photo-saas.netlify.app/
 - Guest flow bez konta: QR/link -> vārds -> Take Photo -> upload.
 - Guest UX pielāgošana: cover photo, title, subtitle, camera button text un cover pozīcija.
 - Mobile guest skats centrēts iPhone/Android viewportā ar safe-area atstarpi pārlūka apakšējai joslai.
+- Slēgta, neatrasta vai neielādējama eventa stāvoklis izmanto vienotu centrētu skatu Android, iOS un desktop izmēros.
 - Photo-only upload ar 6 MB limitu.
 - Client-side foto optimizācija un thumbnail ģenerēšana pirms upload.
 - Organizatora galerija ar thumbnails, preview, filtrēšanu pēc viesa un kārtošanu.
@@ -102,8 +104,12 @@ event-photos
 
 ```text
 Site URL: https://event-photo-saas.netlify.app
-Redirect URL: https://event-photo-saas.netlify.app/auth/confirmed
+Redirect URLs:
+https://event-photo-saas.netlify.app/auth/confirmed
+https://event-photo-saas.netlify.app/auth/reset-password
 ```
+
+Supabase Auth pusē jāiestata arī vismaz 8 simbolu paroles garums un jāieslēdz `Password changed` drošības paziņojums. Frontend pieprasa lielo burtu, mazo burtu, ciparu un simbolu, bet servera iestatījumi ir galīgā drošības kontrole.
 
 Projektā drīkst izmantot tikai publishable/anon key. Nekad neliec GitHub repozitorijā service role key, passwords vai citus secrets.
 
@@ -122,17 +128,19 @@ Deploy branch: main
 ```text
 /event/{slug}
 /auth/confirmed
+/auth/reset-password
 ```
 
 ## Organizer flow
 
 1. Organizators reģistrējas ar vārdu, uzvārdu, e-pastu un paroli.
 2. Organizators apstiprina e-pastu.
-3. Organizators pieslēdzas dashboardā.
-4. Organizators izveido eventu.
-5. Organizators atver event detail skatu.
-6. Organizators nokopē guest linku vai lejupielādē QR kodu.
-7. Organizators pēc eventa beigām pārskata galeriju un lejupielādē ZIP.
+3. Ja parole aizmirsta, organizators izmanto `Forgot password?`, saņem reset saiti un izveido jaunu paroli produkta lapā.
+4. Organizators pieslēdzas dashboardā.
+5. Organizators izveido eventu.
+6. Organizators atver event detail skatu.
+7. Organizators nokopē guest linku vai lejupielādē QR kodu.
+8. Organizators pēc eventa beigām pārskata galeriju un lejupielādē ZIP.
 
 ## Guest flow
 
@@ -151,12 +159,16 @@ Pirms deploy vai pēc būtiskām izmaiņām pārbaudi:
 
 - register/login/logout;
 - e-pasta confirmation redirect;
+- register paroles atkārtošana un drošības prasības;
+- paroles show/hide kontroles;
+- forgot password e-pasts, reset route un jaunās paroles saglabāšana;
 - event create;
 - guest design save;
 - QR link;
 - guest name input;
 - photo upload Android Chrome;
 - photo upload iPhone Safari;
+- vismaz 10 secīgi camera upload vienam viesim bez klusa stāvokļa;
 - 6 MB file size validation;
 - gallery thumbnail loading;
 - preview navigation;

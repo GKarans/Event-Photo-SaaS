@@ -187,8 +187,11 @@ Galerijas grid izmanto `thumbnail_path`, lai samazinātu Supabase egress. Oriģi
 
 Organizators:
 
-- reģistrējas ar vārdu, uzvārdu, e-pastu un paroli;
+- reģistrējas ar vārdu, uzvārdu, e-pastu, paroli un paroles atkārtojumu;
+- frontend pārbauda 8+ simbolus, lielo un mazo burtu, ciparu un simbolu;
 - apstiprina e-pastu;
+- aizmirstas paroles gadījumā saņem Supabase reset saiti uz `/auth/reset-password`;
+- pēc jaunās paroles saglabāšanas tiek izrakstīts un atgriežas login plūsmā;
 - pieslēdzas ar Supabase Auth;
 - redz tikai savus eventus;
 - redz tikai saviem eventiem piesaistītos viesus un media ierakstus.
@@ -261,6 +264,7 @@ MVP apstrādā galvenos kļūdu scenārijus:
 - fails nav attēls;
 - fails ir lielāks par 6 MB;
 - upload neizdodas;
+- mobilais pārlūks pēc kameras aizvēršanas nenodod izvēlēto failu;
 - nav tiesību piekļūt galerijai;
 - nav tiesību dzēst Storage failu;
 - ZIP nav pieejams.
@@ -269,7 +273,7 @@ Lietotājam tiek rādīti saprotami teksti, nevis tehniski SQL vai Storage kļū
 
 ## Pēc reālā testa veiktie secinājumi
 
-Reālajā testā tika izmantots viens organizators un vairāki viesi ar mobilajām ierīcēm. Upload plūsma strādāja, bet tika pamanīts, ka lielāks foto skaits var palielināt galerijas ielādes laiku un Supabase egress patēriņu.
+Reālajos testos tika izmantots viens organizators un vairāki viesi ar mobilajām ierīcēm. Pirmajā lielajā testā tika saglabāti 60 foto, bet 3 dienu starptautiskajā testā Tartu 17 dalībnieki saglabāja 57 foto. Upload pamatplūsma strādāja, bet tika pamanīts, ka lielāks foto skaits var palielināt galerijas ielādes laiku un Supabase egress patēriņu. Tartu testā aptuveni četras kameras atgriešanās reizes nenonāca līdz upload sākumam, tāpēc file input apstrāde papildināta ar `input`/`change` kontroli un redzamu camera-return statusu.
 
 Pēc testa arhitektūrā tika nostiprināti šādi risinājumi:
 
@@ -280,6 +284,7 @@ Pēc testa arhitektūrā tika nostiprināti šādi risinājumi:
 - ZIP lejupielāde tikai pēc eventa beigām;
 - viena ZIP lejupielāde vienam eventam;
 - individuāla foto download ierobežošana.
+- katras kameras atvēršanas request izsekošana un lietotāja informēšana, ja fails netiek saņemts.
 
 ## MVP robežas
 

@@ -59,6 +59,10 @@ Pēc reģistrācijas `handle_new_user()` datubāzes funkcija izveido ierakstu `p
 - `last_name`;
 - `created_at`.
 
+Reģistrācijas un paroles atjaunošanas UI pieprasa vismaz 8 simbolus, lielo un mazo burtu, ciparu un simbolu, kā arī atkārtotu paroles ievadi. Šī klienta validācija novērš nejaušas kļūdas, bet servera pusē Supabase Auth jāiestata tāds pats minimālais garums un required character komplekts. Paroles atjaunošanas pieprasījums neatklāj, vai e-pasts eksistē sistēmā, un reset saite ir jāatļauj Supabase redirect allow list.
+
+Pēc paroles maiņas frontend izraksta lietotāju. Supabase projektā jāieslēdz `Password changed` drošības paziņojums, lai lietotājs saņemtu e-pastu par sensitīvo darbību.
+
 ## RLS pamata princips
 
 RLS ir ieslēgts visām galvenajām tabulām:
@@ -256,6 +260,8 @@ Frontend validācija uzlabo lietotāja pieredzi, bet nav vienīgā drošības ai
 
 Frontend pārbauda:
 
+- reģistrācijas un jaunās paroles drošības prasības;
+- abu paroles lauku sakritību;
 - event nosaukums ir aizpildīts;
 - event periods nav garāks par 3 dienām;
 - event periods nav pagātnē, veidojot jaunu eventu;

@@ -33,7 +33,10 @@ MVP iekļauj:
 
 - organizatora reģistrāciju;
 - vārda, uzvārda, e-pasta un paroles ievadi;
+- paroles atkārtošanu un show/hide kontroles;
+- paroles drošības validāciju: vismaz 8 simboli, lielais un mazais burts, cipars un simbols;
 - e-pasta apstiprināšanas redirect uz produkta lapu;
+- forgot password e-pastu un jaunās paroles ievadi produkta reset lapā;
 - login/logout;
 - sesijas saglabāšanu pārlūkā;
 - dashboard sveicienu ar organizatora vārdu.
@@ -75,6 +78,7 @@ MVP iekļauj:
 - organizatora pielāgotu camera button text;
 - telefona kameras/faila izvēles atvēršanu;
 - upload statusu;
+- redzamu statusu arī tad, ja mobilais pārlūks pēc kameras aizvēršanas nenodod izvēlēto failu;
 - saprotamus kļūdu paziņojumus.
 
 ### Guest UX pielāgošana
@@ -155,7 +159,7 @@ MVP iekļauj:
 - vairāki organizatori vienam eventam;
 - team/admin role sistēma;
 - custom domēni klientiem;
-- e-pasta paziņojumi pēc eventa;
+- produkta e-pasta paziņojumi pēc eventa;
 - analytics dashboard;
 - server-side image processing;
 - server-side ZIP generation;
@@ -197,6 +201,7 @@ Pēc prakses produktu var attīstīt vairākos virzienos.
 - Custom rate limiting viesu uploadam.
 - Abuse detection pie pārāk daudz upload mēģinājumiem.
 - Production SMTP konfigurācija Auth e-pastiem.
+- Eventu arhīva skats ar atsevišķu datu saglabāšanas un automātiskas dzēšanas politiku.
 - Admin panelis sistēmas īpašniekam.
 
 ### UX uzlabojumi
@@ -230,7 +235,7 @@ MVP ir gatavs demonstrācijai, ja:
 
 ## Secinājums pēc praktiskā testa
 
-Pēc praktiskā testa ar 12 viesiem un 60 foto MVP pamatplūsma strādāja. Viesi varēja atvērt QR/linku, ievadīt vārdu, uzņemt foto un augšupielādēt tos Supabase Storage. Organizators varēja atvērt galeriju un pārskatīt augšupielādētos foto.
+Pēc praktiskā testa ar 12 viesiem un 60 foto un starptautiskā 3 dienu testa Tartu ar 17 dalībniekiem un 57 foto MVP pamatplūsma strādāja. Viesi varēja atvērt QR/linku, ievadīt vārdu, uzņemt foto un augšupielādēt tos Supabase Storage. Organizators varēja atvērt galeriju un pārskatīt augšupielādētos foto.
 
 Pēc testa tika pieņemti vairāki arhitektūras lēmumi:
 
@@ -241,5 +246,6 @@ Pēc testa tika pieņemti vairāki arhitektūras lēmumi:
 - ZIP download ierobežots līdz vienai reizei;
 - ZIP pieejams tikai pēc eventa beigām;
 - individuāla foto download poga paslēpta.
+- pēc Tartu testa pastiprināta atkārtotas mobilās kameras file-input apstrāde un pievienots redzams stāvoklis, ja foto netiek saņemts.
 
 Šobrīd MVP nevajag papildināt ar lielām jaunām funkcijām. Līdz prakses beigām prioritāte ir testēšana, dokumentācija, drošības skaidrojums, deploy pārbaude un prakses atskaite.

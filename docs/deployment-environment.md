@@ -79,6 +79,7 @@ status = 200
 
 - `/event/{slug}` guest linkiem;
 - `/auth/confirmed` e-pasta apstiprināšanas rezultātam.
+- `/auth/reset-password` drošai paroles atjaunošanai.
 
 Bez šīm pāradresācijām Netlify mēģinātu atrast fizisku mapi vai failu un refresh/QR atvēršana varētu beigties ar 404.
 
@@ -108,9 +109,15 @@ Supabase Authentication konfigurācijā jābūt:
 - Signups enabled;
 - Confirm email enabled;
 - Site URL: `https://event-photo-saas.netlify.app`;
-- Redirect URL: `https://event-photo-saas.netlify.app/auth/confirmed`.
+- Redirect URL: `https://event-photo-saas.netlify.app/auth/confirmed`;
+- Redirect URL: `https://event-photo-saas.netlify.app/auth/reset-password`;
+- minimālais paroles garums: vismaz 8 simboli;
+- required characters: cipari, mazie un lielie burti, simboli;
+- ieslēgts `Password changed` drošības paziņojums, lai lietotājs saņemtu e-pastu pēc paroles maiņas.
 
 Frontend reģistrācijas kods izmanto `emailRedirectTo`, lai e-pasta apstiprināšana atgrieztu lietotāju production lapā, nevis `localhost`.
+
+Paroles atjaunošanas kods izmanto `resetPasswordForEmail` ar production `redirectTo`. Reset lapā jaunā parole jāievada divas reizes, un pēc veiksmīga `updateUser` lietotājs tiek izrakstīts un novirzīts uz login plūsmu. Frontend pārbauda vismaz 8 simbolus, lielo un mazo burtu, ciparu un simbolu; Supabase Auth iestatījumi paliek servera puses kontrole.
 
 MVP Auth princips:
 
@@ -216,6 +223,7 @@ Svarīgākie riski:
 - Netlify deploy nav jaunākais, ja commit ir tikai lokāli vai GitHub push nav veikts;
 - Supabase SQL shēma nav palaista pēc policy izmaiņām;
 - e-pasta confirmation link atver nepareizu URL, ja Auth settings nav pareizi;
+- paroles reset link atver nepareizu vai nederīgu lapu, ja reset redirect nav Auth allow list;
 - viesu upload var tikt bloķēts, ja events nav aktīvs vai ir ārpus perioda;
 - galerijas ielāde kļūst lēnāka pie lielāka foto skaita;
 - Supabase egress var pieaugt, ja bieži tiek ielādēti oriģinālie foto vai atkārtoti veidots ZIP.
@@ -225,6 +233,7 @@ Risinājumi:
 - salīdzināt Netlify production commit ar GitHub jaunāko commit;
 - pēc SQL izmaiņām vienmēr palaist pilnu aktuālo shēmu vai konkrētu migration bloku;
 - uzturēt pareizu Site URL un Redirect URL Supabase Auth konfigurācijā;
+- ieslēgt Supabase paroles maiņas drošības paziņojumu un production vajadzībām konfigurēt SMTP;
 - pirms testa pārbaudīt event statusu un datuma periodu;
 - optimizēt galeriju ar thumbnails, signed URL batch pieprasījumiem, cache un lazy loading;
 - ierobežot ZIP lejupielādi līdz vienai reizei pēc eventa beigām;
