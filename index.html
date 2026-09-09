@@ -205,8 +205,8 @@
                     </div>
 
                     <div class="event-tools" id="event-tools">
-                        <div class="event-share-panel">
-                            <div class="detail-grid">
+                        <div class="event-share-panel" id="event-share-panel">
+                            <div class="detail-grid" id="event-link-panel">
                                 <div>
                                     <span>Guest URL</span>
                                     <code id="event-detail-url"></code>
@@ -220,7 +220,7 @@
                                 <button class="primary-button" id="download-qr-button" type="button">Download QR</button>
                             </div>
                         </div>
-                        <div class="qr-panel">
+                        <div class="qr-panel" id="event-qr-panel">
                             <img id="qr-image" alt="Event QR code">
                         </div>
                     </div>
@@ -314,7 +314,7 @@
             </div>
 
             <label for="event-name">Event name</label>
-            <input id="event-name" type="text" autocomplete="off" maxlength="80" required>
+            <input id="event-name" type="text" autocomplete="off" maxlength="32" required>
 
             <div class="date-grid">
                 <div>
@@ -369,7 +369,7 @@
                     </div>
 
                     <label for="guest-design-title-input">Title</label>
-                    <input id="guest-design-title-input" type="text" maxlength="80">
+                    <input id="guest-design-title-input" type="text" maxlength="32">
 
                     <label for="guest-design-subtitle-input">Subtitle</label>
                     <textarea id="guest-design-subtitle-input" maxlength="160" rows="3"></textarea>

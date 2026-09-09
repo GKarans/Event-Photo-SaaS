@@ -1052,6 +1052,16 @@ code {
     color: #fff;
     font-size: 1.45rem;
     line-height: 1.05;
+    overflow-wrap: anywhere;
+    text-wrap: balance;
+}
+
+.guest-preview-phone.has-long-title .guest-preview-content h3 {
+    font-size: 1.2rem;
+}
+
+.guest-preview-phone.has-very-long-title .guest-preview-content h3 {
+    font-size: 1rem;
 }
 
 .guest-preview-content p {
@@ -1126,6 +1136,15 @@ code {
     font-size: clamp(2.25rem, 8vw, 4.4rem);
     line-height: 1.02;
     overflow-wrap: anywhere;
+    text-wrap: balance;
+}
+
+.guest-panel.is-status-mode.has-long-title .brand h1 {
+    font-size: clamp(1.95rem, 6vw, 3.2rem);
+}
+
+.guest-panel.is-status-mode.has-very-long-title .brand h1 {
+    font-size: clamp(1.7rem, 5vw, 2.65rem);
 }
 
 .guest-panel.is-status-mode .brand .subtitle {
@@ -1195,6 +1214,10 @@ code {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
+}
+
+.event-tools.is-status-only .action-row {
+    grid-template-columns: minmax(0, 220px);
 }
 
 .open-event-button {
@@ -1611,6 +1634,10 @@ code {
         grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 
+    .is-dashboard-view .event-tools.is-status-only .action-row {
+        grid-template-columns: minmax(0, 240px);
+    }
+
     .is-dashboard-view .guest-design-layout {
         grid-template-columns: minmax(0, 1fr) 320px;
         align-items: start;
@@ -1712,6 +1739,14 @@ code {
 
     .guest-panel.is-status-mode .brand h1 {
         font-size: clamp(2.15rem, 11vw, 3.15rem);
+    }
+
+    .guest-panel.is-status-mode.has-long-title .brand h1 {
+        font-size: clamp(1.65rem, 8vw, 2.25rem);
+    }
+
+    .guest-panel.is-status-mode.has-very-long-title .brand h1 {
+        font-size: clamp(1.45rem, 7vw, 1.9rem);
     }
 
     .is-guest-view .brand {

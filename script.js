@@ -13,6 +13,7 @@ const THUMBNAIL_IMAGE_QUALITY = 0.72;
 const SIGNED_URL_EXPIRES_IN_SECONDS = 60 * 10;
 const GALLERY_CACHE_TTL_MS = 8 * 60 * 1000;
 const GALLERY_RENDER_BATCH_SIZE = 24;
+const EVENT_TITLE_MAX_LENGTH = 32;
 const EVENT_SELECT_FIELDS = "id,name,date,start_date,end_date,slug,status,storage_folder,guest_title,guest_subtitle,guest_button_text,cover_image_path,cover_position_x,cover_position_y,cover_zoom,zip_downloaded_at,created_at";
 const PUBLIC_EVENT_SELECT_FIELDS = "id,name,date,start_date,end_date,slug,status,storage_folder,guest_title,guest_subtitle,guest_button_text,cover_image_path,cover_position_x,cover_position_y,cover_zoom";
 const EVENT_SELECT_FIELDS_WITHOUT_ZOOM = "id,name,date,start_date,end_date,slug,status,storage_folder,guest_title,guest_subtitle,guest_button_text,cover_image_path,cover_position_x,cover_position_y,created_at";
@@ -85,6 +86,8 @@ const eventsCount = document.getElementById("events-count");
 const eventsListHeader = document.getElementById("events-list-header");
 const eventDetail = document.getElementById("event-detail");
 const eventTools = document.getElementById("event-tools");
+const eventLinkPanel = document.getElementById("event-link-panel");
+const eventQrPanel = document.getElementById("event-qr-panel");
 const backToEventsButton = document.getElementById("back-to-events-button");
 const eventDetailTitle = document.getElementById("event-detail-title");
 const eventDetailDate = document.getElementById("event-detail-date");
@@ -813,6 +816,7 @@ function showGuestStatus(title, detail) {
     currentGuest = null;
     guestPanel.classList.remove("is-photo-mode");
     guestPanel.classList.add("is-status-mode");
+    setGuestTitleDensity(title);
     guestEventSubtitle.textContent = "";
     guestEventSubtitle.classList.add("hidden");
     guestEventTitle.textContent = title;
@@ -829,6 +833,7 @@ async function applyGuestLandingDesign(eventData) {
     const buttonText = getGuestButtonText(eventData);
 
     guestEventTitle.textContent = title;
+    setGuestTitleDensity(title);
     guestEventSubtitle.textContent = subtitle;
     guestEventSubtitle.classList.toggle("hidden", !subtitle);
     guestStartButton.textContent = "Let's go";
@@ -848,6 +853,12 @@ async function applyGuestLandingDesign(eventData) {
 
 function getGuestDisplayTitle(eventData) {
     return eventData?.name?.trim() || "Event";
+}
+
+function setGuestTitleDensity(title) {
+    const length = title.trim().length;
+    guestPanel.classList.toggle("has-long-title", length > 20);
+    guestPanel.classList.toggle("has-very-long-title", length > 28);
 }
 
 function getGuestButtonText(eventData) {
@@ -1207,7 +1218,7 @@ async function handlePhotoSelected() {
         return;
     }
 
-    const validationError = validatePhoto(file);
+    const validationError = validatePhotoType(file);
 
     if (validationError) {
         showMessage(validationError, "error");
@@ -1221,6 +1232,13 @@ async function handlePhotoSelected() {
         showUploadState("Preparing photo for upload...", "loading");
 
         const optimizedPhoto = await optimizePhotoFile(file);
+        const sizeValidationError = validatePhotoSize(optimizedPhoto.original);
+
+        if (sizeValidationError) {
+            showUploadState(sizeValidationError, "error");
+            return;
+        }
+
         const storagePath = createStoragePath(optimizedPhoto.original);
         const thumbnailPath = optimizedPhoto.thumbnail ? createThumbnailStoragePath(storagePath) : null;
         let uploadedThumbnailPath = null;
@@ -1306,6 +1324,11 @@ async function handleCreateEvent(event) {
 
     if (!name) {
         showMessage("Enter an event name.", "error");
+        return;
+    }
+
+    if (name.length > EVENT_TITLE_MAX_LENGTH) {
+        showMessage(`Event name can be a maximum of ${EVENT_TITLE_MAX_LENGTH} characters.`, "error");
         return;
     }
 
@@ -1834,7 +1857,10 @@ async function showEventDetail(eventData) {
     allGalleryPhotos = [];
     currentGalleryPhotos = [];
     const eventUrl = getEventUrl(eventData);
-    const isShareAvailable = getDisplayEventStatus(eventData) === "active";
+    const displayStatus = getDisplayEventStatus(eventData);
+    const isShareAvailable = displayStatus === "active";
+    const isStatusManageable = eventData.status !== "deleted" && isEventPeriodCurrent(eventData);
+    const shouldShowEventTools = isShareAvailable || isStatusManageable;
 
     eventsListHeader.classList.add("hidden");
     eventsControls.classList.add("hidden");
@@ -1845,7 +1871,14 @@ async function showEventDetail(eventData) {
     eventDetailDate.textContent = formatEventDateRange(eventData);
     eventDetailStatus.textContent = getEventDetailStatusLabel(eventData);
     setEventStatusButtonState(eventData);
-    eventTools.classList.toggle("hidden", !isShareAvailable);
+    eventTools.classList.toggle("hidden", !shouldShowEventTools);
+    eventTools.classList.toggle("is-status-only", isStatusManageable && !isShareAvailable);
+    eventLinkPanel.classList.toggle("hidden", !isShareAvailable);
+    eventQrPanel.classList.toggle("hidden", !isShareAvailable);
+    editEventButton.classList.toggle("hidden", !isShareAvailable);
+    copyEventLinkButton.classList.toggle("hidden", !isShareAvailable);
+    downloadQrButton.classList.toggle("hidden", !isShareAvailable);
+    toggleEventStatusButton.classList.toggle("hidden", !isStatusManageable);
     eventDetailUrl.textContent = isShareAvailable ? eventUrl : "";
     updateDownloadGalleryState();
 
@@ -1894,7 +1927,7 @@ function handleGuestCoverSelected() {
         return;
     }
 
-    const validationError = validatePhoto(file);
+    const validationError = validatePhotoType(file);
 
     if (validationError) {
         guestCoverInput.value = "";
@@ -1943,6 +1976,11 @@ async function handleSaveGuestDesign(event) {
         return;
     }
 
+    if (title.length > EVENT_TITLE_MAX_LENGTH) {
+        showMessage(`Guest screen title can be a maximum of ${EVENT_TITLE_MAX_LENGTH} characters.`, "error");
+        return;
+    }
+
     setButtonLoading(saveGuestDesignButton, true, "Saving...");
 
     try {
@@ -1959,6 +1997,13 @@ async function handleSaveGuestDesign(event) {
         if (selectedGuestCoverFile) {
             const optimizedCover = await optimizePhotoFile(selectedGuestCoverFile);
             const coverFile = optimizedCover.original;
+            const sizeValidationError = validatePhotoSize(coverFile);
+
+            if (sizeValidationError) {
+                showMessage(sizeValidationError, "error");
+                return;
+            }
+
             const coverPath = createCoverStoragePath(coverFile);
             const { error: uploadError } = await supabase
                 .storage
@@ -2032,6 +2077,7 @@ function updateGuestDesignPreview() {
     const previewButtonText = guestDesignButtonInput.value.trim() || "Take Photo";
 
     guestPreviewTitle.textContent = previewTitle;
+    setGuestPreviewTitleDensity(previewTitle);
     guestPreviewDate.textContent = selectedEvent ? formatEventDateRange(selectedEvent) : "";
     guestPreviewSubtitle.textContent = previewSubtitle;
     guestPreviewButton.textContent = previewButtonText;
@@ -2046,6 +2092,14 @@ function updateGuestDesignPreview() {
     } else if (shouldRemoveGuestCover || !selectedEvent?.cover_image_path) {
         setCoverImage(guestPreviewCover, "");
     }
+}
+
+function setGuestPreviewTitleDensity(title) {
+    const phone = guestPreviewTitle.closest(".guest-preview-phone");
+    const length = title.trim().length;
+
+    phone?.classList.toggle("has-long-title", length > 20);
+    phone?.classList.toggle("has-very-long-title", length > 28);
 }
 
 function setCoverImage(element, url) {
@@ -2131,6 +2185,14 @@ function setEventStatusButtonState(eventData) {
 
 function hasEventPeriodEnded(eventData) {
     return getIsoDate(new Date()) > (eventData.end_date || eventData.date);
+}
+
+function isEventPeriodCurrent(eventData) {
+    const today = getIsoDate(new Date());
+    const startDate = eventData?.start_date || eventData?.date;
+    const endDate = eventData?.end_date || eventData?.date;
+
+    return Boolean(startDate && endDate && startDate <= today && today <= endDate);
 }
 
 function showEventsList() {
@@ -2927,11 +2989,15 @@ function createOptimizedFileName(file, prefix) {
     return `${prefix}-${baseName}.jpg`;
 }
 
-function validatePhoto(file) {
+function validatePhotoType(file) {
     if (!file.type.startsWith("image/")) {
         return "Only photo files are allowed.";
     }
 
+    return "";
+}
+
+function validatePhotoSize(file) {
     if (file.size > MAX_PHOTO_SIZE) {
         return `The photo is too large. Maximum size is ${MAX_PHOTO_SIZE_MB} MB.`;
     }

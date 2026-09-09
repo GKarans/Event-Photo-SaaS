@@ -393,6 +393,46 @@ Rezultāts:
 - Thumbnail izmantošana ir apstiprināta frontend datu plūsmā; tā samazina pilna izmēra failu lejupielādi galerijas grid skatā.
 - Precīzs ielādes ilgums un egress apjoms vienai galerijas sesijai netika instrumentēts, tāpēc turpmākam slodzes testam jāfiksē pārsūtīto datu apjoms un ielādes laiks ar pārlūka Network rīkiem.
 
+### 09.09.2026 Network, mobile regresijas un error handling pārbaude
+
+Pārbaudīts:
+
+- testa events `Test 09.09`, statuss `active`, periods `9 September 2026`;
+- 10 secīgi foto upload mēģinājumi reālā telefonā;
+- pēc katra veiksmīga foto tika pārbaudīts upload statuss;
+- organizatora galerijā pārbaudīta jauno foto parādīšanās;
+- 6 MB faila limita kļūdas stāvoklis;
+- slēgta eventa guest linka stāvoklis;
+- nepareiza QR/linka stāvoklis;
+- nav interneta / nesekmīga upload stāvoklis;
+- ZIP pogas redzamība pēc eventa beigām UI līmenī, neveicot atkārtotu lejupielādi, lai netērētu egress;
+- Chrome DevTools Network HAR export analizēts galerijai ar 57 foto;
+- Supabase egress dashboardā fiksēts perioda patēriņš.
+
+Rezultāts:
+
+- No 10 secīgajiem foto testiem 9 foto veiksmīgi augšupielādējās un parādījās organizatora galerijā.
+- Divas reizes foto tika bloķēts kā pārāk liels, jo optimizētais fails pārsniedza 6 MB limitu.
+- Abos pārāk liela faila gadījumos lietotājam parādījās saprotams paziņojums, un pēc kļūdas varēja mēģināt vēlreiz.
+- Vienā reizē pēc kameras aizvēršanas nebija loading, error vai success paziņojuma, un foto nenonāca Supabase Storage.
+- Deaktivizētam eventam guest lapā tika parādīts teksts `This event is closed` un `Photo upload is not available for this event right now.`, un upload sākt nevarēja.
+- Nepareizam linkam tika parādīts `Event not found` un `Check the QR code or link and try again.`.
+- Bez interneta upload mēģinājums parādīja `Upload failed`; pēc interneta atjaunošanas upload varēja turpināt.
+- ZIP poga beigušam eventam ir redzama, bet atkārtota reāla lejupielāde netika veikta, lai netērētu Supabase egress.
+- HAR export saturēja 64 requestus, aptuveni 2.74 MB kopējo datu apjomu un 58 image tipa requestus.
+- 57 no 58 image requestiem bija `thumb_...` faili, tātad galerijas grid izmanto thumbnails, nevis pilna izmēra oriģinālus.
+- Supabase egress periodā sasniedza aptuveni 5.99 GB no 5 GB bezmaksas limita, tāpēc jāturpina izvairīties no liekas oriģinālo failu lejupielādes.
+- Pēc testa kodā pārbaudīts, ka ZIP poga tiek rādīta tikai pēc eventa beigām un ZIP lejupielāde tiek atzīmēta ar `zip_downloaded_at`, lai atkārtota lejupielāde nebūtu pieejama.
+- Pēc testa veikts labojums, lai 6 MB limits tiktu piemērots optimizētajam foto failam, nevis telefona oriģinālajam failam pirms kompresijas.
+- Pēc testa veikts labojums, lai manuāli deaktivizētam eventam šodienas aktīvajā periodā organizators varētu atkal nospiest `Activate`, bet beigušiem eventiem QR/link darbības joprojām netiktu rādītas.
+
+Secinājums:
+
+- Galerijas thumbnail plūsma darbojas pareizi.
+- 6 MB limits aizsargā Supabase egress, bet ar moderniem telefoniem atsevišķi foto var būt pārāk lieli arī pēc kompresijas, tāpēc limits jāpārbauda kopā ar kompresijas kvalitāti.
+- Nākamais optimizācijas virziens ir precīzāk pielāgot klienta puses kompresiju, nevis nekontrolēti celt augšupielādes limitu.
+- Lietotājam redzamie error teksti ir saprotami un nerāda tehniskus RLS, Storage vai stack trace paziņojumus.
+
 ## Auth UX lokālā pārbaude
 
 Pārbaudīts pēc paroles drošības un atjaunošanas funkcijas ieviešanas:

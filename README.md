@@ -189,8 +189,9 @@ Pirms deploy vai pēc būtiskām izmaiņām pārbaudi:
 MVP ir veidots photo-only režīmā, lai samazinātu izmaksas:
 
 - video nav atbalstīts;
-- upload limits ir 6 MB;
 - pirms upload tiek veidots optimizēts foto;
+- upload limits ir 6 MB optimizētajam foto failam;
+- event un guest design title ievade ir ierobežota līdz 32 zīmēm, lai mobile guest skats nesalauztos ar pārāk gariem virsrakstiem;
 - galerijas grid izmanto thumbnails;
 - oriģinālais foto tiek pieprasīts tikai preview, delete vai ZIP vajadzībām;
 - individuāla foto download poga organizatora UI ir paslēpta;
