@@ -974,15 +974,15 @@ code {
 
 .guest-preview-phone {
     position: relative;
-    width: min(100%, 260px);
-    aspect-ratio: 7 / 9;
+    width: min(100%, 300px);
+    aspect-ratio: 7 / 10;
     overflow: hidden;
-    border: 10px solid var(--surface-strong);
-    border-radius: 30px;
+    border: 1px solid var(--line-strong);
+    border-radius: 26px;
     background:
         linear-gradient(160deg, rgba(91, 44, 138, 0.38), rgba(13, 115, 119, 0.28)),
         var(--surface-solid);
-    box-shadow: 0 22px 46px rgba(0, 0, 0, 0.32);
+    box-shadow: 0 22px 46px rgba(0, 0, 0, 0.28);
 }
 
 .guest-preview-cover,
@@ -1039,10 +1039,10 @@ code {
     position: relative;
     z-index: 1;
     min-height: 100%;
-    padding: 30px 16px 22px;
+    padding: 58px 16px 20px;
     display: grid;
-    align-content: end;
-    gap: 10px;
+    align-content: center;
+    gap: 9px;
     color: #fff;
     text-align: center;
 }
@@ -1050,10 +1050,12 @@ code {
 .guest-preview-content h3 {
     margin: 0;
     color: #fff;
-    font-size: 1.45rem;
+    font-family: "Playfair Display", Georgia, "Times New Roman", serif;
+    font-size: 1.55rem;
     line-height: 1.05;
     overflow-wrap: anywhere;
     text-wrap: balance;
+    text-shadow: 0 3px 16px rgba(0, 0, 0, 0.5);
 }
 
 .guest-preview-phone.has-long-title .guest-preview-content h3 {
@@ -1069,15 +1071,37 @@ code {
     color: rgba(255, 255, 255, 0.82);
     font-size: 0.75rem;
     line-height: 1.35;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+}
+
+.guest-preview-form {
+    display: grid;
+    gap: 5px;
+    margin-top: 4px;
+    text-align: left;
+}
+
+.guest-preview-form span {
+    color: var(--gold);
+    font-size: 0.58rem;
+    font-weight: 800;
+}
+
+.guest-preview-form i {
+    display: block;
+    min-height: 30px;
+    border: 1px solid rgba(216, 181, 111, 0.58);
+    border-radius: 10px;
+    background: rgba(31, 38, 48, 0.76);
 }
 
 .guest-preview-button {
-    min-height: 44px;
+    min-height: 40px;
     border: 0;
     border-radius: 999px;
     padding: 0 18px;
-    background: #fff;
-    color: #111;
+    background: linear-gradient(135deg, var(--indigo) 0%, #4d439c 52%, var(--accent) 100%);
+    color: #fff;
     cursor: default;
     font-weight: 800;
 }
@@ -1099,7 +1123,7 @@ code {
     min-width: 0;
     min-height: min(720px, calc(100dvh - 96px));
     aspect-ratio: 7 / 9;
-    align-content: end;
+    align-content: center;
     gap: 22px;
 }
 
@@ -1175,24 +1199,32 @@ code {
 .guest-panel.is-photo-mode {
     display: grid;
     min-height: min(760px, calc(100dvh - 48px));
-    align-content: stretch;
+    align-content: center;
 }
 
 .guest-panel.is-photo-mode .brand {
     display: block;
-    margin: 54px 120px 0 0;
-    text-align: left;
+    width: min(100%, 390px);
+    margin: 68px auto 0;
+    text-align: center;
 }
 
 .guest-panel.is-photo-mode .brand h1 {
     color: #fff;
-    font-size: clamp(2rem, 7vw, 4.4rem);
+    font-size: clamp(2rem, 6vw, 3.6rem);
     text-shadow: 0 4px 18px rgba(0, 0, 0, 0.42);
 }
 
-.guest-panel.is-photo-mode .guest-custom-subtitle,
+.guest-panel.is-photo-mode .guest-custom-subtitle {
+    display: block;
+    color: rgba(255, 255, 255, 0.88);
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+}
+
 .guest-panel.is-photo-mode .subtitle {
-    display: none;
+    display: block;
+    color: rgba(255, 255, 255, 0.74);
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
 }
 
 .guest-panel.is-photo-mode .photo-panel {
@@ -1200,7 +1232,7 @@ code {
     min-height: auto;
     align-content: end;
     align-self: end;
-    gap: 12px;
+    gap: 10px;
 }
 
 .guest-custom-subtitle {
@@ -1453,7 +1485,7 @@ code {
 
 .guest-panel.is-photo-mode .capture-button {
     align-self: end;
-    margin-top: min(34dvh, 240px);
+    margin-top: min(28dvh, 220px);
 }
 
 .capture-hint {
@@ -1477,6 +1509,21 @@ code {
     line-height: 1.45;
 }
 
+.guest-panel.is-photo-mode .upload-state {
+    position: absolute;
+    left: clamp(14px, 4vw, 28px);
+    right: clamp(14px, 4vw, 28px);
+    bottom: clamp(14px, 4vw, 28px);
+    z-index: 6;
+    min-height: 52px;
+    background: rgba(10, 14, 19, 0.90);
+    color: #fff;
+    border-color: rgba(69, 211, 167, 0.28);
+    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.32);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+}
+
 .upload-state.success {
     border-color: rgba(8, 116, 67, 0.28);
     color: var(--success);
@@ -1488,11 +1535,20 @@ code {
 }
 
 .message {
+    position: fixed;
+    left: 50%;
+    bottom: max(16px, env(safe-area-inset-bottom));
+    z-index: 30;
+    width: min(calc(100% - 28px), 560px);
+    transform: translateX(-50%);
     border-radius: 12px;
     padding: 12px 14px;
     background: var(--surface);
     border: 1px solid var(--line);
     line-height: 1.4;
+    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.20);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
 }
 
 .message.error {
@@ -1724,7 +1780,7 @@ code {
         height: min(720px, calc(100svh - 128px));
         max-height: calc(100svh - 128px);
         aspect-ratio: auto;
-        align-content: start;
+        align-content: center;
         gap: clamp(12px, 3svh, 22px);
         padding: clamp(16px, 4svh, 22px) 18px;
         border-color: var(--line-strong);
@@ -1751,6 +1807,7 @@ code {
 
     .is-guest-view .brand {
         margin-bottom: 0;
+        text-align: center;
     }
 
     .is-guest-view .brand h1 {
@@ -1760,6 +1817,7 @@ code {
 
     .is-guest-view .guest-form {
         gap: 12px;
+        align-self: end;
         margin-bottom: 0;
     }
 
@@ -1867,11 +1925,13 @@ code {
     }
 
     .guest-panel.is-photo-mode .brand {
-        margin: clamp(42px, 7svh, 52px) clamp(104px, 28vw, 118px) 0 0;
+        width: min(100%, 360px);
+        margin: clamp(54px, 8svh, 68px) auto 0;
+        text-align: center;
     }
 
     .guest-panel.is-photo-mode .brand h1 {
-        font-size: 2.25rem;
+        font-size: clamp(2rem, 10vw, 2.8rem);
     }
 
     .guest-panel.is-photo-mode .photo-panel {
@@ -1885,7 +1945,7 @@ code {
     .guest-panel.is-photo-mode .capture-button {
         position: static;
         min-height: clamp(58px, 9svh, 72px);
-        margin-top: auto;
+        margin-top: clamp(16px, 12svh, 120px);
         border-radius: 999px;
         font-size: 1.18rem;
         box-shadow: 0 14px 30px rgba(31, 122, 90, 0.22);
@@ -1949,9 +2009,12 @@ code {
     }
 
     .message {
-        position: sticky;
+        position: fixed;
+        left: 50%;
         bottom: max(10px, env(safe-area-inset-bottom));
         z-index: 5;
+        width: min(calc(100% - 24px), 560px);
+        transform: translateX(-50%);
         box-shadow: 0 12px 28px rgba(23, 33, 29, 0.14);
     }
 }
