@@ -227,3 +227,4 @@ MVP lietotāju plūsmas ir pabeigtas, ja:
 - Organizators redz foto galerijā.
 - Organizators var filtrēt, kārtot, apskatīt, dzēst foto un pēc eventa beigām lejupielādēt ZIP.
 - Cita organizatora dati nav redzami.
+Papildinājums: pēc eventa beigām organizators ieslēdz Share gallery; viesis tajā pašā QR saitē saņem filtrējamu galeriju ar preview un individual download, bez ZIP. Izslēgta kopīgošana rāda closed. Skatīt [Viesu galeriju](guest-gallery.md).

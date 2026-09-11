@@ -2,6 +2,15 @@
 
 ## Pārskata mērķis
 
+### 11.09.2026. Login regresijas labojums (lokāli)
+
+- Lietotāja ziņojums: diviem cilvēkiem datorā pēc jaunā konta apstiprināšanas login parāda panākumus, bet neatver dashboard; telefonā tas pats konts darbojas.
+- Kodā konstatēts: pāreja no `/auth/confirmed` uz `/` neatjaunināja sākotnējā maršruta atzīmi, tāpēc Auth klausītājs ignorēja sesiju. Login pats iepriekš tikai parādīja paziņojumu.
+- Labojums: maršrutu atzīmju atiestatīšana, tieša sesijas renderēšana pēc login, atlikta Auth callback apstrāde un vienas sesijas atkārtotu datu pieprasījumu novēršana.
+- `tests/auth-session.cjs`: imitēta Auth servisa testi izturēti pārejai uz login, login bez Auth notikuma, atkārtotam sesijas paziņojumam un logout/konta maiņai.
+- Statuss: lokālā koda regresija izturēta. Jauna deploy un reāla desktop/telefona e-pasta plūsmas pārbaude vēl nav veikta. Šis rezultāts neaizstāj production testu.
+- Manuāli pēc deploy: jaunam kontam apstiprināt e-pastu datorā, izmantot pogu uz login, pieslēgties un pārbaudīt My Events; atkārtot pēc paroles atjaunošanas, pēc lapas pārlādes un telefonā.
+
 Šis dokuments paredzēts praktisko testu rezultātu fiksēšanai. Tajā iekļauti RLS/storage pārbaudes scenāriji un praktiskā testa rezultāti ar reāliem viesiem un foto augšupielādi.
 
 ## Testēšanas vide
@@ -477,3 +486,5 @@ Atlikušie riski:
 - precīzs galerijas ielādes laiks un egress vienai sesijai vēl nav instrumentēts;
 - Supabase CDN importa major versija ir norādīta kā `@2`, nevis piesaistīta konkrētai patch versijai;
 - klienta pusē veidots ZIP lielām galerijām nākotnē jāaizstāj ar servera puses procesu.
+11.09.2026. viesu galerija: lokālie PGlite SQL un imitētā API Chrome testi izturēti. Reālais Supabase/Storage, Edge Function deploy un Android/iPhone tests vēl nav veikts. Scenāriji un pārbaudes robežas: [Viesu galerija](guest-gallery.md).
+Event saraksta pogu līdzinājums: statusa laukam noteikts vienāds platums Active/Inactive rindās. Lokālā Chrome pārbaudē pie 390, 800 un 1280 px abu rindu Open/Delete grupu horizontālās koordinātas sakrīt. Production pārbaude vēl nav veikta.

@@ -19,6 +19,8 @@ Organizer register/login
 
 ## Augsta līmeņa arhitektūra
 
+Pēc veiksmīga login frontend tieši izmanto atgriezto sesiju paneļa atvēršanai. Pārejot no Auth apstiprināšanas vai paroles atjaunošanas lapas uz login, atiestata abu maršrutu stāvokli. Auth paziņojumu apstrāde atliek paneļa renderēšanu ar `setTimeout`, lai profila/eventu pieprasījumi nesāktos Auth callback laikā. Atkārtots tās pašas lietotāja sesijas paziņojums atjaunina sesiju bez atkārtotas sākotnējās datu ielādes.
+
 ```mermaid
 flowchart LR
     Organizer["Organizators"] --> Netlify["Netlify static frontend"]
@@ -301,3 +303,4 @@ Pēc testa arhitektūrā tika nostiprināti šādi risinājumi:
 - automātiska Storage tīrīšana fonā.
 
 Šīs funkcijas var pievienot pēc prakses, ja produkts tiek attīstīts tālāk.
+Papildinājums: izvēles viesu galerija izmanto esošo saiti un publisku Edge Function ar SQL piekļuves kontroli. Privātās organizatora galerijas RLS netiek atvērtas viesiem. Skatīt [Viesu galeriju](guest-gallery.md).

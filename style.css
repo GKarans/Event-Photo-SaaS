@@ -717,6 +717,12 @@ button.is-loading::before,
     text-transform: uppercase;
 }
 
+.event-card .status-pill {
+    width: 7.5em;
+    text-align: center;
+    white-space: nowrap;
+}
+
 .event-filter-bar {
     display: grid;
     grid-template-columns: minmax(220px, 1fr) minmax(150px, 190px) minmax(160px, 210px);
@@ -1245,10 +1251,25 @@ code {
     align-self: start;
 }
 
+.is-guest-view .guest-panel:not(.is-status-mode) .brand {
+    width: min(100%, calc(100% - 112px));
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+}
+
 .is-guest-view .guest-panel:not(.is-status-mode) .brand .subtitle,
 .is-guest-view .guest-panel:not(.is-status-mode) .guest-custom-subtitle {
     color: rgba(255, 255, 255, 0.86);
     text-shadow: 0 2px 14px rgba(0, 0, 0, 0.62);
+}
+
+.is-guest-view .guest-panel:not(.is-status-mode).has-long-title .brand h1 {
+    font-size: clamp(1.8rem, 5.5vw, 2.7rem);
+}
+
+.is-guest-view .guest-panel:not(.is-status-mode).has-very-long-title .brand h1 {
+    font-size: clamp(1.55rem, 5vw, 2.2rem);
 }
 
 .is-guest-view .guest-panel .guest-form,
@@ -1874,9 +1895,21 @@ code {
         text-align: center;
     }
 
+    .is-guest-view .guest-panel:not(.is-status-mode) .brand {
+        width: calc(100% - 86px);
+    }
+
     .is-guest-view .brand h1 {
         font-size: clamp(1.85rem, 10vw, 2.55rem);
         line-height: 0.98;
+    }
+
+    .is-guest-view .guest-panel:not(.is-status-mode).has-long-title .brand h1 {
+        font-size: clamp(1.55rem, 7.4vw, 2.05rem);
+    }
+
+    .is-guest-view .guest-panel:not(.is-status-mode).has-very-long-title .brand h1 {
+        font-size: clamp(1.35rem, 6.5vw, 1.75rem);
     }
 
     .is-guest-view .guest-form {
@@ -1995,7 +2028,7 @@ code {
     }
 
     .guest-panel.is-photo-mode .brand {
-        width: min(100%, 360px);
+        width: calc(100% - 86px);
         margin: clamp(42px, 6svh, 58px) auto 0;
         text-align: center;
     }
@@ -2094,3 +2127,22 @@ code {
         box-shadow: 0 12px 28px rgba(23, 33, 29, 0.14);
     }
 }
+/* Shared gallery is a scrollable tool, independent of the camera viewport. */
+.is-shared-gallery { overflow: auto; height: auto; }
+.is-shared-gallery .app-shell { width: min(100% - 24px, 1000px); height: auto; min-height: 100svh; margin: auto; }
+.shared-gallery { width: 100%; min-width: 0; padding-bottom: max(24px, env(safe-area-inset-bottom)); }
+.shared-gallery .gallery-controls { display: flex; flex-wrap: wrap; gap: 12px; }
+.shared-gallery .gallery-controls label { flex: 1 1 180px; min-width: 0; }
+.shared-gallery select { width: 100%; }
+.shared-gallery .gallery-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.shared-photo { display: block; min-width: 0; padding: 0; background: transparent; color: inherit; border: 0; cursor: pointer; }
+.shared-photo img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; }
+.shared-photo span { display: block; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 5px 0; }
+.shared-photo-dialog { width: min(94%, 900px); max-height: 90svh; padding: 16px; background: var(--surface-solid); color: var(--text); border: 1px solid #777; border-radius: 8px; }
+.shared-photo-dialog::backdrop { background: rgba(0,0,0,.75); }
+.shared-photo-dialog img { display: block; max-width: 100%; width: auto; height: 65svh; object-fit: contain; margin: 10px auto; }
+.shared-photo-dialog button { min-height: 44px; cursor: pointer; }
+.gallery-sharing { padding: 12px 0; }
+.gallery-sharing label { display: flex; align-items: center; gap: 10px; }
+.gallery-sharing input { width: 22px; height: 22px; }
+.gallery-sharing p { font-size: 13px; }

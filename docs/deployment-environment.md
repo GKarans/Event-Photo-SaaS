@@ -244,3 +244,4 @@ Risinājumi:
 MVP darbināšanas vide ir vienkārša un piemērota prakses projektam: GitHub nodrošina versiju kontroli, Netlify nodrošina production frontend, bet Supabase nodrošina autentifikāciju, datubāzi, Storage un piekļuves kontroli.
 
 Šāda arhitektūra ļauj uzturēt produktu bez atsevišķa servera, vienlaikus saglabājot pietiekamu drošības līmeni ar RLS un privātu Storage bucket.
+Papildinājums: viesu galerijai pirms frontend deploy papildus schema.sql jāpalaiž migrācija un jāizvieto guest-gallery Edge Function. Precīza kārtība: [Viesu galerija](guest-gallery.md).

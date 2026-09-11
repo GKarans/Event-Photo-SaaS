@@ -72,3 +72,4 @@ Reālais rezultāts:
 - dalībniekiem būtiskas lietošanas problēmas netika novērotas;
 - aptuveni četros atkārtotas fotografēšanas mēģinājumos kamera atgriezās pārlūkā bez loading vai rezultāta paziņojuma, un fails netika saglabāts;
 - klusais kameras atgriešanās scenārijs reģistrēts kā P2 kļūda turpmākai labošanai un regresijas testam.
+Viesu galerijas testus veikt ar nelielu testa eventu pēc backend migrācijas un Edge Function izvietošanas. Kvotu pārbaudīt izolēti, netērējot 2000 reālu lejupielāžu. Skatīt [Viesu galeriju](guest-gallery.md).

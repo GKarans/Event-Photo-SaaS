@@ -1,0 +1,2 @@
+[functions.guest-gallery]
+verify_jwt = false

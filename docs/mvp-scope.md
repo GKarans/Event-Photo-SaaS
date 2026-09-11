@@ -251,3 +251,4 @@ Pēc testa tika pieņemti vairāki arhitektūras lēmumi:
 - pēc Tartu testa pastiprināta atkārtotas mobilās kameras file-input apstrāde un pievienots redzams stāvoklis, ja foto netiek saņemts.
 
 Šobrīd MVP nevajag papildināt ar lielām jaunām funkcijām. Līdz prakses beigām prioritāte ir testēšana, dokumentācija, drošības skaidrojums, deploy pārbaude un prakses atskaite.
+Saskaņots apjoma papildinājums 11.09.2026.: izvēles viesu galerija pēc eventa beigām, bez konta, ar termiņu un servera pieprasījumu limitu. Viesu ZIP nav iekļauts. Skatīt [Viesu galeriju](guest-gallery.md).

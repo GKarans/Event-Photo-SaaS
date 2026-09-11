@@ -177,3 +177,4 @@ Pēc Tartu praktiskā testa turpmākajos mobile testos papildus jāpārbauda:
 6. Atsevišķi pārbaudīt kameras atcelšanu, lai tā netiktu uzskatīta par upload kļūdu.
 
 Pieņemšanas kritērijs: katrs apstiprinātais foto sāk upload plūsmu un beidzas ar redzamu success vai error rezultātu; nedrīkst būt kluss stāvoklis bez lietotāja atgriezeniskās saites.
+Papildināt nākamo production regresiju ar sharing ieslēgšanu/izslēgšanu, sveša īpašnieka noraidīšanu, guest filtriem, preview/download un esošā upload saglabāšanu. Precīzi scenāriji: [Viesu galerija](guest-gallery.md).

@@ -257,3 +257,4 @@ Nakotne datu modeli varetu paplašinat ar:
 - audit log ierakstiem organizatora darbibam.
 
 Šie papildinajumi ir planoti ka MVP+ funkcijas, bet pašreizejais modelis jau nodrošina galveno mērķi: drošu eventu, viesu un foto sasaisti.
+Papildinājums: `gallery_shares` glabā kopīgošanas termiņu un atomisko pieprasījumu skaitītāju atsevišķi no events. Migrācija: `supabase/migrations/20260911_guest_gallery.sql`. Skatīt [Viesu galeriju](guest-gallery.md).

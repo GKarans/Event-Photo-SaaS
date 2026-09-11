@@ -1,10 +1,12 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { configureSharing, openGuestGallery } from "./guest-gallery.js";
 
 const SUPABASE_URL = "https://ojcvnsbhphvijmzjfenl.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_5tHxxBuBgQJagyqIKuVVyg_2ZtruZ6J";
 const APP_URL = "https://event-photo-saas.netlify.app";
 const PHOTO_BUCKET = "event-photos";
 const MAX_PHOTO_SIZE_MB = 6;
+const EVENT_RETENTION_DAYS = 14;
 const MAX_PHOTO_SIZE = MAX_PHOTO_SIZE_MB * 1024 * 1024;
 const ORIGINAL_IMAGE_MAX_DIMENSION = 2200;
 const ORIGINAL_IMAGE_QUALITY = 0.82;
@@ -187,8 +189,8 @@ let handledPhotoPickerRequestId = 0;
 let pendingConfirmResolve = null;
 const galleryCache = new Map();
 const activeEventSlug = getEventSlugFromPath();
-const isAuthConfirmationRoute = window.location.pathname === "/auth/confirmed";
-const isPasswordResetRoute = window.location.pathname === "/auth/reset-password";
+let isAuthConfirmationRoute = window.location.pathname === "/auth/confirmed";
+let isPasswordResetRoute = window.location.pathname === "/auth/reset-password";
 
 syncThemeToggle();
 themeToggle.addEventListener("click", handleThemeToggle);
@@ -292,7 +294,8 @@ supabase.auth.onAuthStateChange((_event, session) => {
         return;
     }
 
-    renderSession(session);
+    // Run profile/event requests after the Auth callback releases its lock.
+    setTimeout(() => renderSession(session), 0);
 });
 
 if (isAuthConfirmationRoute) {
@@ -423,6 +426,12 @@ async function handleAuthSubmit(event) {
             return;
         }
 
+        if (!data.session?.user) {
+            showMessage("Could not open your session. Please try logging in again.", "error");
+            return;
+        }
+
+        renderSession(data.session);
         showMessage("Authentication successful.", "success");
     } catch (error) {
         console.error("Auth request error", error);
@@ -598,6 +607,8 @@ async function renderAuthConfirmationRoute() {
 async function handleGoToLogin() {
     await supabase.auth.signOut();
     history.replaceState({}, "", "/");
+    isAuthConfirmationRoute = false;
+    isPasswordResetRoute = false;
     setPageMode("auth");
     authConfirmationPanel.classList.add("hidden");
     passwordResetPanel.classList.add("hidden");
@@ -631,6 +642,7 @@ async function handleLogout() {
 
 function renderSession(session) {
     const isLoggedIn = Boolean(session?.user);
+    const isSameUser = Boolean(session?.user && currentSession?.user?.id === session.user.id);
     currentSession = session;
     setPageMode(isLoggedIn ? "dashboard" : "auth");
 
@@ -642,10 +654,10 @@ function renderSession(session) {
     dashboardTitle.textContent = "Welcome!";
     userEmail.textContent = isLoggedIn ? session.user.email : "";
 
-    if (isLoggedIn) {
+    if (isLoggedIn && !isSameUser) {
         loadOrganizerProfile(session.user);
         loadEvents();
-    } else {
+    } else if (!isLoggedIn) {
         currentEvents = [];
         selectedEvent = null;
         renderEvents([]);
@@ -710,6 +722,12 @@ async function renderGuestRoute(slug) {
     }
 
     if (!data) {
+        const gallery = await openGuestGallery(SUPABASE_URL, slug, guestPanel);
+        if (gallery === true) return;
+        if (gallery === 'closed') {
+            showGuestStatus("This event is closed", "Photo upload is not available for this event right now.");
+            return;
+        }
         showGuestStatus("Event not found", "Check the QR code or link and try again.");
         return;
     }
@@ -792,6 +810,7 @@ function addGuestDesignDefaults(eventData) {
 
 async function renderLoadedGuestEvent(data) {
     if (!isEventOpenForGuests(data)) {
+        if (hasEventPeriodEnded(data) && await openGuestGallery(SUPABASE_URL, data.slug, guestPanel) === true) return;
         showGuestStatus("This event is closed", "Photo upload is not available for this event right now.");
         return;
     }
@@ -1117,7 +1136,7 @@ async function syncExpiredEvents() {
     }
 
     const today = getIsoDate(new Date());
-    const deleteBeforeDate = getIsoDate(addDays(new Date(), -3));
+    const deleteBeforeDate = getIsoDate(addDays(new Date(), -EVENT_RETENTION_DAYS));
 
     const { error: inactiveError } = await supabase
         .from("events")
@@ -1421,7 +1440,7 @@ async function queryOrganizerEvents() {
         .select(EVENT_SELECT_FIELDS)
         .eq("owner_id", currentSession.user.id)
         .neq("status", "deleted")
-        .gte("end_date", getIsoDate(addDays(new Date(), -3)))
+        .gte("end_date", getIsoDate(addDays(new Date(), -EVENT_RETENTION_DAYS)))
         .order("created_at", { ascending: false });
 
     if (!isBrandingSchemaMissingError(response.error)) {
@@ -1433,7 +1452,7 @@ async function queryOrganizerEvents() {
         .select(EVENT_SELECT_FIELDS_WITHOUT_ZOOM)
         .eq("owner_id", currentSession.user.id)
         .neq("status", "deleted")
-        .gte("end_date", getIsoDate(addDays(new Date(), -3)))
+        .gte("end_date", getIsoDate(addDays(new Date(), -EVENT_RETENTION_DAYS)))
         .order("created_at", { ascending: false });
 
     if (!isBrandingSchemaMissingError(noZoomResponse.error)) {
@@ -1448,7 +1467,7 @@ async function queryOrganizerEvents() {
         .select(LEGACY_EVENT_SELECT_FIELDS)
         .eq("owner_id", currentSession.user.id)
         .neq("status", "deleted")
-        .gte("end_date", getIsoDate(addDays(new Date(), -3)))
+        .gte("end_date", getIsoDate(addDays(new Date(), -EVENT_RETENTION_DAYS)))
         .order("created_at", { ascending: false });
 
     return {
@@ -1853,6 +1872,8 @@ function syncDialogOpenState() {
 }
 
 async function showEventDetail(eventData) {
+    document.getElementById('gallery-sharing').dataset.event = eventData.id;
+    void configureSharing(supabase, eventData, hasEventPeriodEnded(eventData), showMessage);
     selectedEvent = eventData;
     allGalleryPhotos = [];
     currentGalleryPhotos = [];

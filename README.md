@@ -6,6 +6,8 @@ Production URL: https://event-photo-saas.netlify.app/
 
 ## Galvenās funkcijas
 
+Login sesijas lokālo regresiju pārbauda `npm test`: pāreju no e-pasta apstiprināšanas/paroles atjaunošanas uz login, sesijas atvēršanu bez Auth paziņojuma un atkārtotu paziņojumu apstrādi. Šis tests izmanto imitētu Auth servisu; reāla e-pasta un production plūsma jāpārbauda atsevišķi.
+
 - Organizatora register, login, logout, paroles atjaunošana un sesijas saglabāšana.
 - Paroles atkārtošana, show/hide kontroles un 8+ simbolu drošības prasības.
 - Organizatora profils ar vārdu, uzvārdu un e-pastu.
@@ -207,3 +209,5 @@ Detalizētāka projekta dokumentācija atrodas `docs/` mapē:
 - `docs/testing-plan.md` - testēšanas plāns;
 - `docs/testing-report.md` - testēšanas rezultāti;
 - `docs/user-flows.md` - lietotāju plūsmas.
+Viesu galerijas kopīgošana esošajā QR saitē ir ieviesta lokāli: līdz 7 dienām, thumbnails, filtri, preview un individual download bez ZIP. Events paliek My Events 14 dienas pēc beigām; kopīgošanas termiņš šo logu nepārsniedz. Pirms lietošanas vajadzīga atsevišķa Supabase migrācija un Edge Function. Instrukcija un testu robežas: [Viesu galerija](docs/guest-gallery.md).
+- Event sarakstā statusiem ir vienāds platums, lai Open/Delete pogas dažādu statusu rindās saglabātu vienādu līdzinājumu.

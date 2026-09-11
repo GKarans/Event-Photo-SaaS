@@ -4,7 +4,8 @@
   "description": "Photo-only event gallery SaaS MVP",
   "main": "script.js",
   "scripts": {
-    "test": "node --check script.js"
+    "test": "node --check script.js && node --check guest-gallery.js && node tests/auth-session.cjs",
+    "test:gallery-sql": "node tests/gallery-sql.cjs"
   },
   "keywords": [],
   "author": "",
