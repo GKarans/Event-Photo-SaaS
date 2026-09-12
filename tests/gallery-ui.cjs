@@ -28,7 +28,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  let browser;
  try {
-  browser=await chromium.launch({channel:'chrome',headless:true});
+  browser=await chromium.launch({channel:process.env.PLAYWRIGHT_CHANNEL || undefined,headless:true});
   for (const width of [360,390,1280]) {
    const page=await browser.newPage({viewport:{width,height:844}});
    const errors=[]; page.on('pageerror',error=>errors.push(error.message));

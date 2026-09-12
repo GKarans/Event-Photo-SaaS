@@ -1,5 +1,7 @@
 # Event Photo SaaS MVP drošības un RLS apraksts
 
+R2 laidiens izmanto privātu bucket, service-only failu reģistru, parakstītus PUT ar kontrolsummu un servera autorizāciju katrā foto lasīšanā. 7 dienu kopīgošanas kontrole saglabājas. Viens īsts upload apstiprināts; pilna production A/B un kļūmju matrica vēl jāizpilda. [Drošības robežas un atlikušie testi](r2-storage.md).
+
 ## Mērķis
 
 Šis dokuments apraksta Event Photo SaaS MVP drošības pieeju. Galvenais mērķis ir nodrošināt, ka organizators redz tikai savus pasākumus un foto, bet viesis bez konta var pievienot foto tikai konkrētam aktīvam pasākumam, kura QR saiti viņš ir saņēmis.
@@ -317,3 +319,4 @@ Event Photo SaaS MVP drošība balstās uz Supabase Auth, RLS un Storage policie
 
 Pašreizējā MVP drošības arhitektūra atbilst praktiskā testa vajadzībām: organizatori ir izolēti viens no otra, viesi var pievienot foto bez konta tikai konkrētā aktīvā eventā, un foto faili nav publiski atvērti. Production versijai vēl jāpapildina rate limiting, audit logging, SMTP un storage limitu pārvaldība.
 Papildinājums: anon viesu galerijas piekļuvi nodrošina tikai pārbaudes Edge Function un service-role-only RPC; tieša media/Storage lasīšana viesiem netiek piešķirta. Pilnas robežas un ierobežojumi: [Viesu galerija](guest-gallery.md).
+12.09.2026. lokālais papildinājums: ZIP/eventu pārslēgšanas aizsardzība, uploading/Retry upload, retryable Storage tīrīšana, nākotnes eventu vadība, Europe/Riga datumi un reproducējami testi. Pirms publicēšanas jāpalaiž 20260912_media_reliability.sql; production tests vēl nav veikts. Aktuālā uzvedība un testu robežas: [Uzticamības labojumi](reliability.md).

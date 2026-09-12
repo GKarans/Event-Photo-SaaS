@@ -89,7 +89,7 @@ Rezultāts: organizators var ātri aizvērt vai atvērt foto upload piekļuvi.
 4. Organizators var nokopēt linku vai lejupielādēt QR.
 5. Ja events ir inactive vai periods ir beidzies, guest URL, QR kods un kopīgošanas pogas netiek rādītas.
 
-Rezultāts: organizators var nodot linku viesiem tikai aktīva eventa laikā. Pēc eventa beigām detail skats koncentrējas uz galeriju un ZIP lejupielādi.
+Rezultāts: organizators var sagatavot linku/QR arī pirms eventa un pauzētā eventā. Upload strādā tikai aktīvajā periodā. Pēc eventa beigām detail skats koncentrējas uz galeriju, ZIP un izvēles viesu galerijas kopīgošanu.
 
 ### 8. Galerijas pārvaldība
 

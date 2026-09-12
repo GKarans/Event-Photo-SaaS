@@ -1,5 +1,7 @@
 # Event Photo SaaS MVP datubazes modelis
 
+R2 izvēles migrācija `20260912_r2_storage.sql` pievieno tikai serverim pieejamu `r2_objects` reģistru un rezervācijas/pabeigšanas/piekļuves RPC. Esošie foto ceļi un dati netiek aizstāti. Priekšnosacījumi un statuss: [R2 glabāšana](r2-storage.md).
+
 ## Merkis
 
 Šis dokuments apraksta Event Photo SaaS MVP datubazes modeli, tabulu savstarpejas attiecibas un Supabase Storage failu strukturu. Datu modelis ir veidots ta, lai organizators varetu parvaldit tikai savus pasakumus, bet viesi bez konta varetu augšupieladet foto tikai konkreta aktiva pasakuma ietvaros.
@@ -258,3 +260,4 @@ Nakotne datu modeli varetu paplašinat ar:
 
 Šie papildinajumi ir planoti ka MVP+ funkcijas, bet pašreizejais modelis jau nodrošina galveno mērķi: drošu eventu, viesu un foto sasaisti.
 Papildinājums: `gallery_shares` glabā kopīgošanas termiņu un atomisko pieprasījumu skaitītāju atsevišķi no events. Migrācija: `supabase/migrations/20260911_guest_gallery.sql`. Skatīt [Viesu galeriju](guest-gallery.md).
+12.09.2026. lokālais papildinājums: ZIP/eventu pārslēgšanas aizsardzība, uploading/Retry upload, retryable Storage tīrīšana, nākotnes eventu vadība, Europe/Riga datumi un reproducējami testi. Pirms publicēšanas jāpalaiž 20260912_media_reliability.sql; production tests vēl nav veikts. Aktuālā uzvedība un testu robežas: [Uzticamības labojumi](reliability.md).

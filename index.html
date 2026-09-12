@@ -215,6 +215,7 @@
 
                             <div class="action-row">
                                 <button class="secondary-button" id="edit-event-button" type="button">Edit Event</button>
+                                <button class="secondary-button" id="edit-design-button" type="button">Guest Design</button>
                                 <button class="secondary-button" id="toggle-event-status-button" type="button">Deactivate</button>
                                 <button class="secondary-button" id="copy-event-link-button" type="button">Copy Link</button>
                                 <button class="primary-button" id="download-qr-button" type="button">Download QR</button>
@@ -233,6 +234,7 @@
                                 <p id="gallery-count">Loading photos...</p>
                             </div>
                             <button class="secondary-button compact-button hidden" id="download-gallery-button" type="button" disabled>Download ZIP</button>
+                            <button class="secondary-button compact-button" id="refresh-gallery-button" type="button">Refresh</button>
                         </div>
 
                         <div class="gallery-controls">
@@ -327,7 +329,19 @@
                     <input id="event-end-date" type="date" required>
                 </div>
             </div>
-            <p class="field-hint">Maximum event period is 3 days. Past dates are not allowed.</p>
+            <label class="event-all-day"><input id="event-all-day" type="checkbox"> All day</label>
+            <div class="date-grid">
+                <div>
+                    <label for="event-start-time">Start time</label>
+                    <input id="event-start-time" type="time" value="00:00" required>
+                </div>
+                <div>
+                    <label for="event-end-time">End time</label>
+                    <input id="event-end-time" type="time" value="23:59" required>
+                </div>
+            </div>
+            <input id="event-time-zone" type="hidden">
+            <p class="field-hint">Maximum 3 calendar days.</p>
 
             <div class="modal-actions">
                 <button class="secondary-button" id="cancel-create-event-button" type="button">Cancel</button>

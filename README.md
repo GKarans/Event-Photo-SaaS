@@ -6,6 +6,10 @@ Production URL: https://event-photo-saas.netlify.app/
 
 ## Galvenās funkcijas
 
+12.09.2026. laidiens: viesu virsrakstu centrējums un privāta R2 integrācija production un lokālajam 5604 origin. Worker publicēts, SQL migrācija un viens īsts upload/thumbnail/galerijas tests apstiprināts. Jaunie foto izmanto R2; vecie foto tiek lasīti arī no Supabase līdz atsevišķai verificētai migrācijai. [R2 uzstādīšana, statuss un pārbaudes](docs/r2-storage.md).
+
+12.09.2026. lokālie uzticamības labojumi: pilns ZIP neatkarīgi no filtriem, atkārtota sagatavotā ZIP saglabāšana atvērtajā sesijā, galerijas pieprasījumu aizsardzība, upload retry, uzskaitāma failu tīrīšana, atsevišķa eventa/dizaina rediģēšana un Refresh. Pirms frontend publicēšanas vajadzīga jaunā SQL migrācija. [Uzstādīšana, testi un ierobežojumi](docs/reliability.md).
+
 Login sesijas lokālo regresiju pārbauda `npm test`: pāreju no e-pasta apstiprināšanas/paroles atjaunošanas uz login, sesijas atvēršanu bez Auth paziņojuma un atkārtotu paziņojumu apstrādi. Šis tests izmanto imitētu Auth servisu; reāla e-pasta un production plūsma jāpārbauda atsevišķi.
 
 - Organizatora register, login, logout, paroles atjaunošana un sesijas saglabāšana.
@@ -31,12 +35,15 @@ Login sesijas lokālo regresiju pārbauda `npm test`: pāreju no e-pasta apstipr
 - Frontend: HTML, CSS, JavaScript
 - Auth: Supabase Auth
 - Database: Supabase PostgreSQL
-- Storage: Supabase Storage
+- Storage: privāts Cloudflare R2 jaunajiem failiem; Supabase Storage vecajiem failiem līdz migrācijai
+- Media API: Cloudflare Worker ar Supabase autorizāciju
 - Hosting: Netlify
 - QR: `qrcode-generator`
 - ZIP: `JSZip`
 
 ## Projekta struktūra
+
+Pēc prakses attīstības darbi, prioritātes un pieņemšanas kritēriji: [Platformas attīstības plāns](docs/platform-roadmap.md). Pilnais iesniegtais ieteikumu saraksts saglabāts [atsauces dokumentā](docs/reference/platform-review-original.txt). Nākotnes plāns nav jau ieviestu funkciju saraksts.
 
 ```text
 .
@@ -181,10 +188,10 @@ Pirms deploy vai pēc būtiskām izmaiņām pārbaudi:
 - organizer A neredz organizer B eventus/foto;
 - inactive event neļauj upload;
 - event ārpus perioda neļauj upload;
-- inactive vai period ended event detail nerāda guest URL, QR un kopīgošanas pogas;
+- nākotnes/pauzētam eventam var sagatavot QR un dizainu; pēc perioda beigām upload vadības pogas paslēptas;
 - archive modal rāda paslēptos/deleted eventus ar meklēšanu un kārtošanu;
 - ZIP poga parādās tikai pēc eventa beigām;
-- ZIP var lejupielādēt tikai vienu reizi.
+- ZIP sagatavošana ir vienreizēja; Save ZIP again izmanto atvērtajā lapā jau sagatavoto failu.
 
 ## Egress un Storage optimizācija
 

@@ -1,5 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { configureSharing, openGuestGallery } from "./guest-gallery.js";
+import { fetchEventPhotos, rigaDate, shiftedRigaDate, resumePhotoUpload, deletePhotoFiles, retryStorageCleanup } from "./reliability.js";
+import { mediaStorage, r2Enabled, guestGalleryEndpoint } from './r2-storage.js';
+import { periodIsCurrent, periodHasEnded, validateClockPeriod, localTimeZone, dateInZone, formatTimedPeriod } from './event-timing.js';
 
 const SUPABASE_URL = "https://ojcvnsbhphvijmzjfenl.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_5tHxxBuBgQJagyqIKuVVyg_2ZtruZ6J";
@@ -16,12 +19,12 @@ const SIGNED_URL_EXPIRES_IN_SECONDS = 60 * 10;
 const GALLERY_CACHE_TTL_MS = 8 * 60 * 1000;
 const GALLERY_RENDER_BATCH_SIZE = 24;
 const EVENT_TITLE_MAX_LENGTH = 32;
-const EVENT_SELECT_FIELDS = "id,name,date,start_date,end_date,slug,status,storage_folder,guest_title,guest_subtitle,guest_button_text,cover_image_path,cover_position_x,cover_position_y,cover_zoom,zip_downloaded_at,created_at";
-const PUBLIC_EVENT_SELECT_FIELDS = "id,name,date,start_date,end_date,slug,status,storage_folder,guest_title,guest_subtitle,guest_button_text,cover_image_path,cover_position_x,cover_position_y,cover_zoom";
-const EVENT_SELECT_FIELDS_WITHOUT_ZOOM = "id,name,date,start_date,end_date,slug,status,storage_folder,guest_title,guest_subtitle,guest_button_text,cover_image_path,cover_position_x,cover_position_y,created_at";
-const PUBLIC_EVENT_SELECT_FIELDS_WITHOUT_ZOOM = "id,name,date,start_date,end_date,slug,status,storage_folder,guest_title,guest_subtitle,guest_button_text,cover_image_path,cover_position_x,cover_position_y";
-const LEGACY_EVENT_SELECT_FIELDS = "id,name,date,start_date,end_date,slug,status,storage_folder,created_at";
-const LEGACY_PUBLIC_EVENT_SELECT_FIELDS = "id,name,date,start_date,end_date,slug,status,storage_folder";
+const EVENT_SELECT_FIELDS = "id,name,date,start_date,end_date,start_time,end_time,starts_at,ends_at,time_zone,slug,status,storage_folder,guest_title,guest_subtitle,guest_button_text,cover_image_path,cover_position_x,cover_position_y,cover_zoom,zip_downloaded_at,created_at";
+const PUBLIC_EVENT_SELECT_FIELDS = "id,name,date,start_date,end_date,start_time,end_time,starts_at,ends_at,time_zone,slug,status,storage_folder,guest_title,guest_subtitle,guest_button_text,cover_image_path,cover_position_x,cover_position_y,cover_zoom";
+const EVENT_SELECT_FIELDS_WITHOUT_ZOOM = "id,name,date,start_date,end_date,start_time,end_time,starts_at,ends_at,time_zone,slug,status,storage_folder,guest_title,guest_subtitle,guest_button_text,cover_image_path,cover_position_x,cover_position_y,created_at";
+const PUBLIC_EVENT_SELECT_FIELDS_WITHOUT_ZOOM = "id,name,date,start_date,end_date,start_time,end_time,starts_at,ends_at,time_zone,slug,status,storage_folder,guest_title,guest_subtitle,guest_button_text,cover_image_path,cover_position_x,cover_position_y";
+const LEGACY_EVENT_SELECT_FIELDS = "id,name,date,start_date,end_date,start_time,end_time,starts_at,ends_at,time_zone,slug,status,storage_folder,created_at";
+const LEGACY_PUBLIC_EVENT_SELECT_FIELDS = "id,name,date,start_date,end_date,start_time,end_time,starts_at,ends_at,time_zone,slug,status,storage_folder";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     auth: {
@@ -75,6 +78,11 @@ const eventModalTitle = document.getElementById("event-modal-title");
 const eventModalDescription = document.getElementById("event-modal-description");
 const eventNameInput = document.getElementById("event-name");
 const eventStartDateInput = document.getElementById("event-start-date");
+const eventStartTimeInput = document.getElementById('event-start-time');
+const eventTimeZoneInput = document.getElementById('event-time-zone');
+eventTimeZoneInput.value = localTimeZone();
+const eventEndTimeInput = document.getElementById('event-end-time');
+const eventAllDayInput = document.getElementById('event-all-day');
 const eventEndDateInput = document.getElementById("event-end-date");
 const createEventButton = document.getElementById("create-event-button");
 const closeCreateEventButton = document.getElementById("close-create-event-button");
@@ -176,6 +184,14 @@ let currentGalleryPhotos = [];
 let currentPreviewIndex = -1;
 let previewTouchStartX = 0;
 let galleryRenderToken = 0;
+let galleryRequestToken = 0;
+let detailRequestToken = 0;
+let previewRequestToken = 0;
+let zipInProgress = false;
+let preparedZip = null;
+let eventsRequestToken = 0;
+let pendingPhotoUpload = null;
+let photoUploadBusy = false;
 let selectedGuestCoverFile = null;
 let selectedGuestCoverPreviewUrl = "";
 let shouldRemoveGuestCover = false;
@@ -214,6 +230,7 @@ closeCreateEventButton.addEventListener("click", closeCreateEventModal);
 cancelCreateEventButton.addEventListener("click", closeCreateEventModal);
 eventForm.addEventListener("submit", handleCreateEvent);
 eventStartDateInput.addEventListener("change", handleEventStartDateChange);
+eventAllDayInput.addEventListener('change', updateClockInputs);
 eventSearchInput.addEventListener("input", renderFilteredEvents);
 eventStatusFilter.addEventListener("change", renderFilteredEvents);
 eventSort.addEventListener("change", renderFilteredEvents);
@@ -222,6 +239,15 @@ eventsList.addEventListener("keydown", handleEventsListKeydown);
 backToEventsButton.addEventListener("click", showEventsList);
 copyEventLinkButton.addEventListener("click", handleCopyEventLink);
 editEventButton.addEventListener("click", handleEditSelectedEvent);
+document.getElementById('edit-design-button').addEventListener('click', () => {
+    if (selectedEvent) void openGuestDesignModal(selectedEvent);
+});
+document.getElementById('refresh-gallery-button').addEventListener('click', async event => {
+    const id = selectedEvent?.id;
+    if (!id) return;
+    event.currentTarget.disabled = true;
+    try { await loadGallery(id, true); } finally { document.getElementById('refresh-gallery-button').disabled = false; }
+});
 toggleEventStatusButton.addEventListener("click", handleToggleSelectedEventStatus);
 downloadQrButton.addEventListener("click", handleDownloadQr);
 closeGuestDesignButton.addEventListener("click", closeGuestDesignModal);
@@ -643,6 +669,7 @@ async function handleLogout() {
 function renderSession(session) {
     const isLoggedIn = Boolean(session?.user);
     const isSameUser = Boolean(session?.user && currentSession?.user?.id === session.user.id);
+    if (!isSameUser) resetOrganizerRequests();
     currentSession = session;
     setPageMode(isLoggedIn ? "dashboard" : "auth");
 
@@ -651,7 +678,7 @@ function renderSession(session) {
     passwordResetPanel.classList.add("hidden");
     passwordResetSuccessPanel.classList.add("hidden");
     dashboardPanel.classList.toggle("hidden", !isLoggedIn);
-    dashboardTitle.textContent = "Welcome!";
+    if (!isSameUser) dashboardTitle.textContent = "Welcome!";
     userEmail.textContent = isLoggedIn ? session.user.email : "";
 
     if (isLoggedIn && !isSameUser) {
@@ -663,6 +690,20 @@ function renderSession(session) {
         renderEvents([]);
         showEventsList();
     }
+}
+
+function resetOrganizerRequests() {
+    eventsRequestToken++;
+    galleryRequestToken++;
+    detailRequestToken++;
+    previewRequestToken++;
+    galleryRenderToken++;
+    galleryCache.clear();
+    if (preparedZip) URL.revokeObjectURL(preparedZip.url);
+    preparedZip = null;
+    currentEvents = [];
+    renderEvents([]);
+    showEventsList();
 }
 
 function setPageMode(mode) {
@@ -686,6 +727,7 @@ async function loadOrganizerProfile(user) {
         .eq("id", user.id)
         .maybeSingle();
 
+    if (currentSession?.user?.id !== user.id) return;
     if (error) {
         console.error("Profile load error", error);
         return;
@@ -722,7 +764,7 @@ async function renderGuestRoute(slug) {
     }
 
     if (!data) {
-        const gallery = await openGuestGallery(SUPABASE_URL, slug, guestPanel);
+        const gallery = await openGuestGallery(SUPABASE_URL, slug, guestPanel, guestGalleryEndpoint);
         if (gallery === true) return;
         if (gallery === 'closed') {
             showGuestStatus("This event is closed", "Photo upload is not available for this event right now.");
@@ -810,7 +852,7 @@ function addGuestDesignDefaults(eventData) {
 
 async function renderLoadedGuestEvent(data) {
     if (!isEventOpenForGuests(data)) {
-        if (hasEventPeriodEnded(data) && await openGuestGallery(SUPABASE_URL, data.slug, guestPanel) === true) return;
+        if (hasEventPeriodEnded(data) && await openGuestGallery(SUPABASE_URL, data.slug, guestPanel, guestGalleryEndpoint) === true) return;
         showGuestStatus("This event is closed", "Photo upload is not available for this event right now.");
         return;
     }
@@ -936,6 +978,10 @@ async function handleGuestStart(event) {
 }
 
 function handleChangeGuest() {
+    if (photoUploadBusy || pendingPhotoUpload) {
+        showMessage('Finish or retry the current upload before changing your name.', 'error');
+        return;
+    }
     if (selectedEvent?.slug) {
         localStorage.removeItem(getGuestStorageKey(selectedEvent.slug));
     }
@@ -955,12 +1001,17 @@ function openCreateEventModal() {
     eventModalDescription.textContent = "Create an event period. Guest upload is available only during that period.";
     createEventButton.textContent = "Create Event";
     eventForm.reset();
+    eventTimeZoneInput.value = localTimeZone();
     setEventDateLimits();
     hideMessage();
 
-    const today = getIsoDate(new Date());
+    const today = dateInZone(eventTimeZoneInput.value);
     eventStartDateInput.value = today;
     eventEndDateInput.value = today;
+    eventAllDayInput.checked = false;
+    eventStartTimeInput.value = '00:00';
+    eventEndTimeInput.value = '23:59';
+    updateClockInputs();
 
     if (createEventModal.showModal) {
         createEventModal.showModal();
@@ -983,7 +1034,7 @@ function closeCreateEventModal() {
 }
 
 function setEventDateLimits() {
-    const today = getIsoDate(new Date());
+    const today = dateInZone(eventTimeZoneInput.value);
     eventStartDateInput.min = today;
     eventEndDateInput.min = today;
 }
@@ -996,7 +1047,16 @@ function handleEventStartDateChange() {
     }
 }
 
+function updateClockInputs() {
+    for (const input of [eventStartTimeInput, eventEndTimeInput]) {
+        input.disabled = eventAllDayInput.checked;
+        input.required = !eventAllDayInput.checked;
+    }
+}
+
 function openEditEventModal(eventData) {
+    const zone = eventData.time_zone || 'Europe/Riga';
+    eventTimeZoneInput.value = zone;
     editingEventId = eventData.id;
     eventModalTitle.textContent = "Edit Event";
     eventModalDescription.textContent = "Update the event name, date period, or guest upload window.";
@@ -1004,7 +1064,12 @@ function openEditEventModal(eventData) {
     eventNameInput.value = eventData.name || "";
     eventStartDateInput.value = eventData.start_date || eventData.date || getIsoDate(new Date());
     eventEndDateInput.value = eventData.end_date || eventData.date || eventStartDateInput.value;
+    eventAllDayInput.checked = !eventData.start_time && !eventData.end_time;
+    eventStartTimeInput.value = eventData.start_time?.slice(0, 5) || '00:00';
+    eventEndTimeInput.value = eventData.end_time?.slice(0, 5) || '23:59';
+    updateClockInputs();
     setEventDateLimits();
+    eventStartDateInput.min = eventStartDateInput.value < getIsoDate(new Date()) ? eventStartDateInput.value : getIsoDate(new Date());
     eventEndDateInput.min = eventStartDateInput.value || getIsoDate(new Date());
     hideMessage();
 
@@ -1023,11 +1088,12 @@ function handleEditSelectedEvent() {
         return;
     }
 
-    openGuestDesignModal(selectedEvent);
+    openEditEventModal(selectedEvent);
 }
 
 async function openGuestDesignModal(eventData) {
     await populateGuestDesignForm(eventData);
+    if (selectedEvent?.id !== eventData.id) return;
     hideMessage();
 
     if (guestDesignModal.showModal) {
@@ -1111,7 +1177,7 @@ function validateEventPeriod(startDate, endDate, options = {}) {
         return "Choose the event start and end date.";
     }
 
-    const today = getIsoDate(new Date());
+    const today = dateInZone(eventTimeZoneInput.value);
 
     if ((!options.allowPastStart && startDate < today) || endDate < today) {
         return "Past dates are not allowed.";
@@ -1135,15 +1201,15 @@ async function syncExpiredEvents() {
         return;
     }
 
-    const today = getIsoDate(new Date());
-    const deleteBeforeDate = getIsoDate(addDays(new Date(), -EVENT_RETENTION_DAYS));
+    const ownerId = currentSession.user.id;
+    const deleteBeforeDate = shiftedRigaDate(-EVENT_RETENTION_DAYS);
 
     const { error: inactiveError } = await supabase
         .from("events")
         .update({ status: "inactive" })
-        .eq("owner_id", currentSession.user.id)
+        .eq("owner_id", ownerId)
         .eq("status", "active")
-        .lt("end_date", today);
+        .lte("ends_at", new Date().toISOString());
 
     if (inactiveError) {
         console.error("Expired event sync error", inactiveError);
@@ -1152,7 +1218,7 @@ async function syncExpiredEvents() {
     const { error: deletedError } = await supabase
         .from("events")
         .update({ status: "deleted" })
-        .eq("owner_id", currentSession.user.id)
+        .eq("owner_id", ownerId)
         .in("status", ["active", "inactive"])
         .lt("end_date", deleteBeforeDate);
 
@@ -1162,6 +1228,8 @@ async function syncExpiredEvents() {
 }
 
 function handleTakePhotoClick() {
+    if (photoUploadBusy) return;
+    if (pendingPhotoUpload) { void retryPendingPhoto(); return; }
     clearTimeout(photoPickerReturnTimeout);
     photoInput.value = "";
     photoPickerPending = true;
@@ -1206,6 +1274,7 @@ function handlePhotoPickerCancelled() {
 }
 
 async function handlePhotoSelected() {
+    if (photoUploadBusy || pendingPhotoUpload) return;
     const file = photoInput.files?.[0];
     const requestId = Number(photoInput.dataset.requestId || 0);
 
@@ -1245,12 +1314,19 @@ async function handlePhotoSelected() {
     }
 
     setButtonLoading(takePhotoButton, true, "Uploading...");
+    photoUploadBusy = true;
+    const uploadEvent = selectedEvent;
+    const uploadGuest = currentGuest;
     showUploadState("Uploading photo. Keep this page open.", "loading");
 
     try {
         showUploadState("Preparing photo for upload...", "loading");
 
         const optimizedPhoto = await optimizePhotoFile(file);
+        if (!optimizedPhoto.thumbnail) {
+            showUploadState("Could not prepare this photo. Please try a JPEG photo or take another photo.", "error");
+            return;
+        }
         const sizeValidationError = validatePhotoSize(optimizedPhoto.original);
 
         if (sizeValidationError) {
@@ -1259,73 +1335,36 @@ async function handlePhotoSelected() {
         }
 
         const storagePath = createStoragePath(optimizedPhoto.original);
-        const thumbnailPath = optimizedPhoto.thumbnail ? createThumbnailStoragePath(storagePath) : null;
-        let uploadedThumbnailPath = null;
-
-        showUploadState("Uploading photo. Keep this page open.", "loading");
-
-        const { error: uploadError } = await supabase
-            .storage
-            .from(PHOTO_BUCKET)
-            .upload(storagePath, optimizedPhoto.original, {
-                cacheControl: "3600",
-                contentType: optimizedPhoto.original.type,
-                upsert: false
-            });
-
-        if (uploadError) {
-            console.error("Storage upload error", uploadError);
-            showUploadState("Upload failed.", "error");
-            showMessage(toFriendlyStorageError(uploadError.message, "guest-upload"), "error");
-            return;
-        }
-
-        if (optimizedPhoto.thumbnail && thumbnailPath) {
-            const { error: thumbnailUploadError } = await supabase
-                .storage
-                .from(PHOTO_BUCKET)
-                .upload(thumbnailPath, optimizedPhoto.thumbnail, {
-                    cacheControl: "604800",
-                    contentType: optimizedPhoto.thumbnail.type,
-                    upsert: false
-                });
-
-            if (thumbnailUploadError) {
-                console.error("Thumbnail upload error", thumbnailUploadError);
-            } else {
-                uploadedThumbnailPath = thumbnailPath;
-            }
-        }
-
-        showUploadState("Photo uploaded. Saving gallery details...", "loading");
-
-        const { error: mediaError } = await supabase
-            .from("media")
-            .insert({
-                event_id: selectedEvent.id,
-                guest_id: currentGuest.id,
-                storage_path: storagePath,
-                thumbnail_path: uploadedThumbnailPath,
-                file_type: optimizedPhoto.original.type,
-                file_size: optimizedPhoto.original.size,
-                status: "uploaded"
-            });
-
-        if (mediaError) {
-            console.error("Media insert error", mediaError);
-            showUploadState("The photo file was saved, but the gallery record could not be created.", "error");
-            showMessage(toFriendlyDatabaseError(mediaError.message, "guest-upload"), "error");
-            return;
-        }
-
-        invalidateGalleryCache(selectedEvent.id);
+        pendingPhotoUpload = { id:crypto.randomUUID(), eventId:uploadEvent.id, guestId:uploadGuest.id,
+            path:storagePath, thumbPath:createThumbnailStoragePath(storagePath), ...optimizedPhoto };
+        await resumePhotoUpload(supabase, pendingPhotoUpload, PHOTO_BUCKET);
+        pendingPhotoUpload = null;
+        invalidateGalleryCache(uploadEvent.id);
         showUploadState("Photo uploaded!", "success", true);
     } catch (error) {
         console.error("Photo upload request error", error);
-        showUploadState("Upload failed.", "error");
-        showMessage("Photo upload failed. Check your connection and try again.", "error");
+        showUploadState("Upload not completed. Check your connection and press Retry upload. Keep this page open.", "error");
     } finally {
-        setButtonLoading(takePhotoButton, false, getGuestButtonText(selectedEvent));
+        photoUploadBusy = false;
+        setButtonLoading(takePhotoButton, false, pendingPhotoUpload ? "Retry upload" : getGuestButtonText(selectedEvent));
+    }
+}
+
+async function retryPendingPhoto() {
+    if (!pendingPhotoUpload || photoUploadBusy) return;
+    photoUploadBusy = true;
+    setButtonLoading(takePhotoButton,true,'Uploading...');
+    showUploadState('Retrying photo upload...', 'loading');
+    try {
+        await resumePhotoUpload(supabase,pendingPhotoUpload,PHOTO_BUCKET);
+        invalidateGalleryCache(pendingPhotoUpload.eventId);
+        pendingPhotoUpload = null;
+        showUploadState('Photo uploaded!', 'success', true);
+    } catch {
+        showUploadState('Upload not completed. Check your connection and that the event is still open, then retry.', 'error');
+    } finally {
+        photoUploadBusy = false;
+        setButtonLoading(takePhotoButton,false,pendingPhotoUpload ? 'Retry upload' : getGuestButtonText(selectedEvent));
     }
 }
 
@@ -1362,6 +1401,9 @@ async function handleCreateEvent(event) {
         return;
     }
 
+    const clockError = eventAllDayInput.checked ? '' : validateClockPeriod(startDate, endDate, eventStartTimeInput.value, eventEndTimeInput.value);
+    if (clockError) { showMessage(clockError, 'error'); return; }
+
     setButtonLoading(createEventButton, true, "Saving...");
 
     try {
@@ -1369,7 +1411,10 @@ async function handleCreateEvent(event) {
             name,
             date: startDate,
             start_date: startDate,
-            end_date: endDate
+            end_date: endDate,
+            start_time: eventAllDayInput.checked ? null : eventStartTimeInput.value,
+            end_time: eventAllDayInput.checked ? null : eventEndTimeInput.value,
+            time_zone: eventTimeZoneInput.value
         };
 
         const request = isEditing
@@ -1419,11 +1464,15 @@ async function loadEvents() {
         return;
     }
 
+    const token = ++eventsRequestToken;
+    const userId = currentSession.user.id;
     eventsCount.textContent = "Loading events...";
     eventsList.innerHTML = "";
     await syncExpiredEvents();
+    if (token !== eventsRequestToken || currentSession?.user?.id !== userId) return;
 
     const { data, error } = await queryOrganizerEvents();
+    if (token !== eventsRequestToken || currentSession?.user?.id !== userId) return;
 
     if (error) {
         eventsCount.textContent = "Could not load events.";
@@ -1435,12 +1484,14 @@ async function loadEvents() {
 }
 
 async function queryOrganizerEvents() {
+    const ownerId = currentSession?.user?.id;
+    if (!ownerId) return {data:[],error:null};
     const response = await supabase
         .from("events")
         .select(EVENT_SELECT_FIELDS)
-        .eq("owner_id", currentSession.user.id)
+        .eq("owner_id", ownerId)
         .neq("status", "deleted")
-        .gte("end_date", getIsoDate(addDays(new Date(), -EVENT_RETENTION_DAYS)))
+        .gte("end_date", shiftedRigaDate(-EVENT_RETENTION_DAYS))
         .order("created_at", { ascending: false });
 
     if (!isBrandingSchemaMissingError(response.error)) {
@@ -1450,9 +1501,9 @@ async function queryOrganizerEvents() {
     const noZoomResponse = await supabase
         .from("events")
         .select(EVENT_SELECT_FIELDS_WITHOUT_ZOOM)
-        .eq("owner_id", currentSession.user.id)
+        .eq("owner_id", ownerId)
         .neq("status", "deleted")
-        .gte("end_date", getIsoDate(addDays(new Date(), -EVENT_RETENTION_DAYS)))
+        .gte("end_date", shiftedRigaDate(-EVENT_RETENTION_DAYS))
         .order("created_at", { ascending: false });
 
     if (!isBrandingSchemaMissingError(noZoomResponse.error)) {
@@ -1465,9 +1516,9 @@ async function queryOrganizerEvents() {
     const fallbackResponse = await supabase
         .from("events")
         .select(LEGACY_EVENT_SELECT_FIELDS)
-        .eq("owner_id", currentSession.user.id)
+        .eq("owner_id", ownerId)
         .neq("status", "deleted")
-        .gte("end_date", getIsoDate(addDays(new Date(), -EVENT_RETENTION_DAYS)))
+        .gte("end_date", shiftedRigaDate(-EVENT_RETENTION_DAYS))
         .order("created_at", { ascending: false });
 
     return {
@@ -1872,6 +1923,10 @@ function syncDialogOpenState() {
 }
 
 async function showEventDetail(eventData) {
+    const detailToken = ++detailRequestToken;
+    galleryRequestToken++;
+    galleryRenderToken++;
+    closePhotoPreview();
     document.getElementById('gallery-sharing').dataset.event = eventData.id;
     void configureSharing(supabase, eventData, hasEventPeriodEnded(eventData), showMessage);
     selectedEvent = eventData;
@@ -1879,8 +1934,8 @@ async function showEventDetail(eventData) {
     currentGalleryPhotos = [];
     const eventUrl = getEventUrl(eventData);
     const displayStatus = getDisplayEventStatus(eventData);
-    const isShareAvailable = displayStatus === "active";
-    const isStatusManageable = eventData.status !== "deleted" && isEventPeriodCurrent(eventData);
+    const isShareAvailable = eventData.status !== "deleted" && !hasEventPeriodEnded(eventData);
+    const isStatusManageable = isShareAvailable;
     const shouldShowEventTools = isShareAvailable || isStatusManageable;
 
     eventsListHeader.classList.add("hidden");
@@ -1897,6 +1952,7 @@ async function showEventDetail(eventData) {
     eventLinkPanel.classList.toggle("hidden", !isShareAvailable);
     eventQrPanel.classList.toggle("hidden", !isShareAvailable);
     editEventButton.classList.toggle("hidden", !isShareAvailable);
+    document.getElementById('edit-design-button').classList.toggle('hidden', !isShareAvailable);
     copyEventLinkButton.classList.toggle("hidden", !isShareAvailable);
     downloadQrButton.classList.toggle("hidden", !isShareAvailable);
     toggleEventStatusButton.classList.toggle("hidden", !isStatusManageable);
@@ -1910,7 +1966,7 @@ async function showEventDetail(eventData) {
         qrImage.alt = "";
     }
 
-    await loadGallery(eventData.id);
+    if (detailToken === detailRequestToken && selectedEvent?.id === eventData.id) await loadGallery(eventData.id);
 }
 
 async function populateGuestDesignForm(eventData) {
@@ -1985,6 +2041,7 @@ async function handleSaveGuestDesign(event) {
         return;
     }
 
+    const designEvent = { ...selectedEvent };
     const title = guestDesignTitleInput.value.trim();
     const subtitle = guestDesignSubtitleInput.value.trim();
     const buttonText = guestDesignButtonInput.value.trim() || "Take Photo";
@@ -2025,10 +2082,10 @@ async function handleSaveGuestDesign(event) {
                 return;
             }
 
-            const coverPath = createCoverStoragePath(coverFile);
-            const { error: uploadError } = await supabase
-                .storage
-                .from(PHOTO_BUCKET)
+            const coverPath = createCoverStoragePath(coverFile, designEvent);
+            const reservation = await supabase.rpc('register_cover_upload', {p_event:designEvent.id,p_path:coverPath});
+            if (reservation.error) throw reservation.error;
+            const { error: uploadError } = await mediaStorage(supabase, PHOTO_BUCKET)
                 .upload(coverPath, coverFile, {
                     cacheControl: "3600",
                     contentType: coverFile.type,
@@ -2043,14 +2100,13 @@ async function handleSaveGuestDesign(event) {
 
             payload.cover_image_path = coverPath;
         } else if (shouldRemoveGuestCover) {
-            await deleteCurrentCoverImage();
             payload.cover_image_path = null;
         }
 
         const { data, error } = await supabase
             .from("events")
             .update(payload)
-            .eq("id", selectedEvent.id)
+            .eq("id", designEvent.id)
             .select(EVENT_SELECT_FIELDS)
             .single();
 
@@ -2059,6 +2115,7 @@ async function handleSaveGuestDesign(event) {
             return;
         }
 
+        if (selectedEvent?.id !== designEvent.id) return;
         selectedEvent = data;
         currentEvents = currentEvents.map(item => item.id === data.id ? data : item);
         clearSelectedGuestCoverPreview();
@@ -2082,9 +2139,7 @@ async function deleteCurrentCoverImage() {
         return;
     }
 
-    const { error } = await supabase
-        .storage
-        .from(PHOTO_BUCKET)
+    const { error } = await mediaStorage(supabase, PHOTO_BUCKET)
         .remove([selectedEvent.cover_image_path]);
 
     if (error) {
@@ -2164,17 +2219,15 @@ function clearSelectedGuestCoverPreview() {
     }
 }
 
-function createCoverStoragePath(file) {
+function createCoverStoragePath(file, eventData = selectedEvent) {
     const extension = getFileExtension(file);
     const timestamp = createReadableTimestamp();
 
-    return `event-covers/${selectedEvent.id}/cover_${timestamp}.${extension}`;
+    return `event-covers/${eventData.id}/cover_${timestamp}_${crypto.randomUUID()}.${extension}`;
 }
 
 async function createStorageSignedUrl(path, expiresInSeconds) {
-    const { data, error } = await supabase
-        .storage
-        .from(PHOTO_BUCKET)
+    const { data, error } = await mediaStorage(supabase, PHOTO_BUCKET)
         .createSignedUrl(path, expiresInSeconds);
 
     if (error) {
@@ -2205,18 +2258,18 @@ function setEventStatusButtonState(eventData) {
 }
 
 function hasEventPeriodEnded(eventData) {
-    return getIsoDate(new Date()) > (eventData.end_date || eventData.date);
+    return periodHasEnded(eventData);
 }
 
 function isEventPeriodCurrent(eventData) {
-    const today = getIsoDate(new Date());
-    const startDate = eventData?.start_date || eventData?.date;
-    const endDate = eventData?.end_date || eventData?.date;
-
-    return Boolean(startDate && endDate && startDate <= today && today <= endDate);
+    return periodIsCurrent(eventData);
 }
 
 function showEventsList() {
+    detailRequestToken++;
+    galleryRequestToken++;
+    galleryRenderToken++;
+    closePhotoPreview();
     selectedEvent = null;
     allGalleryPhotos = [];
     currentGalleryPhotos = [];
@@ -2269,7 +2322,19 @@ function invalidateGalleryCache(eventId) {
     }
 }
 
-async function loadGallery(eventId) {
+async function loadGallery(eventId, force = false) {
+    const token = ++galleryRequestToken;
+    const userId = currentSession?.user?.id;
+    const isCurrent = () => token === galleryRequestToken && selectedEvent?.id === eventId && currentSession?.user?.id === userId;
+    if (force) invalidateGalleryCache(eventId);
+    if (force) {
+        try { await retryStorageCleanup(supabase,eventId,PHOTO_BUCKET); }
+        catch (error) {
+            console.error('Storage cleanup pending',error);
+            if (isCurrent()) showMessage('Some file cleanup is still pending. Refresh again to retry.', 'error');
+        }
+        if (!isCurrent()) return;
+    }
     const cachedGallery = getCachedGallery(eventId);
 
     if (cachedGallery) {
@@ -2281,22 +2346,10 @@ async function loadGallery(eventId) {
 
     setGalleryLoadingState();
 
-    const { data, error } = await supabase
-        .from("media")
-        .select(`
-            id,
-            storage_path,
-            thumbnail_path,
-            file_type,
-            file_size,
-            created_at,
-            guests (
-                name
-            )
-        `)
-        .eq("event_id", eventId)
-        .eq("status", "uploaded")
-        .order("created_at", { ascending: false });
+    let data;
+    let error;
+    try { data = await fetchEventPhotos(supabase, eventId); } catch (failure) { error = failure; }
+    if (!isCurrent()) return;
 
     if (error) {
         galleryCount.textContent = "Could not load photos.";
@@ -2321,6 +2374,7 @@ async function loadGallery(eventId) {
     }
 
     const signedPhotos = await createSignedGalleryPhotos(data);
+    if (!isCurrent()) return;
     const availablePhotos = signedPhotos.filter(photo => photo.thumbSignedUrl || photo.signedUrl);
     allGalleryPhotos = availablePhotos;
     setCachedGallery(eventId, availablePhotos);
@@ -2331,9 +2385,7 @@ async function loadGallery(eventId) {
 async function createSignedGalleryPhotos(photos) {
     const paths = photos.map(photo => getPhotoDisplayPath(photo));
 
-    const { data, error } = await supabase
-        .storage
-        .from(PHOTO_BUCKET)
+    const { data, error } = await mediaStorage(supabase, PHOTO_BUCKET)
         .createSignedUrls(paths, SIGNED_URL_EXPIRES_IN_SECONDS);
 
     if (error) {
@@ -2361,9 +2413,7 @@ async function createSignedGalleryPhotos(photos) {
 async function createSignedGalleryPhotosIndividually(photos) {
     const signedPhotos = await Promise.all(photos.map(async photo => {
         const displayPath = getPhotoDisplayPath(photo);
-        const { data, error } = await supabase
-            .storage
-            .from(PHOTO_BUCKET)
+        const { data, error } = await mediaStorage(supabase, PHOTO_BUCKET)
             .createSignedUrl(displayPath, SIGNED_URL_EXPIRES_IN_SECONDS);
 
         if (error) {
@@ -2396,7 +2446,7 @@ async function getPhotoOriginalSignedUrl(photo) {
         return "";
     }
 
-    if (photo.signedUrl) {
+    if (photo.signedUrl && photo.signedUrlExpiresAt > Date.now() + 30000) {
         return photo.signedUrl;
     }
 
@@ -2404,6 +2454,7 @@ async function getPhotoOriginalSignedUrl(photo) {
 
     if (signedUrl) {
         photo.signedUrl = signedUrl;
+        photo.signedUrlExpiresAt = Date.now() + SIGNED_URL_EXPIRES_IN_SECONDS * 1000;
     }
 
     return signedUrl;
@@ -2455,7 +2506,8 @@ function applyGalleryControls() {
 }
 
 function canDownloadGalleryZip() {
-    return Boolean(selectedEvent && hasEventPeriodEnded(selectedEvent) && !selectedEvent.zip_downloaded_at);
+    return Boolean(selectedEvent && hasEventPeriodEnded(selectedEvent) &&
+        (!selectedEvent.zip_downloaded_at || preparedZip?.eventId === selectedEvent.id));
 }
 
 function getGalleryDownloadUnavailableText() {
@@ -2471,7 +2523,7 @@ function getGalleryDownloadUnavailableText() {
         return "ZIP available after event";
     }
 
-    if (!currentGalleryPhotos.length) {
+    if (!allGalleryPhotos.length) {
         return "No photos to download";
     }
 
@@ -2479,11 +2531,12 @@ function getGalleryDownloadUnavailableText() {
 }
 
 function updateDownloadGalleryState() {
-    const canDownload = canDownloadGalleryZip() && currentGalleryPhotos.length > 0;
+    const canDownload = canDownloadGalleryZip() && (allGalleryPhotos.length > 0 || preparedZip?.eventId === selectedEvent?.id);
 
     downloadGalleryButton.classList.toggle("hidden", !canDownload);
-    downloadGalleryButton.disabled = !canDownload;
-    downloadGalleryButton.textContent = canDownload ? "Download ZIP" : getGalleryDownloadUnavailableText();
+    downloadGalleryButton.disabled = !canDownload || zipInProgress;
+    downloadGalleryButton.textContent = zipInProgress ? "Preparing ZIP..." : canDownload
+        ? (preparedZip?.eventId === selectedEvent?.id ? "Save ZIP again" : "Download ZIP") : getGalleryDownloadUnavailableText();
 }
 
 function handleClearGalleryFilters() {
@@ -2562,15 +2615,20 @@ function renderGalleryBatch(photos, fragment, startIndex, renderToken) {
 }
 
 async function handleDownloadGallery() {
+    if (zipInProgress) return;
     if (!canDownloadGalleryZip()) {
         showMessage(getGalleryDownloadUnavailableText(), "error");
         updateDownloadGalleryState();
         return;
     }
 
-    if (!currentGalleryPhotos.length) {
-        showMessage("There are no photos to download yet.", "error");
-        updateDownloadGalleryState();
+    const exportEvent = { ...selectedEvent };
+    const exportUser = currentSession?.user?.id;
+    if (preparedZip?.eventId === exportEvent.id && preparedZip.userId === exportUser) {
+        zipInProgress = true;
+        try { await savePreparedZip(); }
+        catch { showMessage('ZIP is prepared. Keep this page open and press Save ZIP again to retry.', 'error'); }
+        finally { zipInProgress = false; updateDownloadGalleryState(); }
         return;
     }
 
@@ -2583,11 +2641,15 @@ async function handleDownloadGallery() {
 
     const zip = new ZipLibrary();
     const usedNames = new Set();
+    zipInProgress = true;
     downloadGalleryButton.disabled = true;
 
     try {
-        for (const [index, photo] of currentGalleryPhotos.entries()) {
-            downloadGalleryButton.textContent = `Zipping ${index + 1}/${currentGalleryPhotos.length}`;
+        const photos = await fetchEventPhotos(supabase, exportEvent.id);
+        if (!photos.length) throw new Error('No photos to export');
+        for (const [index, photo] of photos.entries()) {
+            if (currentSession?.user?.id !== exportUser) throw new Error('Session changed');
+            if (selectedEvent?.id === exportEvent.id) downloadGalleryButton.textContent = `Zipping ${index + 1}/${photos.length}`;
 
             const signedUrl = await getPhotoOriginalSignedUrl(photo);
 
@@ -2606,34 +2668,42 @@ async function handleDownloadGallery() {
             zip.file(zipPath, blob);
         }
 
-        downloadGalleryButton.textContent = "Preparing ZIP...";
+        if (selectedEvent?.id === exportEvent.id) downloadGalleryButton.textContent = "Preparing ZIP...";
         const zipBlob = await zip.generateAsync({ type: "blob" });
-        const { data: updatedEvent, error: zipMarkerError } = await supabase
-            .from("events")
-            .update({ zip_downloaded_at: new Date().toISOString() })
-            .eq("id", selectedEvent.id)
-            .is("zip_downloaded_at", null)
-            .select(EVENT_SELECT_FIELDS)
-            .single();
-
-        if (zipMarkerError) {
-            console.error("ZIP marker error", zipMarkerError);
-            showMessage("Could not confirm ZIP access. Refresh the page and try again.", "error");
-            return;
-        }
-
-        selectedEvent = updatedEvent;
-        currentEvents = currentEvents.map(item => item.id === updatedEvent.id ? updatedEvent : item);
+        if (currentSession?.user?.id !== exportUser) throw new Error('Session changed');
+        if (preparedZip) URL.revokeObjectURL(preparedZip.url);
         const objectUrl = URL.createObjectURL(zipBlob);
-        triggerDownload(objectUrl, getGalleryZipFileName());
-        setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
-        showMessage("Gallery ZIP download started.", "success");
+        preparedZip = { eventId: exportEvent.id, userId: exportUser, url: objectUrl, name: `${exportEvent.slug}-photos.zip` };
+        await savePreparedZip();
+        showMessage("ZIP ready. You can save it again while this page stays open.", "success");
     } catch (error) {
         console.error("Gallery download error", error);
-        showMessage("Could not prepare the gallery ZIP. Try again in a moment.", "error");
+        showMessage(preparedZip?.eventId === exportEvent.id
+            ? 'ZIP is prepared. Keep this page open and press Save ZIP again to retry.'
+            : 'Could not prepare the gallery ZIP. Try again in a moment.', 'error');
     } finally {
+        zipInProgress = false;
         updateDownloadGalleryState();
     }
+}
+
+async function savePreparedZip() {
+    const archive = preparedZip;
+    if (!archive || currentSession?.user?.id !== archive.userId) throw new Error('Session changed');
+    if (!archive.confirmed) {
+        let result = await supabase.from('events').update({zip_downloaded_at:new Date().toISOString()})
+            .eq('id',archive.eventId).is('zip_downloaded_at',null).select(EVENT_SELECT_FIELDS).single();
+        if (result.error) {
+            // The marker response may have been lost after a successful write.
+            result = await supabase.from('events').select(EVENT_SELECT_FIELDS).eq('id',archive.eventId).single();
+        }
+        if (result.error || !result.data?.zip_downloaded_at) throw new Error('ZIP confirmation failed');
+        if (currentSession?.user?.id !== archive.userId) throw new Error('Session changed');
+        archive.confirmed = true;
+        if (selectedEvent?.id === archive.eventId) selectedEvent = result.data;
+        currentEvents = currentEvents.map(item => item.id === archive.eventId ? result.data : item);
+    }
+    triggerDownload(archive.url,archive.name);
 }
 
 function handleGalleryClick(event) {
@@ -2655,6 +2725,8 @@ function handleGalleryClick(event) {
 }
 
 async function openPhotoPreview(photoIndex) {
+    const previewToken = ++previewRequestToken;
+    const eventId = selectedEvent?.id;
     const photo = currentGalleryPhotos[photoIndex];
 
     if (!photo) {
@@ -2680,7 +2752,7 @@ async function openPhotoPreview(photoIndex) {
 
     const signedUrl = await getPhotoOriginalSignedUrl(photo);
 
-    if (currentPreviewIndex === photoIndex && signedUrl) {
+    if (previewToken === previewRequestToken && selectedEvent?.id === eventId && currentPreviewIndex === photoIndex && signedUrl) {
         previewImage.src = signedUrl;
     }
 }
@@ -2701,6 +2773,7 @@ function updatePreviewNavigation() {
 }
 
 function closePhotoPreview() {
+    previewRequestToken++;
     if (photoDialog.close) {
         photoDialog.close();
     } else {
@@ -2795,6 +2868,7 @@ async function handleDownloadPhoto() {
 
 async function handleDeletePhoto() {
     const photo = currentGalleryPhotos[currentPreviewIndex];
+    const eventId = selectedEvent?.id;
 
     if (!photo || !selectedEvent?.id) {
         showMessage("Could not find the photo to delete.", "error");
@@ -2815,39 +2889,16 @@ async function handleDeletePhoto() {
     setButtonLoading(deletePhotoButton, true, "Deleting...");
 
     try {
-        const pathsToDelete = [photo.storage_path, photo.thumbnail_path].filter(Boolean);
-        const { error: storageError } = await supabase
-            .storage
-            .from(PHOTO_BUCKET)
-            .remove(pathsToDelete);
-
-        if (storageError) {
-            console.error("Storage delete error", storageError);
-            showMessage(toFriendlyStorageDeleteError(storageError.message), "error");
-            return;
-        }
-
-        const { error: mediaError } = await supabase
-            .from("media")
-            .update({ status: "deleted" })
-            .eq("id", photo.id);
-
-        if (mediaError) {
-            console.error("Media delete error", mediaError);
-            closePhotoPreview();
-            showMessage("The Storage file was deleted, but the gallery status could not be updated.", "error");
-            await loadGallery(selectedEvent.id);
-            return;
-        }
-
-        closePhotoPreview();
-        invalidateGalleryCache(selectedEvent.id);
+        await deletePhotoFiles(supabase,photo,eventId,PHOTO_BUCKET);
+        invalidateGalleryCache(eventId);
+        if (selectedEvent?.id === eventId) closePhotoPreview();
         showMessage("Photo deleted.", "success");
-        await loadGallery(selectedEvent.id);
     } catch (error) {
         console.error("Photo delete request error", error);
-        showMessage("Could not delete the photo. Check your connection and try again.", "error");
+        invalidateGalleryCache(eventId);
+        showMessage("Deletion was not completed. Refresh the gallery to retry pending file cleanup.", "error");
     } finally {
+        if (selectedEvent?.id === eventId) await loadGallery(eventId);
         setButtonLoading(deletePhotoButton, false, "Delete Photo");
     }
 }
@@ -2915,7 +2966,7 @@ async function optimizePhotoFile(file) {
         });
 
         return {
-            original: original.size < file.size ? original : file,
+            original,
             thumbnail
         };
     } catch (error) {
@@ -2943,10 +2994,16 @@ async function resizeImageFile(file, options) {
     context.drawImage(image, 0, 0, width, height);
     releaseLoadedImage(image);
 
-    const blob = await canvasToBlob(canvas, "image/jpeg", options.quality);
+    const mime = r2Enabled ? 'image/webp' : 'image/jpeg';
+    let blob = await canvasToBlob(canvas, mime, options.quality);
+    if (r2Enabled && blob.type !== mime) {
+        const { encodeWebpFallback } = await import('./webp-encode.js');
+        blob = await encodeWebpFallback(canvas, options.quality);
+    }
+    if (blob.type !== mime) throw new Error('Photo format is not supported by this browser.');
 
     return new File([blob], createOptimizedFileName(file, options.prefix), {
-        type: "image/jpeg",
+        type: mime,
         lastModified: Date.now()
     });
 }
@@ -3007,7 +3064,7 @@ function canvasToBlob(canvas, type, quality) {
 
 function createOptimizedFileName(file, prefix) {
     const baseName = file.name.replace(/\.[^/.]+$/, "") || "photo";
-    return `${prefix}-${baseName}.jpg`;
+    return `${prefix}-${baseName}.${r2Enabled ? 'webp' : 'jpg'}`;
 }
 
 function validatePhotoType(file) {
@@ -3036,7 +3093,7 @@ function createStoragePath(file) {
 
     const guestFolder = `${guestBaseName}-${guestSuffix}`;
     const timestamp = createReadableTimestamp();
-    const filename = `${guestBaseName}_${timestamp}.${extension}`;
+    const filename = `${guestBaseName}_${timestamp}_${crypto.randomUUID()}.${extension}`;
 
     return `${eventFolder}/${guestFolder}/${filename}`;
 }
@@ -3045,7 +3102,7 @@ function createThumbnailStoragePath(storagePath) {
     const pathParts = storagePath.split("/");
     const filename = pathParts.pop() || `thumbnail_${createReadableTimestamp()}.jpg`;
     const baseName = filename.replace(/\.[^/.]+$/, "") || "photo";
-    pathParts.push(`thumb_${baseName}.jpg`);
+    pathParts.push(`thumb_${baseName}.${r2Enabled ? 'webp' : 'jpg'}`);
 
     return pathParts.join("/");
 }
@@ -3160,6 +3217,12 @@ function toFriendlyAuthError(message) {
 
 function toFriendlyDatabaseError(message, context = "general") {
     const normalized = message.toLowerCase();
+
+    if (normalized.includes('daylight-saving')) return 'This time falls during a daylight-saving clock change. Choose another time.';
+    if (normalized.includes('valid time zone')) return 'Could not determine the event time. Check your device date and time settings.';
+    if (normalized.includes('events_clock')) return 'Enter a start and end time, with the end after the start.';
+    if (normalized.includes('exported event schedule')) return 'The event time cannot be changed after downloading its ZIP.';
+    if (normalized.includes('before zip export')) return 'Wait until the event ends before downloading its ZIP.';
 
     if (normalized.includes("duplicate") || normalized.includes("unique")) {
         return "This event URL already exists. Try a slightly different event name.";
@@ -3327,6 +3390,13 @@ function formatEventDateRange(eventData) {
         return "No date set";
     }
 
+    if (eventData.start_time && eventData.end_time) {
+        if (eventData.starts_at && eventData.ends_at) return formatTimedPeriod(eventData, activeEventSlug ? localTimeZone() : (eventData.time_zone || 'Europe/Riga'));
+        const start = `${formatDate(startDate)}, ${eventData.start_time.slice(0, 5)}`;
+        const end = startDate === endDate ? eventData.end_time.slice(0, 5) : `${formatDate(endDate)}, ${eventData.end_time.slice(0, 5)}`;
+        return `${start} - ${end}`;
+    }
+
     if (!endDate || startDate === endDate) {
         return formatDate(startDate);
     }
@@ -3339,11 +3409,7 @@ function isEventOpenForGuests(eventData) {
         return false;
     }
 
-    const today = getIsoDate(new Date());
-    const startDate = eventData.start_date || eventData.date;
-    const endDate = eventData.end_date || eventData.date || startDate;
-
-    return Boolean(startDate && endDate && today >= startDate && today <= endDate);
+    return periodIsCurrent(eventData);
 }
 
 function getDisplayEventStatus(eventData) {
@@ -3391,10 +3457,7 @@ function getEventDetailStatusLabel(eventData) {
 }
 
 function getIsoDate(date) {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
+    return rigaDate(date);
 }
 
 function addDays(date, days) {

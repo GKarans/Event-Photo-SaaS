@@ -2,6 +2,8 @@
 
 ## Dokumenta mērķis
 
+Detalizēts pēcprakses darba saraksts un gatavības kritēriji ir [platformas attīstības plānā](platform-roadmap.md). Tas papildina nākotnes virzienus, bet nemaina šeit noteikto prakses MVP apjomu.
+
 Šis dokuments definē Event Photo SaaS MVP robežas: kas ir iekļauts pašreizējā praktiskajā versijā, kas apzināti nav iekļauts prakses laikā un ko var attīstīt pēc prakses.
 
 MVP mērķis nav izveidot pilnu komerciālu platformu ar maksājumiem, abonementiem un sarežģītu administrēšanu. MVP mērķis ir pierādīt galveno produkta vērtību:
@@ -156,7 +158,7 @@ MVP iekļauj:
 - video glabāšana, video preview vai video thumbnails;
 - maksājumu sistēma;
 - subscription/plānu pārvaldība;
-- publiska viesu galerija;
+- neierobežota, publiski meklējama viesu galerija (izvēles kopīgošana ar termiņu esošajā saitē ir iekļauta);
 - viesu konti;
 - vairāki organizatori vienam eventam;
 - team/admin role sistēma;

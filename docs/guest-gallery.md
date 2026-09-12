@@ -1,6 +1,6 @@
 # Viesu galerijas kopīgošana
 
-Statuss: ieviests lokāli; Supabase migrācija un Edge Function vēl nav publicētas.
+12.09.2026. laidiens: viesu galerijas pieprasījumus apkalpo publicētais Cloudflare Worker ar esošo Supabase `guest_gallery_access` RPC. R2 un vecie Supabase faili ir pieejami caur vienu kontrolētu API; sharing termiņš nav mainīts. Vēsturiskā Edge Function paliek repozitorijā kā iepriekšējā realizācija.
 
 Organizators pēc eventa beigu datuma ieslēdz `Share gallery`. Esošais QR un `/event/{slug}` kļūst par viesu galerijas saiti. Reģistrācija nav vajadzīga. Pirms perioda beigām joprojām darbojas upload skats; manuāli deaktivizēts events neatver galeriju pirms perioda beigām.
 
@@ -43,3 +43,4 @@ Pārbauda eventa periodu, dzēšanas statusu, sharing termiņu, media event_id, 
 Lokāli PGlite pārbaudīti īpašnieks, periods, expiry, disable, limits 1999/2000, skaitītāja saglabāšana, sveša foto/mape un RPC atļaujas. Chrome ar imitētu API pārbaudīti 360, 390 un 1280 px platumi, grid, preview un sort. Tas nav īsta iPhone vai Supabase production tests.
 
 Production: eventam pēc perioda beigām ieslēgt sharing, anon logā atvērt to pašu QR saiti, pārbaudīt filtrus, preview un vienu download. Izslēgt sharing un pārbaudīt jaunu pieprasījumu atteikumu. Otram organizatoram pārbaudīt, ka sharing iestatīšanu noraida. Pārbaudīt Android un iPhone. Kvotas robežu testēt ar izolētu testa eventu, nevis 2000 īstām lejupielādēm.
+12.09.2026. lokālais papildinājums: ZIP/eventu pārslēgšanas aizsardzība, uploading/Retry upload, retryable Storage tīrīšana, nākotnes eventu vadība, Europe/Riga datumi un reproducējami testi. Pirms publicēšanas jāpalaiž 20260912_media_reliability.sql; production tests vēl nav veikts. Aktuālā uzvedība un testu robežas: [Uzticamības labojumi](reliability.md).

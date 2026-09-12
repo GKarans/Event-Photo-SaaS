@@ -30,8 +30,8 @@ export async function configureSharing(client, event, ended, message) {
     host.append(label, info, link);
 }
 
-export async function openGuestGallery(baseUrl, slug, guestPanel) {
-    const endpoint = `${baseUrl}/functions/v1/guest-gallery`;
+export async function openGuestGallery(baseUrl, slug, guestPanel, mediaEndpoint = '') {
+    const endpoint = mediaEndpoint || `${baseUrl}/functions/v1/guest-gallery`;
     const url = params => `${endpoint}?${new URLSearchParams({ slug, ...params })}`;
     let initial;
     try {

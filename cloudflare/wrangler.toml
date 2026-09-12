@@ -1,0 +1,11 @@
+name = "event-photo-media"
+main = "media-worker.js"
+compatibility_date = "2026-09-12"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+SUPABASE_URL = "https://ojcvnsbhphvijmzjfenl.supabase.co"
+R2_BUCKET = "app-images"
+# Copy the exact S3 API endpoint from your bucket (including any EU jurisdiction).
+R2_ENDPOINT = "https://af664043db99694ff5a6ac88a7e7dc4d.r2.cloudflarestorage.com"
+ALLOWED_ORIGINS = "https://event-photo-saas.netlify.app,http://127.0.0.1:5604"

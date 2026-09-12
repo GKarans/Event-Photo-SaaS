@@ -1,0 +1,54 @@
+const {PGlite}=require('@electric-sql/pglite');
+const fs=require('node:fs');
+const assert=require('node:assert/strict');
+(async()=>{
+ const {periodIsCurrent,periodHasEnded,validateClockPeriod,formatTimedPeriod}=await import('../event-timing.js');
+ const event={starts_at:'2026-09-12T15:00:00Z',ends_at:'2026-09-12T19:00:00Z'};
+ assert(!periodIsCurrent(event,Date.parse(event.starts_at)-1));
+ assert(periodIsCurrent(event,Date.parse(event.starts_at)));
+ assert(!periodIsCurrent(event,Date.parse(event.ends_at)));
+ assert(periodHasEnded(event,Date.parse(event.ends_at)));
+ assert(formatTimedPeriod(event,'America/New_York').includes('11:00'));
+ assert(!formatTimedPeriod(event,'America/New_York').includes('America'));
+ assert(validateClockPeriod('2026-09-12','2026-09-12','18:00','17:00'));
+ assert(validateClockPeriod('2026-09-12','2026-09-12','25:00','27:00'));
+ assert.equal(validateClockPeriod('2026-09-12','2026-09-13','18:00','01:00'),'');
+ const db=new PGlite();
+ try {
+ await db.exec(`create role anon;create role authenticated;create role service_role;
+ create schema auth;create schema storage;
+ create function auth.uid() returns uuid language sql as $$select '00000000-0000-0000-0000-000000000010'::uuid$$;
+ create function current_app_date() returns date language sql as $$select (now() at time zone 'Europe/Riga')::date$$;
+ create function storage.foldername(text) returns text[] language sql as $$select string_to_array($1,'/')$$;
+ create table events(id uuid primary key,owner_id uuid,slug text,storage_folder text,status text,start_date date,end_date date,cover_image_path text,zip_downloaded_at timestamptz);
+ create table guests(id uuid primary key,event_id uuid,name text);
+ create table media(id uuid primary key,event_id uuid,guest_id uuid,storage_path text,thumbnail_path text,file_type text,file_size bigint,status text,created_at timestamptz);
+ create table storage.objects(bucket_id text,name text);`);
+ for(const file of ['20260911_guest_gallery','20260912_media_reliability','20260912_r2_storage','20260912_r2_id_folders','20260912_event_times','20260912_event_times'])
+   await db.exec(fs.readFileSync(`supabase/migrations/${file}.sql`,'utf8'));
+ const e='00000000-0000-0000-0000-000000000001';
+ await db.query(`insert into events(id,owner_id,slug,storage_folder,status,start_date,end_date) values($1,auth.uid(),'test','test','active',current_app_date(),current_app_date())`,[e]);
+ const value=async sql=>Object.values((await db.query(`select ${sql}`)).rows[0])[0];
+ assert.equal(await value("(ends_at at time zone 'Europe/Riga')::date=end_date+1 from events"),true);
+ await assert.rejects(db.query('select manage_gallery_share($1,true)',[e]));
+ assert.equal(await value("event_upload_open('active',now(),now()+interval '1 second')"),true);
+ assert.equal(await value("event_upload_open('active',now()-interval '1 hour',now())"),false);
+ assert.equal(await value("event_upload_open('inactive',now()-interval '1 hour',now()+interval '1 hour')"),false);
+ await db.exec("update events set start_date='2026-09-12',end_date='2026-09-12',start_time='18:00',end_time='22:00'");
+ assert.equal(await value("starts_at='2026-09-12T15:00Z'::timestamptz from events"),true);
+ await db.exec("update events set time_zone='America/New_York'");
+ assert.equal(await value("starts_at='2026-09-12T22:00Z'::timestamptz from events"),true);
+ await assert.rejects(db.exec("update events set time_zone='invalid/zone'"));
+ await db.exec("update events set time_zone='Europe/Riga'");
+ await assert.rejects(db.exec("update events set end_time='17:00'"));
+ await assert.rejects(db.exec("update events set start_date='2026-03-29',end_date='2026-03-29',start_time='03:30',end_time='05:00'"));
+ await assert.rejects(db.exec("update events set start_date='2026-10-25',end_date='2026-10-25',start_time='03:30',end_time='05:00'"));
+ await db.exec("update events set start_date=current_app_date()-1,end_date=current_app_date(),start_time='00:00',end_time='00:00'");
+ assert.equal((await value(`manage_gallery_share('${e}',true)`)).enabled,true);
+ assert.equal((await value("guest_gallery_access('test')")).photos.length,0);
+ await db.exec("update events set zip_downloaded_at=now()");
+ await assert.rejects(db.exec('update events set zip_downloaded_at=null'));
+ await assert.rejects(db.exec("update events set end_time='01:00'"));
+ console.log('Event times: exact boundaries, legacy all-day, Riga timezone/DST, same-day sharing, invalid periods and ZIP schedule lock passed.');
+ } finally {await db.close();}
+})().catch(error=>{console.error(error);process.exitCode=1});

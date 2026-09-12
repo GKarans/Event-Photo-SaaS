@@ -1,5 +1,7 @@
 # Darbināšanas vides apraksts
 
+R2 Worker publicēts, lietotājs apstiprinājis SQL un pirmo īsto upload/galerijas testu. Production konfigurācija ieslēgta pēc lietotāja pieprasījuma; veco foto migrācija vēl nav veikta. [Worker secrets, CORS, SQL, migrācijas un rollback instrukcija](r2-storage.md). Netlify build: `npm run build`, publish: `dist`, Node 22. Izplatījumā ir tikai frontend un WebP runtime faili.
+
 ## Dokumenta mērķis
 
 Šis dokuments apraksta Event Photo SaaS MVP darbināšanas vidi: Netlify hostingu, Supabase backend konfigurāciju, GitHub repozitoriju, Auth iestatījumus, Storage konfigurāciju un deploy kārtību.
@@ -245,3 +247,4 @@ MVP darbināšanas vide ir vienkārša un piemērota prakses projektam: GitHub n
 
 Šāda arhitektūra ļauj uzturēt produktu bez atsevišķa servera, vienlaikus saglabājot pietiekamu drošības līmeni ar RLS un privātu Storage bucket.
 Papildinājums: viesu galerijai pirms frontend deploy papildus schema.sql jāpalaiž migrācija un jāizvieto guest-gallery Edge Function. Precīza kārtība: [Viesu galerija](guest-gallery.md).
+12.09.2026. lokālais papildinājums: ZIP/eventu pārslēgšanas aizsardzība, uploading/Retry upload, retryable Storage tīrīšana, nākotnes eventu vadība, Europe/Riga datumi un reproducējami testi. Pirms publicēšanas jāpalaiž 20260912_media_reliability.sql; production tests vēl nav veikts. Aktuālā uzvedība un testu robežas: [Uzticamības labojumi](reliability.md).

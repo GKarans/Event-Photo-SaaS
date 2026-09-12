@@ -1,5 +1,15 @@
 # Event Photo SaaS MVP testēšanas pārskats
 
+## 12.09.2026. centrējums un izvēles R2
+
+Lietotāja 17:51 testa pierādījums: jaunais foto redzams organizatora galerijā līdzās vecajiem Supabase foto; privātajā `app-images` bucket redzami divi `image/webp` objekti (10.64 KB un 56.51 KB). Tas apstiprina vienu reālu R2 upload ar thumbnail un galerijas lasīšanu. Pēc lietotāja pieprasījuma sagatavota production konfigurācija. Veco failu kopēšana/dzēšana, pilns Android/iPhone, A/B, ZIP un expiry production retests nav veikts. Izplatījuma tests pārbauda R2 origin izvēli un servera/.env failu neiekļaušanu `dist`.
+
+Pēc lietotāja veiktā Worker deploy un apstiprinātās SQL migrācijas: attālināts `/sign` OPTIONS no lokālā origin atgriež 204 ar pareizu CORS; anonīms neeksistējoša ceļa pieprasījums atgriež `signedUrl: null`. Tas pārbauda Worker sasniedzamību un DB piekļuves RPC, bet ne R2 atslēgas, reālu PUT vai foto lasīšanu. Lokālais preview atbild HTTP 200; R2 aktivizēts tikai tā 5604 origin. Production nav pārslēgts.
+
+Lokālais Playwright Chromium CSS tests pārbauda viesu virsrakstu aplaušanu, centrējumu un atstarpi no logo 320/390/430/768/1280 px vārda ievades un fotografēšanas stāvokļos, arī nosaukumam bez atstarpēm. Tas nav fiziska iPhone/Android pārbaudes rezultāts.
+
+R2 lokālie testi: PGlite rezervāciju nemainīgums, nepareizs path/owner, nepabeigti faili, inactive events, service-only tiesības; Worker noraidītās saites/CORS/atslēgta galerija un atkārtota tiesību pārbaude; klienta tiešs PUT un finalize retry bez failu atkārtotas sūtīšanas. Reāls WASM encoding pārlūka Worker izveido decodējamu WebP ar pareiziem izmēriem. Wrangler dry-run komplektējas, bet tas nav deploy. [R2 pieņemšanas matrica](r2-storage.md) vēl jāizpilda pret īstajiem servisiem.
+
 ## Pārskata mērķis
 
 ### 11.09.2026. Login regresijas labojums (lokāli)
@@ -488,3 +498,22 @@ Atlikušie riski:
 - klienta pusē veidots ZIP lielām galerijām nākotnē jāaizstāj ar servera puses procesu.
 11.09.2026. viesu galerija: lokālie PGlite SQL un imitētā API Chrome testi izturēti. Reālais Supabase/Storage, Edge Function deploy un Android/iPhone tests vēl nav veikts. Scenāriji un pārbaudes robežas: [Viesu galerija](guest-gallery.md).
 Event saraksta pogu līdzinājums: statusa laukam noteikts vienāds platums Active/Inactive rindās. Lokālā Chrome pārbaudē pie 390, 800 un 1280 px abu rindu Open/Delete grupu horizontālās koordinātas sakrīt. Production pārbaude vēl nav veikta.
+12.09.2026. lokālais papildinājums: ZIP/eventu pārslēgšanas aizsardzība, uploading/Retry upload, retryable Storage tīrīšana, nākotnes eventu vadība, Europe/Riga datumi un reproducējami testi. Pirms publicēšanas jāpalaiž 20260912_media_reliability.sql; production tests vēl nav veikts. Aktuālā uzvedība un testu robežas: [Uzticamības labojumi](reliability.md).
+# 2026-09-12: precise event clocks and automatic time zones
+
+- Local `npm test` and `npm run build` passed after adding clock fields.
+- SQL tests cover the exact upload end boundary, same-day sharing, old all-day
+  events, Riga/New York conversion, invalid zones, DST clock changes and ZIP
+  schedule protection. UI checks cover organizer editing at 390/1280px and
+  guest heading layout at 320/390/430/768/1280px.
+- Time zones are captured automatically, not displayed as a control or label.
+- User confirmed `20260912_r2_id_folders.sql`: Success. No rows returned.
+- User confirmed `20260912_event_times.sql`: Success. No rows returned.
+  A read-only REST request for the new clock/time-zone columns returned HTTP 200.
+  Worker CORS returned 204 with the production origin; Netlify and local preview
+  both returned HTTP 200. `npm test`, build and release checks passed again.
+  These are smoke checks, not a full production regression pass; real-device
+  timed upload/sharing still needs a test. User handles Netlify deploy manually
+  and confirmed automatic deploys are disabled.
+- Existing views need refresh at a period boundary. Legacy photo migration
+  and old missing-thumbnail recovery remain separate work.

@@ -1,5 +1,7 @@
 # Event Photo SaaS MVP arhitektūra
 
+12.09.2026. laidiens: [privāta R2 glabāšana](r2-storage.md), Cloudflare Worker piegādei/piekļuves pārbaudei, Supabase Auth/DB paliek. Production konfigurācijā jaunie faili izmanto R2, vecie faili saglabā lasīšanas saderību ar Supabase. Vēsturiskā Supabase arhitektūra zemāk attiecas uz vecajiem failiem un sākotnējo versiju.
+
 ## Mērķis
 
 Event Photo SaaS MVP ir photo-only risinājums pasākumu fotogrāfiju apkopošanai. Organizators izveido pasākumu, saņem unikālu viesu saiti un QR kodu, bet viesi bez konta var uzņemt un augšupielādēt foto. Organizators pēc pieslēgšanās savā kontā redz tikai savus pasākumus un tiem piesaistītās galerijas.
@@ -304,3 +306,4 @@ Pēc testa arhitektūrā tika nostiprināti šādi risinājumi:
 
 Šīs funkcijas var pievienot pēc prakses, ja produkts tiek attīstīts tālāk.
 Papildinājums: izvēles viesu galerija izmanto esošo saiti un publisku Edge Function ar SQL piekļuves kontroli. Privātās organizatora galerijas RLS netiek atvērtas viesiem. Skatīt [Viesu galeriju](guest-gallery.md).
+12.09.2026. lokālais papildinājums: ZIP/eventu pārslēgšanas aizsardzība, uploading/Retry upload, retryable Storage tīrīšana, nākotnes eventu vadība, Europe/Riga datumi un reproducējami testi. Pirms publicēšanas jāpalaiž 20260912_media_reliability.sql; production tests vēl nav veikts. Aktuālā uzvedība un testu robežas: [Uzticamības labojumi](reliability.md).

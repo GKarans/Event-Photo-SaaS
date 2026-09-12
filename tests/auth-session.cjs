@@ -15,6 +15,7 @@ const context = {
     supabase: { auth: { signOut: async () => {}, signInWithPassword: async () => ({ data: { session: { user: { id: 'A', email: 'test@example.com' } } } }) } },
     history: { replaceState() {} }, setPageMode() {}, setAuthMode() {}, hideMessage() {},
     showMessage() {}, setButtonLoading() {}, renderEvents() {}, showEventsList() {}, console,
+    resetOrganizerRequests() {},
 };
 for (const name of ['authPanel', 'authConfirmationPanel', 'passwordResetPanel', 'passwordResetSuccessPanel', 'dashboardPanel', 'guestPanel', 'dashboardTitle', 'userEmail', 'firstNameInput', 'lastNameInput', 'emailInput', 'passwordInput', 'submitButton']) context[name] = element();
 context.emailInput.value = 'test@example.com';

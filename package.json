@@ -3,11 +3,30 @@
   "version": "1.0.0",
   "description": "Photo-only event gallery SaaS MVP",
   "main": "script.js",
+  "type": "module",
   "scripts": {
-    "test": "node --check script.js && node --check guest-gallery.js && node tests/auth-session.cjs",
-    "test:gallery-sql": "node tests/gallery-sql.cjs"
+    "build": "npm run prepare:webp && node scripts/build-site.mjs",
+    "prepare:webp": "node scripts/prepare-webp.mjs",
+    "postinstall": "node scripts/prepare-webp.mjs",
+    "test": "npm run test:unit && npm run test:sql && npm run test:ui",
+    "test:unit": "node --check script.js && node --check guest-gallery.js && node --check reliability.js && node tests/auth-session.cjs && node tests/reliability.cjs && node tests/r2-worker.cjs && node tests/r2-client.cjs",
+    "test:sql": "node tests/gallery-sql.cjs && node tests/media-sql.cjs && node tests/r2-sql.cjs && node tests/event-times.cjs",
+    "test:r2": "node --check cloudflare/media-worker.js && node --check r2-storage.js && node --check scripts/migrate-r2.mjs && node tests/r2-worker.cjs && node tests/r2-client.cjs && node tests/r2-sql.cjs",
+    "test:ui": "node tests/gallery-ui.cjs && node tests/organizer-ui.cjs && node tests/guest-heading.cjs && node tests/webp-ui.cjs",
+    "test:gallery-sql": "node tests/gallery-sql.cjs",
+    "start": "node scripts/preview.cjs"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.8",
+    "playwright": "1.63.0",
+    "wrangler": "4.131.1"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "3.1131.0",
+    "@aws-sdk/s3-request-presigner": "3.1131.0",
+    "@jsquash/webp": "1.5.0"
+  }
 }
