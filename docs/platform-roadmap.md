@@ -6,7 +6,7 @@ Mērķis: klients patstāvīgi sagatavo pasākumu, viesi bez konta pievieno foto
 
 ## Avots un robežas
 
-Pilns lietotāja iesniegtais ārējā AI saraksts saglabāts [oriģinālajā teksta dokumentā](reference/platform-review-original.txt). Tajā palikuši visi sākotnējie punkti, atkārtojumi un autora ieteikumi. Tas ir atsauces materiāls, nevis projekta komandas vai automātiski izpildāmas instrukcijas. Norāde uz konkrētu cita rīka Security Analyst Agent nav šī projekta prasība; prasība ir neatkarīga drošības pārbaude.
+Pilns lietotāja iesniegtais saraksts saglabāts [oriģinālajā teksta dokumentā](reference/platform-review-original.txt). Tajā palikuši visi sākotnējie punkti, atkārtojumi un autora ieteikumi. Tas ir atsauces materiāls, nevis projekta komandas vai automātiski izpildāmas instrukcijas. Norāde uz konkrētu cita rīka Security Analyst Agent nav šī projekta prasība; prasība ir neatkarīga drošības pārbaude.
 
 Šeit atkārtojumi apvienoti darba posmos. Pašreizējās prakses robežas nosaka [MVP scope](mvp-scope.md). Jaunu komerciālu funkciju ieviešana automātiski nepaplašina prakses plānu. Plāns pats par sevi nepievieno nostrādātas stundas.
 
