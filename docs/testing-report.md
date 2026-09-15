@@ -2,6 +2,15 @@
 
 ## 15.09.2026. R2 lasāmie nosaukumi — lokālā regresija
 
+Tajā pašā dienā atkārtoti izturēts pilnais `npm test` un build. Papildus veikts
+anonīms production smoke: sākumlapa/Auth maršruti HTTP 200, Worker preflight 204,
+trīs pārbaudītie JavaScript faili sakrīt ar lokālo build. Chromium login lapa
+390/1280 px bez pageerror un horizontālas pārplūdes; ekrānattēli vizuāli pārskatīti.
+HTML SHA256 nesakrīt; publicētajā HTML konstatēta Netlify metadatu injekcija.
+Tas nav pilnas HTML ekvivalences vai autorizētas E2E plūsmas apstiprinājums.
+[Mašīnlasāms pierādījums](evidence/20260915/public-smoke.json),
+[prakses gala testa pārskats](practice/11-final-testing.md).
+
 - `npm test`: izturēti unit, SQL un Playwright UI testi.
 - `npm run build`: izveidots `dist` bez servera koda, dokumentācijas un vides failiem.
 - Pēc papildu nosaukumu testiem atkārtots `npm run test:r2`: izturēts.
