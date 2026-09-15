@@ -1,0 +1,76 @@
+{
+  "recordedAt": "2026-09-15T17:54:36.950Z",
+  "scope": "Anonymous read-only public smoke; not authenticated E2E or physical-device testing",
+  "checks": [
+    {
+      "name": "GET /",
+      "status": "PASS",
+      "httpStatus": 200,
+      "contentType": "text/html; charset=UTF-8"
+    },
+    {
+      "name": "GET /auth/confirmed",
+      "status": "PASS",
+      "httpStatus": 200,
+      "contentType": "text/html; charset=UTF-8"
+    },
+    {
+      "name": "GET /auth/reset-password",
+      "status": "PASS",
+      "httpStatus": 200,
+      "contentType": "text/html; charset=UTF-8"
+    },
+    {
+      "name": "Published asset index.html",
+      "status": "REVIEW",
+      "httpStatus": 200,
+      "localSha256": "4a4c1aaacac3c0eddbb747facff41394a4263a95a056d666eb983ee26ab9fadb",
+      "publishedSha256": "70cd832c832adee6ca5a358e2e2958b354ea26cab56c8b81b7b292597241fee6"
+    },
+    {
+      "name": "Published asset script.js",
+      "status": "PASS",
+      "httpStatus": 200,
+      "localSha256": "bd8fb0c218ea08633753cb425968486e8d30707153821b4ba0a6000cc62f3975",
+      "publishedSha256": "bd8fb0c218ea08633753cb425968486e8d30707153821b4ba0a6000cc62f3975"
+    },
+    {
+      "name": "Published asset storage-config.js",
+      "status": "PASS",
+      "httpStatus": 200,
+      "localSha256": "55f29a27886c8a2593ec7e15e2f10569e5cc5114d7c2f29b4320785a675c7c41",
+      "publishedSha256": "55f29a27886c8a2593ec7e15e2f10569e5cc5114d7c2f29b4320785a675c7c41"
+    },
+    {
+      "name": "Published asset r2-storage.js",
+      "status": "PASS",
+      "httpStatus": 200,
+      "localSha256": "5db0c0792a6ca662a648ccbfdf82394c0028e965ed2b629824c5540ff7333c32",
+      "publishedSha256": "5db0c0792a6ca662a648ccbfdf82394c0028e965ed2b629824c5540ff7333c32"
+    },
+    {
+      "name": "Worker production-origin preflight",
+      "status": "PASS",
+      "httpStatus": 204,
+      "allowedOrigin": "https://event-photo-saas.netlify.app"
+    },
+    {
+      "name": "Public login Chromium 390px",
+      "status": "PASS",
+      "loginVisible": true,
+      "horizontalOverflow": false,
+      "errors": []
+    },
+    {
+      "name": "Public login Chromium 1280px",
+      "status": "PASS",
+      "loginVisible": true,
+      "horizontalOverflow": false,
+      "errors": []
+    }
+  ],
+  "screenshots": [
+    "production-login-390.png",
+    "production-login-1280.png"
+  ]
+}
