@@ -1,5 +1,25 @@
 # Event Photo SaaS MVP testēšanas pārskats
 
+## 15.09.2026. R2 lasāmie nosaukumi — lokālā regresija
+
+- `npm test`: izturēti unit, SQL un Playwright UI testi.
+- `npm run build`: izveidots `dist` bez servera koda, dokumentācijas un vides failiem.
+- Pēc papildu nosaukumu testiem atkārtots `npm run test:r2`: izturēts.
+- PGlite pārbaudīti organizer/event/guest nosaukumi kopā ar UUID, UTC laiks,
+  foto un thumbnail pāris, cover ceļš, latviešu burtu normalizācija, ceļu
+  rakstzīmju tīrīšana, 60 rakstzīmju etiķetes robeža un tukša vārda fallback.
+- Pārbaudīta migrācijas atkārtota izpilde, veco rezervāciju ceļu saglabāšana un
+  nosaukuma momentuzņēmuma saglabāšana pēc profila/pasākuma/viesa pārdēvēšanas.
+- SQL un Worker negatīvie autorizācijas testi izturēti. Pārlūka testi izmanto
+  lokālu/imitētu servisu vidi, nevis īstus production kontus.
+- Jaunā SQL migrācija production vidē šajā darbā nav palaista. Reāls jauno ceļu
+  R2 PUT, production ZIP/dzēšana un kontu A/B pārbaude vēl jāveic.
+- Lietotājs ziņojis, ka iPhone testā viss darbojās un lietošana bija saprotama;
+  ierīce, faktiskā testa diena un pilns scenāriju saraksts vēl nav norādīts.
+
+Ieviešana: [R2 lasāmā struktūra](r2-readable-storage.md).
+Prakses uzskaite: [noslēguma plāns](practice-completion-plan.md).
+
 ## 12.09.2026. centrējums un izvēles R2
 
 Lietotāja 17:51 testa pierādījums: jaunais foto redzams organizatora galerijā līdzās vecajiem Supabase foto; privātajā `app-images` bucket redzami divi `image/webp` objekti (10.64 KB un 56.51 KB). Tas apstiprina vienu reālu R2 upload ar thumbnail un galerijas lasīšanu. Pēc lietotāja pieprasījuma sagatavota production konfigurācija. Veco failu kopēšana/dzēšana, pilns Android/iPhone, A/B, ZIP un expiry production retests nav veikts. Izplatījuma tests pārbauda R2 origin izvēli un servera/.env failu neiekļaušanu `dist`.
