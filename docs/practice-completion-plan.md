@@ -15,6 +15,11 @@ Kalendāra plāns ir izpildāms, bet faktiskos datumus un ilgumu vēl jāfiksē.
 
 ## Atlikušie darbi
 
+15.09.2026. sagatavoti atsevišķi [11.–21. darba materiāli un dienasgrāmatas
+teksti](practice/README.md), atkārtoti lokālie testi un publisks production
+smoke ar ekrānattēliem. Detalizētais izpildes statuss ir jaunajā materiālu indeksā.
+Zemāk saglabāts sākotnējais plāns un lietotāja stundu sadalījums.
+
 Stundas zemāk ir **plānotas**, nevis automātiski nostrādātas. Dokumenta
 sagatavošana vai testa palaišana pati par sevi neapstiprina visu stundu apjomu.
 
