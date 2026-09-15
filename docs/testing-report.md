@@ -1,5 +1,19 @@
 # Event Photo SaaS MVP testēšanas pārskats
 
+## 15.09.2026. Netlify build regresija
+
+Lietotāja production logā commitam `344df27` build pārtrūka ar
+`Unexpected build output: netlify.toml`. Konfigurācijas fails bija nonācis
+`dist`; iepriekšējā lokālā mapē tā nebija, tāpēc lokālais build izturēja.
+Faila nonākšanas cēlonis nav noteikts. Build tagad noņem tikai parastu
+`dist/netlify.toml` failu; saknes konfigurācija un pārējā allowlist aizsardzība
+paliek neskarta. Direktorija vai saite ar šo nosaukumu netiek dzēsta.
+
+`npm run test:build` izturēts izolētā pagaidu vidē: tīrs/atkārtots build,
+Netlify konfigurācijas atlikums, saknes faila saglabāšana, `.env` noraidīšana
+un neparasta `netlify.toml` direktorija. `npm run build` izturēts.
+Production labojuma apstiprināšanai nepieciešams jauns veiksmīgs Netlify deploy.
+
 ## 15.09.2026. R2 lasāmie nosaukumi — lokālā regresija
 
 Tajā pašā dienā atkārtoti izturēts pilnais `npm test` un build. Papildus veikts

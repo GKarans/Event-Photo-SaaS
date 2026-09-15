@@ -1,8 +1,17 @@
-import { mkdir, copyFile, readdir } from 'node:fs/promises';
+import { mkdir, copyFile, readdir, lstat, unlink } from 'node:fs/promises';
 
 const root = new URL('../', import.meta.url);
 const target = new URL('../dist/', import.meta.url);
 await mkdir(target, { recursive: true });
+// Netlify builds can leave this config in the publish directory. Never serve it.
+const publishConfig = new URL('netlify.toml', target);
+try {
+    const stat = await lstat(publishConfig);
+    if (!stat.isFile()) throw new Error('Unexpected non-file build output: netlify.toml');
+    await unlink(publishConfig);
+} catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+}
 const files = ['index.html', 'style.css', 'favicon.svg', 'script.js', 'guest-gallery.js',
     'reliability.js', 'r2-storage.js', 'storage-config.js', 'event-timing.js', 'webp-encode.js', 'webp-worker.js'];
 // Fail on unexpected leftovers instead of publishing unknown files or deleting local work.
