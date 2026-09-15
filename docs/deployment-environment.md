@@ -1,250 +1,81 @@
-# Darbināšanas vides apraksts
-
-R2 Worker publicēts, lietotājs apstiprinājis SQL un pirmo īsto upload/galerijas testu. Production konfigurācija ieslēgta pēc lietotāja pieprasījuma; veco foto migrācija vēl nav veikta. [Worker secrets, CORS, SQL, migrācijas un rollback instrukcija](r2-storage.md). Netlify build: `npm run build`, publish: `dist`, Node 22. Izplatījumā ir tikai frontend un WebP runtime faili.
-
-## Dokumenta mērķis
-
-Šis dokuments apraksta Event Photo SaaS MVP darbināšanas vidi: Netlify hostingu, Supabase backend konfigurāciju, GitHub repozitoriju, Auth iestatījumus, Storage konfigurāciju un deploy kārtību.
-
-Dokuments paredzēts prakses pierādījumam un projekta uzturēšanai pēc praktiskā testa.
-
-## Vides pārskats
-
-MVP sastāv no trim galvenajām ārējām vidēm:
-
-- GitHub - projekta koda glabāšanai un versiju kontrolei;
-- Netlify - statiskās frontend lietotnes hostēšanai;
-- Supabase - Auth, Database un Storage funkcijām.
-
-Frontend ir statiska HTML/CSS/JavaScript lietotne. Netlify neveic servera loģiku. Supabase nodrošina visu datu un failu drošības slāni.
-
-## GitHub
-
-GitHub repozitorijs:
-
-- `GKarans/Event-Photo-SaaS`
-
-Galvenais branch:
-
-- `main`
-
-GitHub tiek izmantots:
-
-- koda versiju kontrolei;
-- pierādījumam par paveiktajiem prakses darbiem;
-- commit vēsturei pa posmiem;
-- Netlify automātiskajam deploy no `main` branch.
-
-Darba kārtība:
-
-1. Izmaiņas tiek veiktas lokāli.
-2. Tiek palaistas pārbaudes, piemēram `node --check script.js`.
-3. Tiek izveidots loģisks Git commit.
-4. Kad izmaiņas ir gatavas publicēšanai, tās tiek pushotas uz `main`.
-5. Netlify paņem jaunāko `main` branch stāvokli un veic production deploy.
-
-## Netlify
-
-Production URL:
-
-- `https://event-photo-saas.netlify.app`
-
-Netlify funkcija šajā MVP:
-
-- hostēt frontend failus;
-- nodrošināt publisku HTTPS adresi;
-- apstrādāt route pāradresācijas uz `index.html`.
-
-Build konfigurācija:
-
-- build command: nav vajadzīgs;
-- publish directory: projekta sakne `.`.
-
-Route konfigurācija atrodas `netlify.toml`:
-
-```toml
-[build]
-publish = "."
-
-[[redirects]]
-from = "/event/*"
-to = "/index.html"
-status = 200
-
-[[redirects]]
-from = "/auth/*"
-to = "/index.html"
-status = 200
-```
-
-Šī konfigurācija ir nepieciešama, jo lietotne izmanto frontend route:
-
-- `/event/{slug}` guest linkiem;
-- `/auth/confirmed` e-pasta apstiprināšanas rezultātam.
-- `/auth/reset-password` drošai paroles atjaunošanai.
-
-Bez šīm pāradresācijām Netlify mēģinātu atrast fizisku mapi vai failu un refresh/QR atvēršana varētu beigties ar 404.
-
-## Supabase
-
-Supabase projekta publiskā adrese:
-
-- `https://ojcvnsbhphvijmzjfenl.supabase.co`
-
-Supabase funkcijas MVP:
-
-- organizatoru autentifikācija;
-- datubāzes tabulas `users`, `events`, `guests`, `media`;
-- privāts Storage bucket foto failiem;
-- RLS un Storage policies piekļuves kontrolei.
-
-Supabase SQL shēma atrodas:
-
-- `supabase/schema.sql`
-
-SQL shēma jāpalaiž Supabase SQL Editorā pēc datubāzes izmaiņām. Tā satur tabulas, indeksus, RLS policies, Storage bucket konfigurāciju un Auth trigger funkciju organizatora profila izveidei.
-
-## Auth Settings
-
-Supabase Authentication konfigurācijā jābūt:
-
-- Signups enabled;
-- Confirm email enabled;
-- Site URL: `https://event-photo-saas.netlify.app`;
-- Redirect URL: `https://event-photo-saas.netlify.app/auth/confirmed`;
-- Redirect URL: `https://event-photo-saas.netlify.app/auth/reset-password`;
-- minimālais paroles garums: vismaz 8 simboli;
-- required characters: cipari, mazie un lielie burti, simboli;
-- ieslēgts `Password changed` drošības paziņojums, lai lietotājs saņemtu e-pastu pēc paroles maiņas.
-
-Frontend reģistrācijas kods izmanto `emailRedirectTo`, lai e-pasta apstiprināšana atgrieztu lietotāju production lapā, nevis `localhost`.
-
-Paroles atjaunošanas kods izmanto `resetPasswordForEmail` ar production `redirectTo`. Reset lapā jaunā parole jāievada divas reizes, un pēc veiksmīga `updateUser` lietotājs tiek izrakstīts un novirzīts uz login plūsmu. Frontend pārbauda vismaz 8 simbolus, lielo un mazo burtu, ciparu un simbolu; Supabase Auth iestatījumi paliek servera puses kontrole.
-
-MVP Auth princips:
-
-- organizatoram vajag kontu;
-- viesim kontu nevajag;
-- viesis piekļūst eventam tikai caur konkrēto QR/guest linku.
-
-## Database
-
-Galvenās tabulas:
-
-- `users` - organizatora profils;
-- `events` - organizatora eventi;
-- `guests` - viesu ieraksti konkrētā eventā;
-- `media` - foto metadati un Storage ceļš.
-
-Svarīgākie drošības principi:
-
-- RLS ir ieslēgts visām galvenajām tabulām;
-- organizators redz tikai savus eventus;
-- organizators redz tikai savu eventu viesus un foto;
-- viesis var izveidot `guests` un `media` ierakstu tikai aktīvam eventam;
-- event pieejamība tiek pārbaudīta pēc `Europe/Riga` datuma ar `public.current_app_date()`.
-
-## Storage
-
-Storage bucket:
-
-- `event-photos`
-
-Bucket konfigurācija:
-
-- private bucket;
-- maksimālais foto izmērs: 6 MB;
-- atļautie formāti: `image/jpeg`, `image/png`, `image/webp`, `image/gif`, `image/heic`, `image/heif`.
-
-Storage ceļa struktūra:
-
-```text
-event-name-1234/
-  guest-name-5678/
-    guest-name_2026-08-16_14-37-11.jpg
-    thumb_guest-name_2026-08-16_14-37-11.jpg
-event-covers/
-  event-name-1234/
-    cover_2026-08-31_18-45-20.jpg
-```
-
-Storage piekļuves princips:
-
-- viesis var tikai augšupielādēt foto aktīvam eventam;
-- viesis neredz Storage failu sarakstu;
-- organizators var lasīt un dzēst tikai sava eventa Storage failus;
-- galerijas grid izmanto īslaicīgas signed URLs thumbnail failiem;
-- oriģinālie foto tiek pieprasīti tikai preview, dzēšanai un ZIP sagatavošanai;
-- cover attēli tiek izmantoti tikai konkrētā eventa guest ekrānam.
-
-## Environment variables un secrets
-
-Frontendā drīkst būt tikai Supabase publishable/anon key, jo tā ir paredzēta lietošanai klienta pusē kopā ar RLS.
-
-Repo nedrīkst glabāt:
-
-- Supabase service role key;
-- privātas API atslēgas;
-- Dropbox vai citu servisu secrets;
-- paroles vai refresh tokenus.
-
-Iepriekšējie Dropbox env mainīgie MVP versijā vairs netiek izmantoti, jo foto plūsma pārcelta uz Supabase Storage.
-
-## Deploy kārtība
-
-Standarta deploy process:
-
-1. Pārbaudīt lokālo Git statusu ar `git status -sb`.
-2. Veikt koda vai dokumentācijas izmaiņas.
-3. Palaist tehnisko pārbaudi:
-   - `node --check script.js`, ja mainīts JavaScript;
-   - `git diff --check`, lai pārbaudītu formatēšanas kļūdas.
-4. Izveidot Git commit ar skaidru nosaukumu.
-5. Push uz GitHub `main` branch.
-6. Netlify automātiski sāk production deploy.
-7. Pēc deploy pārbaudīt production lapu:
-   - login;
-   - event list;
-   - event detail;
-   - guest link;
-   - QR;
-   - upload;
-   - gallery;
-   - ZIP download pēc eventa beigām.
-
-Ja mainīta Supabase SQL shēma, tad pirms production testa:
-
-1. Palaist aktuālo `supabase/schema.sql` Supabase SQL Editorā.
-2. Pārbaudīt, ka policies ir izveidotas bez kļūdām.
-3. Tikai tad testēt production frontend plūsmu.
-
-## Darbināšanas riski
-
-Svarīgākie riski:
-
-- Netlify deploy nav jaunākais, ja commit ir tikai lokāli vai GitHub push nav veikts;
-- Supabase SQL shēma nav palaista pēc policy izmaiņām;
-- e-pasta confirmation link atver nepareizu URL, ja Auth settings nav pareizi;
-- paroles reset link atver nepareizu vai nederīgu lapu, ja reset redirect nav Auth allow list;
-- viesu upload var tikt bloķēts, ja events nav aktīvs vai ir ārpus perioda;
-- galerijas ielāde kļūst lēnāka pie lielāka foto skaita;
-- Supabase egress var pieaugt, ja bieži tiek ielādēti oriģinālie foto vai atkārtoti veidots ZIP.
-
-Risinājumi:
-
-- salīdzināt Netlify production commit ar GitHub jaunāko commit;
-- pēc SQL izmaiņām vienmēr palaist pilnu aktuālo shēmu vai konkrētu migration bloku;
-- uzturēt pareizu Site URL un Redirect URL Supabase Auth konfigurācijā;
-- ieslēgt Supabase paroles maiņas drošības paziņojumu un production vajadzībām konfigurēt SMTP;
-- pirms testa pārbaudīt event statusu un datuma periodu;
-- optimizēt galeriju ar thumbnails, signed URL batch pieprasījumiem, cache un lazy loading;
-- ierobežot ZIP lejupielādi līdz vienai reizei pēc eventa beigām;
-- samazināt augšupielādējamo foto izmēru ar client-side optimizāciju.
-
-## Praktiskais secinājums
-
-MVP darbināšanas vide ir vienkārša un piemērota prakses projektam: GitHub nodrošina versiju kontroli, Netlify nodrošina production frontend, bet Supabase nodrošina autentifikāciju, datubāzi, Storage un piekļuves kontroli.
-
-Šāda arhitektūra ļauj uzturēt produktu bez atsevišķa servera, vienlaikus saglabājot pietiekamu drošības līmeni ar RLS un privātu Storage bucket.
-Papildinājums: viesu galerijai pirms frontend deploy papildus schema.sql jāpalaiž migrācija un jāizvieto guest-gallery Edge Function. Precīza kārtība: [Viesu galerija](guest-gallery.md).
-12.09.2026. lokālais papildinājums: ZIP/eventu pārslēgšanas aizsardzība, uploading/Retry upload, retryable Storage tīrīšana, nākotnes eventu vadība, Europe/Riga datumi un reproducējami testi. Pirms publicēšanas jāpalaiž 20260912_media_reliability.sql; production tests vēl nav veikts. Aktuālā uzvedība un testu robežas: [Uzticamības labojumi](reliability.md).
+# Darbināšanas vide
+Aktualizēts 15.09.2026. pēc lokālā koda un publiskās production pārbaudes.
+Attiecas uz sākotnējo MVP, nevis atsevišķo Lumiq projektu.
+
+## Sastāvdaļas
+| Vide | Atbildība |
+|---|---|
+| GitHub GKarans/Event-Photo-SaaS, main | Kods, migrācijas, testi un dokumentācija |
+| Netlify event-photo-saas.netlify.app | Frontend, HTTPS, Event/Auth maršruti |
+| Supabase | Auth, PostgreSQL, RLS, guest-gallery funkcija un vecie Storage faili |
+| Cloudflare Worker event-photo-media | Autorizācija un R2 mediju operācijas |
+| R2 app-images | Jaunie optimizētie foto, thumbnails un vāki |
+
+Service-role un R2 secrets paliek tikai serverī. Worker izmanto privileģētu
+piekļuvi, tāpēc tam pašam obligāti jāpārbauda lietotājs un tiesības.
+
+## Lokālā vide un Netlify
+Node 22; atkarības uzstāda ar `npm ci`.
+Pārbaudes: `npm test`, `npm run build`. Preview: `npm start`.
+`netlify.toml`: build `npm run build`, publish `dist`, Node 22.
+`/event/*` un `/auth/*` tiek apkalpoti ar `index.html`.
+Projekta sakni publicēt nedrīkst: tajā ir servera kods un dokumentācija.
+Build izmanto atļauto failu sarakstu, pārbauda negaidītus failus un kopē WebP runtime.
+
+Lietotājs norādījis, ka deploy veic manuāli un automātiskā publicēšana ir izslēgta.
+Pašreizējais Netlify paneļa iestatījums nav neatkarīgi pārbaudīts.
+Git push pats negarantē jaunāku production versiju.
+`node scripts/practice-smoke.cjs` lasa publisko production vidi un saglabā
+pierādījumus `docs/evidence/20260915`; neveido kontus un nemaina pasākumus.
+
+## Supabase un SQL
+Tukšai datubāzei paredzēta `supabase/schema.sql`, pēc tam migrācijas atbilstoši
+to priekšnosacījumiem. Esošā datubāzē izpilda konkrēto jauno migrāciju, nevis
+akli pārraksta visu shēmu.
+R2 lasāmiem ceļiem pēc esošās R2 storage un ID folders konfigurācijas izpilda
+`20260914_r2_readable_folders.sql`. Tās production apstiprinājums vēl nav saņemts.
+
+Auth Site URL: `https://event-photo-saas.netlify.app`.
+Redirect ceļi: `/auth/confirmed` un `/auth/reset-password`.
+Allowlist un e-pastu piegāde jāpārbauda panelī un reālā plūsmā.
+Galvenās saistības: users → events → guests/media. Pieeju ierobežo RLS un RPC.
+Precīzo event laiku uzvedība: [event-times.md](event-times.md).
+Koda konfigurācija nav pierādījums reālās datubāzes konfigurācijai.
+
+## Mediji
+`storage-config.js` aktivizē R2 production origin un `http://127.0.0.1:5604`.
+Lokāla lietotnes lietošana šajā origin var skart īstos servisus; automatizētie
+testi ārējos servisus imitē.
+`cloudflare/wrangler.toml` satur neslepeno bucket, endpoint un CORS konfigurāciju.
+R2 bucket jāpaliek privātam.
+Jaunās mapes: organizators+ID/pasākums+ID/viesis+ID/foto.
+[Detalizēta migrācijas kārtība](r2-readable-storage.md).
+Vecie Supabase `event-photos` un vecie R2 objekti netiek pārvietoti.
+Veco Supabase foto ielāde vēl var radīt Supabase egress.
+R2 neatceļ operāciju, Worker, storage vai datubāzes izmaksas.
+
+## Ieviešanas kārtība
+1. Pārskatīt diff; izpildīt `npm test`, `npm run build`, `git diff --check`.
+2. Sagatavot rezerves kopiju un izpildīt nepieciešamo SQL migrāciju.
+3. Ja mainīts Worker, pārbaudīt secrets nosaukumus, Wrangler dry-run un deploy.
+4. Ja mainīta guest-gallery funkcija, izvietot arī to; SQL viens pats nav funkcijas deploy.
+5. Izveidot loģiskus commitus un push.
+6. Manuāli Netlify izvietot pareizo commit, pierakstīt deploy ID.
+7. Izpildīt publisko smoke un autorizētā testa pasākuma pilnu plūsmu.
+8. Aizpildīt [production protokolu](production-acceptance-20260915.md).
+
+Dokumentācijas izmaiņas pašas par sevi neprasa Worker vai frontend deploy.
+
+## Atjaunošana pēc kļūdas
+Fiksēt kļūdas laiku, deploy ID un anonimizētu kļūdas tekstu.
+Frontend var atjaunot uz iepriekšēju deploy; tas neatceļ SQL migrāciju.
+Nedzēst objektus, lai slēptu neveiksmīgu upload. Pirms datubāzes atjaunošanas
+izvērtēt rezerves kopiju un pēc tās izveidotos jaunos datus.
+Retestēt vecu un jaunu foto lasīšanu.
+
+## Prakses 16. darba ieraksts
+Stundu apjoms pēc lietotāja plāna: **4 h**.
+Aktualizēts darbināšanas vides apraksts, novēršot novecojušus norādījumus par
+publicēšanu no projekta saknes, automātisku deploy un tikai Supabase Storage.
+Aprakstīta GitHub, Netlify, Supabase, R2 un Worker atbildība, migrāciju un
+publicēšanas secība un atjaunošanas riski.
