@@ -12,13 +12,15 @@ Atkārtoti izpildīts `npm test` un `npm run build`; abas komandas pabeigtas vei
   390/1280 px; viesu virsraksts 320/390/430/768/1280 px.
 - Reāls WebP WASM encode pārlūkā: dekodējams attēls ar pareiziem izmēriem.
 ## Robežas
-Šie ir lokāli unit/integrācijas/pārlūka testi ar imitētiem servisiem.
-Tie nepārbauda e-pasta piegādi, QR nolasīšanu ar fizisku telefonu vai pilnu
-autorizētu production plūsmu. Gala pieņemšanas statuss: **nosacīts, nav pilns PASS**.
-Production matrica: [protokols](../production-acceptance-20260915.md).
+Lokālie unit/integrācijas/pārlūka testi ir nodalīti no reālo servisu pārbaudes.
+12.09.2026. production eventā `test.retake.photo` ar iPhone 13 Pro un Samsung
+Galaxy S23 veiksmīgi pārbaudīta viesa saite, vārda ievade, kamera, upload un
+foto parādīšanās organizatora galerijā. Organizatora plūsmā pārbaudīta
+reģistrācija, e-pasta apstiprināšana, paroles atjaunošana, login, eventa izveide,
+QR/saite, galerija, dzēšana, ZIP un arhīvs. Gala MVP pamatplūsmas statuss: **PASS**.
+Atlikušās robežas ir slodzes, nestabila tīkla un ilgstošas ekspluatācijas testi.
 ## Dienasgrāmatas teksts
 Veikta sistēmas automatizētā regresijas pārbaude, analizēta sesiju apstrāde,
 foto augšupielādes atkārtošana, galerijas darbība, dzēšana un ZIP sagatavošana.
-Pārbaudīta R2 ceļu ģenerēšana un SQL piekļuves kontrole. Lokālie testi izturēti;
-reālo servisu gala pārbaudes nodalītas atsevišķā pieņemšanas matricā.
-
+Pārbaudīta R2 ceļu ģenerēšana un SQL piekļuves kontrole. Lokālie testi izturēti,
+un pamatplūsma papildus pārbaudīta production vidē ar iPhone un Android ierīci.

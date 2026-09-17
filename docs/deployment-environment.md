@@ -22,9 +22,10 @@ Pārbaudes: `npm test`, `npm run build`. Preview: `npm start`.
 Projekta sakni publicēt nedrīkst: tajā ir servera kods un dokumentācija.
 Build izmanto atļauto failu sarakstu, pārbauda negaidītus failus un kopē WebP runtime.
 
-Lietotājs norādījis, ka deploy veic manuāli un automātiskā publicēšana ir izslēgta.
-Pašreizējais Netlify paneļa iestatījums nav neatkarīgi pārbaudīts.
-Git push pats negarantē jaunāku production versiju.
+Netlify panelī automātiskā publicēšana ir bloķēta; production deploy tiek palaists
+manuāli pēc pareizā `main` commit izvēles. Git push pats par sevi negarantē, ka
+production jau darbojas jaunākā versija. 15.09.2026. paneļa un 17.09.2026.
+production pierādījumi ir indeksēti `docs/evidence/practice/`.
 `node scripts/practice-smoke.cjs` lasa publisko production vidi un saglabā
 pierādījumus `docs/evidence/20260915`; neveido kontus un nemaina pasākumus.
 
@@ -33,7 +34,8 @@ Tukšai datubāzei paredzēta `supabase/schema.sql`, pēc tam migrācijas atbils
 to priekšnosacījumiem. Esošā datubāzē izpilda konkrēto jauno migrāciju, nevis
 akli pārraksta visu shēmu.
 R2 lasāmiem ceļiem pēc esošās R2 storage un ID folders konfigurācijas izpilda
-`20260914_r2_readable_folders.sql`. Tās production apstiprinājums vēl nav saņemts.
+`20260914_r2_readable_folders.sql`. Production R2 panelī 15.09.2026. apstiprināta
+struktūra organizators+ID / pasākums+ID / viesis+ID un originala/thumbnail WebP pāris.
 
 Auth Site URL: `https://event-photo-saas.netlify.app`.
 Redirect ceļi: `/auth/confirmed` un `/auth/reset-password`.
@@ -61,7 +63,7 @@ R2 neatceļ operāciju, Worker, storage vai datubāzes izmaksas.
 4. Ja mainīta guest-gallery funkcija, izvietot arī to; SQL viens pats nav funkcijas deploy.
 5. Izveidot loģiskus commitus un push.
 6. Manuāli Netlify izvietot pareizo commit, pierakstīt deploy ID.
-7. Izpildīt publisko smoke un autorizētā testa pasākuma pilnu plūsmu.
+7. Izpildīt publisko smoke un autorizētā testa pasākuma pilnu plūsmu ar reālu telefonu.
 8. Aizpildīt [production protokolu](production-acceptance-20260915.md).
 
 Dokumentācijas izmaiņas pašas par sevi neprasa Worker vai frontend deploy.

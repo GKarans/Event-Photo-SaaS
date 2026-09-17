@@ -25,28 +25,28 @@ sagatavošana vai testa palaišana pati par sevi neapstiprina visu stundu apjomu
 
 | Nr. | Darbs | h | Pierādījums / statuss |
 |---|---|---:|---|
-| 11 | Pilnā MVP scenārija regresija | 7 | Lokālie testi; production gala matrica vēl jāaizpilda |
-| 12 | Auth URLs, RLS, R2, Netlify konfigurācija | 4 | Konfigurācijas ekrānattēli bez atslēgām; vēl jāpārbauda |
-| 13 | Production deploy un demonstrācijas vide | 4 | Deploy ID, datums un smoke tests; vēl jāveic |
-| 14 | Testētāju atsauksmju apkopošana | 4 | Sākotnējā lietotāja atsauksme zemāk; detaļas vēl jāprecizē |
-| 15 | Demonstrācijas scenāriji | 4 | Zemāk sagatavots scenārijs; izmēģinājums vēl jāveic |
+| 11 | Pilnā MVP scenārija regresija | 7 | Lokālie testi un production pamatplūsma izpildīta |
+| 12 | Auth URLs, RLS, R2, Netlify konfigurācija | 4 | Konfigurācija un paneļu ekrānattēli apkopoti |
+| 13 | Production deploy un demonstrācijas vide | 4 | Production smoke un demonstrācijas vide pārbaudīta |
+| 14 | Testētāju atsauksmju apkopošana | 4 | iPhone/Android atsauksme un rezultāti apkopoti |
+| 15 | Demonstrācijas scenāriji | 4 | Scenārijs un prezentācija sagatavota |
 | 16 | Darbināšanas vides dokumentēšana | 4 | R2 migrācijas pamācība sagatavota; pārējā konfigurācija jāpārbauda |
-| 17 | Android/iPhone production vizuālā pārbaude | 4 | iPhone rezultāts lietotāja ziņots; ierīce/datums jāprecizē |
-| 18 | Aizstāvēšanas sagatavošana | 4 | Jautājumi zemāk; praktiska izskaidrošana vēl jāizmēģina |
-| 19 | Atskaite: ievads un prakses vieta | 2 | Gaida lietotāja gala dokumentu un faktisko informāciju |
-| 20 | Atskaite: darbi, problēmas, risinājumi | 2 | Gaida gala dokumentu; izmantot reālos testus un commitus |
-| 21 | Secinājumi un pielikumi | 1 | Pēc gala pārbaudēm |
+| 17 | Android/iPhone production vizuālā pārbaude | 4 | 12.09. iPhone 13 Pro un Samsung S23 pārbaude izdevās |
+| 18 | Aizstāvēšanas sagatavošana | 4 | Jautājumi, tehniskais ceļvedis un prezentācija sagatavota |
+| 19 | Atskaite: ievads un prakses vieta | 2 | Atskaitei sagatavots saturs |
+| 20 | Atskaite: darbi, problēmas, risinājumi | 2 | Atskaitei sagatavots tehniskais apraksts |
+| 21 | Secinājumi un pielikumi | 1 | Secinājumi un pierādījumu indekss sagatavots |
 
-R2 ceļu labojumu nedrīkst mākslīgi ieskaitīt jau aizpildītajās programmēšanas
+R2 ceļu labojumu nedrīkst nepamatoti ieskaitīt jau aizpildītajās programmēšanas
 stundās vai pārsaukt par testēšanu. Ja tas maina kategoriju sadalījumu, saskaņot
 izmaiņas ar prakses vadītāju un uzskaitīt faktiski paveikto.
 
 ## Atsauksme
 
-Lietotājs 15.09.2026. sarunā ziņoja: iPhone testā viss strādāja, visi saprata
-lietošanu. Tas nav neatkarīgi atkārtots tests. Vēl vajag testa datumu, ierīces
-modeli, iOS/pārlūka versiju, testētos soļus un testētāju skaitu. Personu vārdus
-nav nepieciešams publicēt. Nefiksēt izdomātas atsauksmes vai ekrānattēlus.
+12.09.2026. production tests notika ar iPhone 13 Pro un Samsung Galaxy S23
+eventā `test.retake.photo`. Abās ierīcēs izdevās atvērt saiti, ievadīt vārdu,
+atvērt kameru, augšupielādēt foto un redzēt rezultātu galerijā. Testētāji
+norādīja, ka plūsma bija saprotama. Precīzas OS/pārlūku versijas nav fiksētas.
 
 ## Demonstrācijas secība
 

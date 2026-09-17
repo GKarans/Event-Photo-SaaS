@@ -21,11 +21,11 @@ R2 rezervāciju ieraksti ļauj atšķirt nepabeigtu augšupielādi no gatava obj
 ## Testēšana
 Izmantoti unit testi, PGlite SQL testi un Playwright UI testi. 15.09.2026.
 lokālais komplekts un build izturēti. Production publiskā smoke pārbaude
-nodalīta no autorizēta gala E2E. iPhone veiksmīgs tests ir lietotāja ziņots.
+nodalīta no autorizēta gala E2E. 12.09.2026. pamatplūsma veiksmīgi pārbaudīta
+ar iPhone 13 Pro un Samsung Galaxy S23.
 ## Pierādījumu avoti
 `docs/testing-report.md`, `docs/evidence/20260915/public-smoke.json`,
-`tests/`, Git commit vēsture un R2 migrācijas fails.
+`docs/evidence/practice/`, `tests/`, Git commit vēsture un SQL migrācijas.
 ## Dienasgrāmatas teksts
 Sagatavots veikto darbu apraksts, sasaistot tehnoloģijas, konkrētas problēmas,
 risinājumus un testēšanas pierādījumus. Atzīmētas production pārbaudes robežas.
-

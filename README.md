@@ -1,115 +1,159 @@
 # Event Photo SaaS
 
-Photo-only SaaS MVP pasakumu kopigai foto apkopošanai. Organizators izveido pasakumu, iegust viesu saiti un QR kodu, bet viesi bez konta var pievienot foto no telefona. Organizators pec tam savā privātajā galerijā redz, pārskata, dzēš un pēc pasākuma lejupielādē foto ZIP arhīvā.
+Photo-only SaaS MVP pasakumu kopigai fotografiju apkopsanai. Organizators izveido pasakumu, sanem viesu saiti un QR kodu, bet viesi bez konta var uznemt un pievienot foto no telefona. Pec pasakuma organizators sava privataja galerija var apskatit, filtret, dzest un lejupieladet foto ZIP arhiva.
 
-Production URL: https://event-photo-saas.netlify.app/
+Production vide: [event-photo-saas.netlify.app](https://event-photo-saas.netlify.app/)
 
-## Galvenās funkcijas
+## MVP statuss
 
-12.09.2026. laidiens: viesu virsrakstu centrējums un privāta R2 integrācija production un lokālajam 5604 origin. Worker publicēts, SQL migrācija un viens īsts upload/thumbnail/galerijas tests apstiprināts. Jaunie foto izmanto R2; vecie foto tiek lasīti arī no Supabase līdz atsevišķai verificētai migrācijai. [R2 uzstādīšana, statuss un pārbaudes](docs/r2-storage.md).
+Production pamatplusma ir parbaudita ar iPhone 13 Pro un Samsung Galaxy S23:
 
-12.09.2026. lokālie uzticamības labojumi: pilns ZIP neatkarīgi no filtriem, atkārtota sagatavotā ZIP saglabāšana atvērtajā sesijā, galerijas pieprasījumu aizsardzība, upload retry, uzskaitāma failu tīrīšana, atsevišķa eventa/dizaina rediģēšana un Refresh. Pirms frontend publicēšanas vajadzīga jaunā SQL migrācija. [Uzstādīšana, testi un ierobežojumi](docs/reliability.md).
+```text
+Register -> e-pasta apstiprinasana -> Login -> Create event -> QR/link
+-> Guest name -> Take Photo -> R2 upload -> Gallery -> Delete / ZIP
+```
 
-Login sesijas lokālo regresiju pārbauda `npm test`: pāreju no e-pasta apstiprināšanas/paroles atjaunošanas uz login, sesijas atvēršanu bez Auth paziņojuma un atkārtotu paziņojumu apstrādi. Šis tests izmanto imitētu Auth servisu; reāla e-pasta un production plūsma jāpārbauda atsevišķi.
+Jaunie foto tiek glabati privata Cloudflare R2 bucket. Supabase nodrosina autentifikaciju, PostgreSQL datubazi un piekluves noteikumus. Vecie Supabase Storage faili nav parvietoti un saglaba lasisanas saderibu.
 
-- Organizatora register, login, logout, paroles atjaunošana un sesijas saglabāšana.
-- Paroles atkārtošana, show/hide kontroles un 8+ simbolu drošības prasības.
-- Organizatora profils ar vārdu, uzvārdu un e-pastu.
-- Event izveide ar sākuma un beigu datumu.
-- Maksimālais event periods: 3 dienas.
-- Event aktivizēšana, deaktivizēšana un dzēšana.
-- Unikāla guest saite un QR kods katram eventam.
-- Guest flow bez konta: QR/link -> vārds -> Take Photo -> upload.
-- Guest UX pielāgošana: cover photo, title, subtitle, camera button text un cover pozīcija.
-- Mobile guest skats centrēts iPhone/Android viewportā ar safe-area atstarpi pārlūka apakšējai joslai.
-- Slēgta, neatrasta vai neielādējama eventa stāvoklis izmanto vienotu centrētu skatu Android, iOS un desktop izmēros.
-- Photo-only upload ar 6 MB limitu.
-- Client-side foto optimizācija un thumbnail ģenerēšana pirms upload.
-- Organizatora galerija ar thumbnails, preview, filtrēšanu pēc viesa un kārtošanu.
-- Foto dzēšana no organizatora galerijas.
-- ZIP lejupielāde tikai pēc eventa beigām un tikai vienu reizi.
-- Supabase RLS un Storage policies, lai organizators redz tikai savus datus.
+## Galvenas funkcijas
 
-## Tehnoloģijas
+- Organizatora registracija, e-pasta apstiprinasana, login, logout un paroles atjaunosana.
+- Organizatora profils ar vardu, uzvardu un e-pastu.
+- Pasakuma izveide ar precizu sakuma un beigu laiku.
+- Laika zona tiek noteikta automatiski; datubaze glaba viennozimigus UTC momentus.
+- Pasakuma aktivizesana, deaktivizesana un arhivesana.
+- Unikala viesu saite un lejupieladejams QR kods.
+- Viesa plusma bez konta: QR/link -> vards -> kamera -> upload.
+- Photo-only validacija, WebP optimizacija un thumbnail izveide parluka.
+- Jauno foto tiesa augšupielade privata R2 ar islaicigu presigned PUT adresi.
+- Organizatora galerija ar thumbnails, preview, viesu filtru un kartosanu.
+- Viesu galerijas kopigosana pec pasakuma ar organizatora noteiktu terminu.
+- Foto dzesana un pilna ZIP eksporta sagatavosana pec pasakuma.
+- Responsive mobile-first saskarne Android Chrome un iPhone Safari.
+- RLS un servera puses autorizacija organizatoru datu nodalisanai.
 
-- Frontend: HTML, CSS, JavaScript
-- Auth: Supabase Auth
-- Database: Supabase PostgreSQL
-- Storage: privāts Cloudflare R2 jaunajiem failiem; Supabase Storage vecajiem failiem līdz migrācijai
-- Media API: Cloudflare Worker ar Supabase autorizāciju
-- Hosting: Netlify
+## Tehnologijas
+
+- Frontend: HTML, CSS un JavaScript
+- Autentifikacija: Supabase Auth
+- Datubaze: Supabase PostgreSQL ar Row Level Security
+- Jauno foto glabasana: privats Cloudflare R2
+- Media API: Cloudflare Worker
+- Veco foto saderiba: privats Supabase Storage bucket `event-photos`
+- Hostings: Netlify
 - QR: `qrcode-generator`
 - ZIP: `JSZip`
+- Testi: Node.js, PGlite un Playwright
 
-## Projekta struktūra
+## Arhitekturas kopsavilkums
 
-Pēc prakses attīstības darbi, prioritātes un pieņemšanas kritēriji: [Platformas attīstības plāns](docs/platform-roadmap.md). Pilnais iesniegtais ieteikumu saraksts saglabāts [atsauces dokumentā](docs/reference/platform-review-original.txt). Nākotnes plāns nav jau ieviestu funkciju saraksts.
+```text
+Organizators / viesis
+        |
+        v
+Netlify statiskais frontend
+   |                 |
+   v                 v
+Supabase Auth/DB   Cloudflare Worker
+   |                 |
+   v                 v
+RLS un RPC        privats R2 bucket
+```
+
+Frontend satur tikai Supabase publishable key un publisku Worker URL. R2 atslēgas, Supabase service role key un media parakstisanas noslepums ir tikai Worker secretos.
+
+Detalizeti: [arhitektura](docs/architecture.md), [datu modelis](docs/database-model.md), [R2 integracija](docs/r2-storage.md).
+
+## Projekta struktura
 
 ```text
 .
-├── index.html
-├── style.css
-├── script.js
-├── netlify.toml
-├── supabase/
-│   └── schema.sql
-└── docs/
-    ├── architecture.md
-    ├── database-model.md
-    ├── deployment-environment.md
-    ├── mvp-scope.md
-    ├── security-rls.md
-    ├── testing-plan.md
-    ├── testing-report.md
-    └── user-flows.md
+|-- index.html
+|-- style.css
+|-- script.js
+|-- r2-storage.js
+|-- guest-gallery.js
+|-- reliability.js
+|-- storage-config.js
+|-- cloudflare/
+|   |-- media-worker.js
+|   `-- wrangler.toml
+|-- scripts/
+|-- supabase/
+|   |-- schema.sql
+|   `-- migrations/
+|-- tests/
+|-- docs/
+|-- netlify.toml
+`-- package.json
 ```
 
-## Lokāla palaišana
+## Lokala palaisana
 
-Šis MVP ir statiska frontend aplikācija, tāpēc build solis nav vajadzīgs.
-
-Ieteicamais variants:
+Prieks nosacijumi: Node.js 22 un instaletas pakotnes.
 
 ```bash
-npx netlify dev
+npm install
+npm start
 ```
 
-Alternatīva ar jebkuru statisko serveri:
+Atver terminala paradito adresi. Noklusejuma preview skripts izmanto `http://127.0.0.1:5604/`.
+
+Build parbaude:
 
 ```bash
-npx serve .
+npm run build
 ```
 
-Pēc palaišanas atver lokālo URL, piemēram:
+Build izveido publicejamo `dist/` direktoriju un parbauda, ka taja nav neparedzetu failu.
 
-```text
-http://127.0.0.1:8888/
+## Testesana
+
+Pilna lokala parbaude:
+
+```bash
+npm test
 ```
 
-## Supabase konfigurācija
+Atseviski R2 integracijas testi:
 
-1. Izveido Supabase projektu.
-2. Atver Supabase SQL Editor.
-3. Palaid pilno SQL failu:
+```bash
+npm run test:r2
+```
+
+Testu kopa parbauda:
+
+- statiskas vietnes build saturu;
+- Auth sesijas un redirect regresijas;
+- upload retry un finalize uzvedibu;
+- R2 Worker CORS, parakstus, piekluves liegumus un dzesanu;
+- SQL RLS/RPC robezas, eventa laikus un galerijas piekluvi;
+- organizatora un viesa galvenos UI stavoklus.
+
+Automatizeti testi neaizstaj production konfiguracijas un realu telefonu parbaudi. Praktiskais pieradijumu indekss: [docs/evidence/practice/README.md](docs/evidence/practice/README.md).
+
+## Supabase konfiguracija
+
+Jaunam projektam vispirms palaid:
 
 ```text
 supabase/schema.sql
 ```
 
-4. Pārbaudi, ka ir izveidotas tabulas:
-
-- `users`
-- `events`
-- `guests`
-- `media`
-
-5. Pārbaudi, ka Storage bucket ir:
+Esosam projektam migracijas japielieto hronologiska seciba:
 
 ```text
-event-photos
+20260911_guest_gallery.sql
+20260912_media_reliability.sql
+20260912_r2_storage.sql
+20260912_r2_id_folders.sql
+20260912_event_times.sql
+20260914_r2_readable_folders.sql
 ```
 
-6. Pārbaudi Supabase Auth iestatījumus:
+Pec izpildes parbaudi tabulas `users`, `events`, `guests`, `media`, `gallery_shares` un `r2_objects`, ka ari aktivu RLS. Veco failu saderibai bucket `event-photos` paliek privats.
+
+Auth production iestatijumi:
 
 ```text
 Site URL: https://event-photo-saas.netlify.app
@@ -118,103 +162,82 @@ https://event-photo-saas.netlify.app/auth/confirmed
 https://event-photo-saas.netlify.app/auth/reset-password
 ```
 
-Supabase Auth pusē jāiestata arī vismaz 8 simbolu paroles garums un jāieslēdz `Password changed` drošības paziņojums. Frontend pieprasa lielo burtu, mazo burtu, ciparu un simbolu, bet servera iestatījumi ir galīgā drošības kontrole.
+Repozitorija drikst atrasties tikai Supabase publishable key. Service role key, R2 access keys, paroles un citi noslepumi nedrikst but frontend koda vai Git vesture.
 
-Projektā drīkst izmantot tikai publishable/anon key. Nekad neliec GitHub repozitorijā service role key, passwords vai citus secrets.
+## Cloudflare R2 un Worker
+
+Production Worker:
+
+```text
+https://event-photo-media.gkarans-events.workers.dev
+```
+
+Worker pienakumi:
+
+- parbaudit organizatora JWT vai viesa galerijas piekluvi;
+- rezervet objektu ar servera RPC;
+- izveidot islaicigu presigned PUT adresi vienam objektam;
+- piegadat privatu originalu vai thumbnail tikai pec autorizacijas;
+- dzest R2 objektus un atjaunot datubazes stavokli.
+
+Uzstadisana un noslepumi aprakstiti [docs/r2-storage.md](docs/r2-storage.md). Slepenas vertibas dokumentacija nav publicetas.
 
 ## Netlify deploy
 
-Netlify iestatījumi:
+`netlify.toml` ir repozitorija un nosaka:
 
 ```text
-Build command: nav vajadzīgs
-Publish directory: projekta sakne
+Build command: npm run build
+Publish directory: dist
+Node version: 22
 Deploy branch: main
 ```
 
-`netlify.toml` nodrošina SPA redirect, lai strādā arī tiešās guest saites:
-
-```text
-/event/{slug}
-/auth/confirmed
-/auth/reset-password
-```
+SPA redirects nodrosina tiesas `/event/*` un `/auth/*` adreses. Production publicesana tiek veikta pec GitHub `main` atjauninasanas un veiksmiga Netlify build.
 
 ## Organizer flow
 
-1. Organizators reģistrējas ar vārdu, uzvārdu, e-pastu un paroli.
-2. Organizators apstiprina e-pastu.
-3. Ja parole aizmirsta, organizators izmanto `Forgot password?`, saņem reset saiti un izveido jaunu paroli produkta lapā.
-4. Organizators pieslēdzas dashboardā.
-5. Organizators izveido eventu.
-6. Organizators atver event detail skatu.
-7. Aktīvam eventam organizators nokopē guest linku vai lejupielādē QR kodu.
-8. Kad events ir inactive vai periods ir beidzies, guest linka un QR darbības vairs netiek rādītas.
-9. Organizators pēc eventa beigām pārskata galeriju un lejupielādē ZIP.
-10. Delete event galvenajā sarakstā pārvieto eventu uz `Archive`, nevis uzreiz fiziski dzēš failus.
-11. `Archive` pogā zem `Logout` organizators redz arhivētos eventus ar nosaukumu un periodu.
+1. Organizators registrejas un apstiprina e-pastu.
+2. Piesledzas dashboard un izveido pasakumu.
+3. Norada precizu sakuma/beigu laiku un pielago viesa dizainu.
+4. Nokopē viesa saiti vai lejupielade QR kodu.
+5. Pec pasakuma apskata galeriju, dzes nevajadzigos foto un sagatavo ZIP.
+6. `Delete` no galvena saraksta pasakumu parvieto uz arhivu, nevis uzreiz fiziski dzes failus.
 
 ## Guest flow
 
-1. Viesis noskenē QR kodu vai atver event linku.
-2. Viesis ievada vārdu un uzvārdu.
-3. Viesis nospiež `Let's go`.
-4. Viesis nospiež organizatora definēto camera pogu, pēc noklusējuma `Take Photo`.
-5. Telefons atver kameru.
-6. Foto tiek optimizēts, augšupielādēts Supabase Storage un piesaistīts galerijai.
+1. Viesis noskene QR kodu vai atver pasakuma saiti.
+2. Ievada vardu un uzvardu.
+3. Nospiez `Let's go` un organizatora defineto kameras pogu.
+4. Telefons atver aizmugurejo kameru, ja parluks to atbalsta.
+5. Frontend izveido optimizetu WebP foto un thumbnail.
+6. Klients sanem no Worker divas islaicigas upload adreses un suta failus tiesi uz privatu R2.
+7. Pec abu objektu parbaudes Worker pabeidz `media` ierakstu; tikai tad foto klust redzams galerija.
 
-Viesim nav konta un viesis neredz organizatora galeriju.
+Viesim nav organizatora konta un nav pieejams dashboard.
 
-## Testēšana
+## Glabasanas optimizacija
 
-Pirms deploy vai pēc būtiskām izmaiņām pārbaudi:
+- Video nav atbalstits.
+- Optimizeta foto tehniskais limits ir 6 MiB.
+- Thumbnail limits ir 1 MiB.
+- Galerijas rezgis ielade thumbnails; originals tiek prasits preview un ZIP vajadzibam.
+- R2 bucket nav publisks; katrs lasisanas pieprasijums iziet caur Worker.
+- Failu atslegas ietver nemainigus ID, bet Cloudflare paneli izmanto ari lasamus organizatora, pasakuma un viesa prefiksus.
+- Vecie Supabase Storage foto netiek parvietoti vai dzesti bez atseviskas verificetas migracijas.
 
-- register/login/logout;
-- e-pasta confirmation redirect;
-- register paroles atkārtošana un drošības prasības;
-- paroles show/hide kontroles;
-- forgot password e-pasts, reset route un jaunās paroles saglabāšana;
-- event create;
-- guest design save;
-- QR link;
-- guest name input;
-- photo upload Android Chrome;
-- photo upload iPhone Safari;
-- vismaz 10 secīgi camera upload vienam viesim bez klusa stāvokļa;
-- 6 MB file size validation;
-- gallery thumbnail loading;
-- preview navigation;
-- delete photo;
-- organizer A neredz organizer B eventus/foto;
-- inactive event neļauj upload;
-- event ārpus perioda neļauj upload;
-- nākotnes/pauzētam eventam var sagatavot QR un dizainu; pēc perioda beigām upload vadības pogas paslēptas;
-- archive modal rāda paslēptos/deleted eventus ar meklēšanu un kārtošanu;
-- ZIP poga parādās tikai pēc eventa beigām;
-- ZIP sagatavošana ir vienreizēja; Save ZIP again izmanto atvērtajā lapā jau sagatavoto failu.
+## Dokumentacija
 
-## Egress un Storage optimizācija
+- [Arhitektura](docs/architecture.md)
+- [Datubazes modelis](docs/database-model.md)
+- [Drošiba un RLS](docs/security-rls.md)
+- [Testesanas plans](docs/testing-plan.md)
+- [Testesanas rezultati](docs/testing-report.md)
+- [Lietotaju plusmas](docs/user-flows.md)
+- [Darbināšanas vide](docs/deployment-environment.md)
+- [Prakses pieradijumi](docs/evidence/practice/README.md)
+- [Aizstavesanas tehniskais celvedis](docs/practice/technical-defense-guide.md)
 
-MVP ir veidots photo-only režīmā, lai samazinātu izmaksas:
+## MVP robezas
 
-- video nav atbalstīts;
-- pirms upload tiek veidots optimizēts foto;
-- upload limits ir 6 MB optimizētajam foto failam;
-- event un guest design title ievade ir ierobežota līdz 32 zīmēm, lai mobile guest skats nesalauztos ar pārāk gariem virsrakstiem;
-- galerijas grid izmanto thumbnails;
-- oriģinālais foto tiek pieprasīts tikai preview, delete vai ZIP vajadzībām;
-- individuāla foto download poga organizatora UI ir paslēpta;
-- ZIP download ir pieejams tikai pēc eventa beigām un tikai vienu reizi.
-
-## Dokumentācija
-
-Detalizētāka projekta dokumentācija atrodas `docs/` mapē:
-
-- `docs/architecture.md` - tehniskā arhitektūra;
-- `docs/database-model.md` - datubāzes modelis;
-- `docs/security-rls.md` - drošības un RLS apraksts;
-- `docs/testing-plan.md` - testēšanas plāns;
-- `docs/testing-report.md` - testēšanas rezultāti;
-- `docs/user-flows.md` - lietotāju plūsmas.
-Viesu galerijas kopīgošana esošajā QR saitē ir ieviesta lokāli: līdz 7 dienām, thumbnails, filtri, preview un individual download bez ZIP. Events paliek My Events 14 dienas pēc beigām; kopīgošanas termiņš šo logu nepārsniedz. Pirms lietošanas vajadzīga atsevišķa Supabase migrācija un Edge Function. Instrukcija un testu robežas: [Viesu galerija](docs/guest-gallery.md).
-- Event sarakstā statusiem ir vienāds platums, lai Open/Delete pogas dažādu statusu rindās saglabātu vienādu līdzinājumu.
+MVP neietver video, maksajumus, abonementus, komandu kontus, servera puses attelu apstradi vai servera puses ZIP sagatavosanu. Prioritate ir stabila photo-only pamatplusma, piekluves kontrole un uzturama demonstracijas vide.

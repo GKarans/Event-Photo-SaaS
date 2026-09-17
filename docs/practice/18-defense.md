@@ -1,5 +1,8 @@
 # 18. Aizstāvēšanas jautājumi un atbildes
 Stundu apjoms pēc plāna: **4 h**.
+
+Paplašinātais materiāls ar foto plūsmu, datubāzes funkcijām, retry,
+laika zonām un production problēmu risinājumiem: [tehniskais aizstāvēšanas ceļvedis](technical-defense-guide.md).
 ## Projekts
 **Kādu problēmu risina?** Pasākuma viesu fotogrāfijas citādi paliek dažādos
 telefonos; unikāla saite un QR palīdz tās savākt vienā galerijā.
@@ -37,5 +40,5 @@ Uzzīmēt datu plūsmu, izsekot vienam foto no klienta līdz metadatiem, atrast
 ownership pārbaudi un paskaidrot, kas notiek, ja internets pazūd pēc PUT.
 ## Dienasgrāmatas teksts
 Sagatavotas atbildes par arhitektūru, RLS, mediju glabāšanu, egress,
-autorizāciju un testēšanas robežām, kā arī praktiski aizstāvēšanas vingrinājumi.
-
+autorizāciju un testēšanas robežām, praktiski aizstāvēšanas vingrinājumi un
+neliela tehniskā prezentācija.

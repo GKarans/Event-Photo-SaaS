@@ -1,16 +1,18 @@
 # 14. Testētāju atsauksmju kopsavilkums
 Stundu apjoms pēc plāna: **4 h**.
 ## Saņemtā atsauksme
-15.09.2026. lietotājs ziņoja: “iphone testā viss strādāja, visi visu saprata”.
-Tas ir lietotāja nodots kvalitatīvs rezultāts, nevis detalizēts testu protokols.
-- Darbība: ziņots veiksmīgs iPhone tests.
-- Saprotamība: ziņots, ka testētāji saprata lietošanu.
+12.09.2026. testētāji izmēģināja production eventu `test.retake.photo` ar
+iPhone 13 Pro un Samsung Galaxy S23. Lietotājs apkopoja rezultātu: viss strādāja,
+un dalībniekiem darbības bija saprotamas.
+- Darbība: abās ierīcēs izdevās atvērt saiti, ievadīt vārdu, atvērt kameru,
+  augšupielādēt foto un saņemt rezultātu galerijā.
+- Saprotamība: testētāji saprata darbību secību bez papildu apmācības.
 - Neskaidrais: šajā atsauksmē konkrētas problēmas nav nosauktas.
-- Nav zināms: testētāju skaits, faktiskā testa diena, iOS versija un pārbaudīto soļu saraksts.
+- Nav fiksētas precīzas iOS/Android un pārlūku versijas.
 ## Turpmāk noskaidrojamais
 Vai QR atvērās uzreiz? Vai bija saprotams upload progress? Vai viesis saprata,
 kad galerija kļūs pieejama? Vai organizators atrada ZIP un dzēšanu?
-Atbildes nav izdomātas un vēl jāapkopo.
+Šie jautājumi saglabāti nākamajam plašākam lietojamības testam.
 ## Uzlabojumu kandidāti
 Saglabāt saprotamu upload retry; regulāri pārbaudīt virsrakstu aplaušanu;
 pārbaudīt lielākas galerijas un slikta tīkla apstākļus.
@@ -19,4 +21,3 @@ Tie ir izstrādes ieteikumi, nevis testētāju izteikti citāti.
 Apkopota saņemtā iPhone testa atsauksme par funkcionalitāti un lietošanas
 saprotamību. Sagatavoti precizējošie jautājumi un nodalīti apstiprinātie
 novērojumi no turpmākiem uzlabojumu ieteikumiem.
-

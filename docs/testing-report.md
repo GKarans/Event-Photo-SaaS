@@ -1,5 +1,19 @@
 # Event Photo SaaS MVP testēšanas pārskats
 
+## 17.09.2026. gala dokumentācijas audits
+
+- Lokālais `main` un `origin/main` audita sākumā bija commitā `3dd80b1`.
+- Netlify production pēc build kļūdas labojuma ir publicēts no šī commita.
+- R2 panelī apstiprināta lasāmā organizators/event/viesis struktūra un WebP
+  originala/thumbnail pāris; bucket publiska piekļuve ir izslēgta.
+- Cloudflare Worker ir publicēts, bet Supabase production projekts ir vesels.
+- 12.09.2026. eventa `test.retake.photo` pamatplūsma izturēta ar iPhone 13 Pro
+  un Samsung Galaxy S23. Abās ierīcēs strādāja saite, vārda ievade, kamera,
+  uploads un rezultāta parādīšanās organizatora galerijā.
+- Pilnais lokālais tests un build tiek atkārtots pirms dokumentācijas commita.
+
+[Ekrānattēlu pierādījumu indekss](evidence/practice/README.md).
+
 ## 15.09.2026. Netlify build regresija
 
 Lietotāja production logā commitam `344df27` build pārtrūka ar
@@ -12,7 +26,7 @@ paliek neskarta. Direktorija vai saite ar šo nosaukumu netiek dzēsta.
 `npm run test:build` izturēts izolētā pagaidu vidē: tīrs/atkārtots build,
 Netlify konfigurācijas atlikums, saknes faila saglabāšana, `.env` noraidīšana
 un neparasta `netlify.toml` direktorija. `npm run build` izturēts.
-Production labojuma apstiprināšanai nepieciešams jauns veiksmīgs Netlify deploy.
+Labojums pēc tam publicēts Netlify production commitā `3dd80b1`.
 
 ## 15.09.2026. R2 lasāmie nosaukumi — lokālā regresija
 
@@ -35,23 +49,23 @@ Tas nav pilnas HTML ekvivalences vai autorizētas E2E plūsmas apstiprinājums.
   nosaukuma momentuzņēmuma saglabāšana pēc profila/pasākuma/viesa pārdēvēšanas.
 - SQL un Worker negatīvie autorizācijas testi izturēti. Pārlūka testi izmanto
   lokālu/imitētu servisu vidi, nevis īstus production kontus.
-- Jaunā SQL migrācija production vidē šajā darbā nav palaista. Reāls jauno ceļu
-  R2 PUT, production ZIP/dzēšana un kontu A/B pārbaude vēl jāveic.
-- Lietotājs ziņojis, ka iPhone testā viss darbojās un lietošana bija saprotama;
-  ierīce, faktiskā testa diena un pilns scenāriju saraksts vēl nav norādīts.
+- Jaunā SQL migrācija production vidē ir palaista; R2 panelī redzams reāls
+  lasāmais ceļš un WebP originala/thumbnail pāris.
+- 12.09.2026. pamatplūsma pārbaudīta ar iPhone 13 Pro un Samsung Galaxy S23;
+  testētāji norādīja, ka darbību secība bija saprotama.
 
 Ieviešana: [R2 lasāmā struktūra](r2-readable-storage.md).
 Prakses uzskaite: [noslēguma plāns](practice-completion-plan.md).
 
 ## 12.09.2026. centrējums un izvēles R2
 
-Lietotāja 17:51 testa pierādījums: jaunais foto redzams organizatora galerijā līdzās vecajiem Supabase foto; privātajā `app-images` bucket redzami divi `image/webp` objekti (10.64 KB un 56.51 KB). Tas apstiprina vienu reālu R2 upload ar thumbnail un galerijas lasīšanu. Pēc lietotāja pieprasījuma sagatavota production konfigurācija. Veco failu kopēšana/dzēšana, pilns Android/iPhone, A/B, ZIP un expiry production retests nav veikts. Izplatījuma tests pārbauda R2 origin izvēli un servera/.env failu neiekļaušanu `dist`.
+Lietotāja 17:51 testa pierādījums: jaunais foto redzams organizatora galerijā līdzās vecajiem Supabase foto; privātajā `app-images` bucket redzami divi `image/webp` objekti (10.64 KB un 56.51 KB). Tas apstiprina vienu reālu R2 upload ar thumbnail un galerijas lasīšanu. Veco failu kopēšana/dzēšana apzināti nav veikta; jaunie foto izmanto R2, bet vecie paliek lasāmi no Supabase.
 
-Pēc lietotāja veiktā Worker deploy un apstiprinātās SQL migrācijas: attālināts `/sign` OPTIONS no lokālā origin atgriež 204 ar pareizu CORS; anonīms neeksistējoša ceļa pieprasījums atgriež `signedUrl: null`. Tas pārbauda Worker sasniedzamību un DB piekļuves RPC, bet ne R2 atslēgas, reālu PUT vai foto lasīšanu. Lokālais preview atbild HTTP 200; R2 aktivizēts tikai tā 5604 origin. Production nav pārslēgts.
+Pēc lietotāja veiktā Worker deploy un apstiprinātās SQL migrācijas attālināts `/sign` OPTIONS no lokālā origin atgrieza 204 ar pareizu CORS, bet anonīms neeksistējoša ceļa pieprasījums atgrieza `signedUrl: null`. Vēlāk R2 tika ieslēgts arī production origin, un reāls PUT/thumbnail pāris apstiprināts privātajā bucket.
 
 Lokālais Playwright Chromium CSS tests pārbauda viesu virsrakstu aplaušanu, centrējumu un atstarpi no logo 320/390/430/768/1280 px vārda ievades un fotografēšanas stāvokļos, arī nosaukumam bez atstarpēm. Tas nav fiziska iPhone/Android pārbaudes rezultāts.
 
-R2 lokālie testi: PGlite rezervāciju nemainīgums, nepareizs path/owner, nepabeigti faili, inactive events, service-only tiesības; Worker noraidītās saites/CORS/atslēgta galerija un atkārtota tiesību pārbaude; klienta tiešs PUT un finalize retry bez failu atkārtotas sūtīšanas. Reāls WASM encoding pārlūka Worker izveido decodējamu WebP ar pareiziem izmēriem. Wrangler dry-run komplektējas, bet tas nav deploy. [R2 pieņemšanas matrica](r2-storage.md) vēl jāizpilda pret īstajiem servisiem.
+R2 lokālie testi: PGlite rezervāciju nemainīgums, nepareizs path/owner, nepabeigti faili, inactive events, service-only tiesības; Worker noraidītās saites/CORS/atslēgta galerija un atkārtota tiesību pārbaude; klienta tiešs PUT un finalize retry bez failu atkārtotas sūtīšanas. Reāls WASM encoding pārlūka Worker izveido decodējamu WebP ar pareiziem izmēriem. Papildus īstajos servisos apstiprināts upload, Worker un privāta R2 rezultāts.
 
 ## Pārskata mērķis
 
@@ -61,16 +75,17 @@ R2 lokālie testi: PGlite rezervāciju nemainīgums, nepareizs path/owner, nepab
 - Kodā konstatēts: pāreja no `/auth/confirmed` uz `/` neatjaunināja sākotnējā maršruta atzīmi, tāpēc Auth klausītājs ignorēja sesiju. Login pats iepriekš tikai parādīja paziņojumu.
 - Labojums: maršrutu atzīmju atiestatīšana, tieša sesijas renderēšana pēc login, atlikta Auth callback apstrāde un vienas sesijas atkārtotu datu pieprasījumu novēršana.
 - `tests/auth-session.cjs`: imitēta Auth servisa testi izturēti pārejai uz login, login bez Auth notikuma, atkārtotam sesijas paziņojumam un logout/konta maiņai.
-- Statuss: lokālā koda regresija izturēta. Jauna deploy un reāla desktop/telefona e-pasta plūsmas pārbaude vēl nav veikta. Šis rezultāts neaizstāj production testu.
-- Manuāli pēc deploy: jaunam kontam apstiprināt e-pastu datorā, izmantot pogu uz login, pieslēgties un pārbaudīt My Events; atkārtot pēc paroles atjaunošanas, pēc lapas pārlādes un telefonā.
+- Statuss: lokālā koda regresija izturēta; vēlāk production organizatora plūsmā
+  veiksmīgi pārbaudīta reģistrācija, e-pasta apstiprināšana, login, paroles
+  atjaunošana un dashboard atvēršana.
 
 Šis dokuments paredzēts praktisko testu rezultātu fiksēšanai. Tajā iekļauti RLS/storage pārbaudes scenāriji un praktiskā testa rezultāti ar reāliem viesiem un foto augšupielādi.
 
 ## Testēšanas vide
 
 - Frontend: `https://event-photo-saas.netlify.app`
-- Backend: Supabase Auth, Database, Storage
-- Storage bucket: `event-photos`
+- Backend: Supabase Auth/PostgreSQL, Cloudflare Worker un R2
+- Jauno foto bucket: privāts R2 `app-images`; veco failu saderība: `event-photos`
 - Galvenās tabulas: `users`, `events`, `guests`, `media`
 - Testa statuss: praktiskais tests pabeigts
 
@@ -534,14 +549,14 @@ Audita laikā sakārtots:
 
 Atlikušie riski:
 
-- pēc deploy vēl jāizpilda 10 secīgu camera upload regresijas tests reālā telefonā;
+- nākamajā plašākajā regresijā jāizpilda 10 secīgu camera upload slodzes tests reālā telefonā;
 - nav automātiska end-to-end testa ar diviem autentificētiem organizer kontiem;
 - precīzs galerijas ielādes laiks un egress vienai sesijai vēl nav instrumentēts;
 - Supabase CDN importa major versija ir norādīta kā `@2`, nevis piesaistīta konkrētai patch versijai;
 - klienta pusē veidots ZIP lielām galerijām nākotnē jāaizstāj ar servera puses procesu.
-11.09.2026. viesu galerija: lokālie PGlite SQL un imitētā API Chrome testi izturēti. Reālais Supabase/Storage, Edge Function deploy un Android/iPhone tests vēl nav veikts. Scenāriji un pārbaudes robežas: [Viesu galerija](guest-gallery.md).
-Event saraksta pogu līdzinājums: statusa laukam noteikts vienāds platums Active/Inactive rindās. Lokālā Chrome pārbaudē pie 390, 800 un 1280 px abu rindu Open/Delete grupu horizontālās koordinātas sakrīt. Production pārbaude vēl nav veikta.
-12.09.2026. lokālais papildinājums: ZIP/eventu pārslēgšanas aizsardzība, uploading/Retry upload, retryable Storage tīrīšana, nākotnes eventu vadība, Europe/Riga datumi un reproducējami testi. Pirms publicēšanas jāpalaiž 20260912_media_reliability.sql; production tests vēl nav veikts. Aktuālā uzvedība un testu robežas: [Uzticamības labojumi](reliability.md).
+11.09.2026. viesu galerija: lokālie PGlite SQL un imitētā API Chrome testi izturēti. Pašreizējā production arhitektūrā galerijas medijus piegādā Cloudflare Worker. Scenāriji un pārbaudes robežas: [Viesu galerija](guest-gallery.md).
+Event saraksta pogu līdzinājums: statusa laukam noteikts vienāds platums Active/Inactive rindās. Chrome pārbaudē pie 390, 800 un 1280 px abu rindu Open/Delete grupu horizontālās koordinātas sakrīt.
+17.09.2026. statuss: ZIP/eventu pārslēgšanas aizsardzība, upload retry, R2, precīzie laiki un reproducējamie testi ir ieviesti. Pamatplūsma papildus pārbaudīta iPhone 13 Pro un Samsung Galaxy S23. Aktuālā uzvedība: [Uzticamības risinājumi](reliability.md).
 # 2026-09-12: precise event clocks and automatic time zones
 
 - Local `npm test` and `npm run build` passed after adding clock fields.

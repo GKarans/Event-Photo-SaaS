@@ -1,25 +1,36 @@
-# Event clocks
+# Pasākumu precīzais laiks
 
-New events capture the organizer browser's IANA time zone automatically.
-There is no visible time zone selector or zone label. Start/end clock inputs
-use that zone. Editing preserves the stored zone, including after travel.
-Guests see timed periods converted to their browser's local time. Device
-date/time settings must therefore be correct. This does not infer a venue's
-zone from physical location or an address.
+Jaunam eventam organizatora pārlūks automātiski pievieno IANA laika zonu. Lietotājam netiek rādīts zonas izvēles lauks vai tehniska zonas etiķete. Sākuma un beigu laika ievade attiecas uz eventa izveides brīdī noteikto zonu.
 
-The database generates `starts_at` and `ends_at` UTC instants. Upload is
-allowed at start (inclusive) and denied at end (exclusive). Sharing and ZIP
-become available at end, without waiting for midnight. Sharing still requires
-the organizer to enable it. Existing all-day events retain Europe/Riga and
-end at the following midnight. Choosing All day uses the saved event zone.
+Datubāze ģenerē `starts_at` un `ends_at` kā UTC `timestamptz` momentus. Upload ir atļauts no sākuma brīža ieskaitot un aizliegts no beigu brīža:
 
-Run `supabase/migrations/20260912_event_times.sql` in a NEW SQL Editor query
-after the R2 storage migration and BEFORE deploying this frontend. Do not
-replace or rerun the baseline schema over an existing production database.
-The ID-folder migration is independent and its trigger remains in place.
+```text
+starts_at <= now < ends_at
+```
 
-Tests: `node tests/event-times.cjs` covers boundaries, legacy all-day,
-New York/Riga conversion, invalid zones, DST invalid/ambiguous clocks,
-same-day sharing and the ZIP schedule lock. Browser UI tests cover clock
-inputs. Production SQL application and real-device timed-event testing
-are tracked in the testing report. Reload the event view to pick up time-boundary changes.
+Viesim periods tiek attēlots viņa pārlūka lokālajā laikā. Tādēļ ierīces datuma, laika un zonas iestatījumiem jābūt pareiziem. Sistēma nenosaka pasākuma norises vietu pēc GPS vai adreses.
+
+Pēc `ends_at` organizators var ieslēgt viesu galerijas kopīgošanu un sagatavot ZIP, negaidot pusnakti. Vecie visas dienas eventi saglabā `Europe/Riga` zonu un beidzas nākamajā pusnaktī.
+
+## Datubāzes validācija
+
+Migrācija:
+
+```text
+supabase/migrations/20260912_event_times.sql
+```
+
+Tā jāpilda pēc R2 storage migrācijas un pirms frontend versijas, kas izmanto precīzos laikus. Esošai production datubāzei nedrīkst atkārtoti pārrakstīt visu pamata shēmu.
+
+Datubāze noraida:
+
+- nezināmu IANA laika zonu;
+- beigu momentu, kas nav pēc sākuma;
+- neeksistējošu vietējo laiku pavasara DST pārejā;
+- divdomīgu vietējo laiku rudens DST pārejā.
+
+## Testi
+
+`node tests/event-times.cjs` pārbauda perioda robežas, vecos visas dienas eventus, Rīgas un Ņujorkas konversiju, nepareizu zonu, DST gadījumus, galerijas atvēršanu un ZIP laika bloķēšanu. UI testi pārbauda laika ievades laukus.
+
+12.09.2026. mobilais production tests apstiprināja eventa pamatplūsmu iPhone 13 Pro un Samsung Galaxy S23. Precīza laika robežas testam jāizmanto atsevišķs testa events, lai pārbaude neietekmētu īstus viesu foto.

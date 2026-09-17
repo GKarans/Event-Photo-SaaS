@@ -1,50 +1,86 @@
-# Uzticamības labojumi, 12.09.2026.
+# Uzticamības risinājumi
 
-Statuss: lokāli ieviesti un pārbaudīti ar imitētu API / PGlite. Nav publicēti, nav pārbaudīti production ar īstu telefonu vai Supabase Storage.
-
-## ZIP un eventu pārslēgšana
-
-- ZIP lasa visus uploaded media ierakstus ar lapošanu neatkarīgi no galerijas filtriem un thumbnail pieejamības. Datu lasīšana turpinās līdz tukšai lapai, arī ja API atgriež mazāk rindu nekā pieprasīts.
-- Eventa ID, faila nosaukums un lietotāja ID tiek saglabāti procesa sākumā. Cita eventa atvēršana nemaina eksportu vai tā zip_downloaded_at ierakstu.
-- Vienlaikus darbojas viens ZIP process. Pēc sagatavošanas atmiņā glabā vienu ZIP Blob. Save ZIP again izmanto to pašu failu, neielādējot foto vēlreiz. Arī neskaidra zip_downloaded_at atbildes kļūme ļauj atkārtot apstiprināšanu, kamēr lapa ir atvērta.
-- Logout/konta maiņa atbrīvo sagatavoto ZIP un galeriju kešu. Jauna eventa ZIP aizvieto iepriekšējo sagatavoto failu.
-- Pārlūks nevar apstiprināt saglabāšanu diskā. Pēc lapas pārlādes/aizvēršanas Blob pazūd; servera vienreizējais marķieris saglabājas. Ļoti lieli ZIP joprojām ir ierobežoti ar pārlūka atmiņu. Servera arhīvu glabāšana un ilgstoša atkārtota izsniegšana nav ieviesta.
-- Galerijas, detaļu, preview un organizatora saraksta novēlotās atbildes tiek ignorētas pēc skata vai sesijas maiņas.
+Aktualizēts 17.09.2026. Koda pārbaudes ir reproducējamas ar `npm test`; production pamatplūsma ir pārbaudīta ar iPhone 13 Pro un Samsung Galaxy S23. Automatizētie testi un reālo ierīču testi ir atšķirīgi pierādījumu veidi.
 
 ## Foto dzīves cikls
 
-Jaunais upload vispirms sagatavo optimizētu JPEG un thumbnail. Ja thumbnail sagatavošana neizdodas, panākumus nerāda un failus nesūta. prepare_photo_upload izveido uploading media ierakstu pirms failu sūtīšanas. complete_photo_upload pārbauda abus Storage objektus un atvērto eventu, tikai tad ieraksts kļūst uploaded.
+Jaunā upload plūsma izveido optimizētu WebP originalu un WebP thumbnail. `prepare_photo_upload` vispirms reģistrē `pending` media ierakstu. Cloudflare Worker rezervē objektus ar `reserve_r2_object`, izsniedz īslaicīgas presigned PUT adreses un pēc upload pārbauda izmēru un checksum. `complete_r2_photo` maina media uz `uploaded` tikai tad, kad abi R2 objekti ir pabeigti.
 
-Retry upload izmanto to pašu rezervēto UUID un ceļus. Veiksmīgi pabeigtos failu sūtīšanas posmus neatkārto. Atkārtota pabeigšana pēc pazudušas atbildes ir idempotenta. Viesa vārdu nevar mainīt nepabeigtas augšupielādes laikā. Retry stāvoklis un foto atrodas tikai atvērtās lapas atmiņā.
+Retry izmanto to pašu media UUID un ceļus. Veiksmīgi pabeigts posms netiek dublēts, un atkārtota finalize darbība ir idempotenta. Retry stāvoklis un optimizētie baiti glabājas tikai atvērtās lapas atmiņā.
 
-Dzēšana vispirms atzīmē media kā deleted. Tikai tad dzēš failus un ieraksta storage_deleted_at. Ja Storage dzēšana neizdodas, foto nav galerijā, bet faili paliek uzskaitīti atkārtotai tīrīšanai.
+Vecajiem Supabase Storage failiem saglabāta lasīšanas saderība. Tie netiek automātiski pārkodēti, migrēti vai dzēsti.
 
-Refresh atkārto līdz 50 deleted un līdz 50 vairāk nekā 24 h vecu uploading ierakstu tīrīšanu katrā piegājienā. Tā ir organizatora darbība, nevis fonā strādājošs cron. Kamēr nav refresh, nepabeigtie faili var palikt Storage.
+## Galerija
 
-Cover ceļš pirms upload tiek reģistrēts cover_cleanup. Vecā cover nomaiņa un tā tīrīšanas uzdevums tiek saglabāti vienā DB transakcijā ar trigger. Refresh pēc 24 h dzēš vairs neizmantotos cover failus; aktuālo cover nedzēš. Tabulas mērķis ir nepazaudēt faila ceļu pēc kļūmes. Esoši, pirms šī labojuma radušies orphan faili automātiski netiek atrasti.
+- Grid izmanto thumbnails; originals tiek pieprasīts preview vai ZIP.
+- `Refresh` apiet galerijas kešu un ielādē jaunāko sarakstu.
+- Novēlotas galerijas, detaļu un preview atbildes tiek ignorētas pēc skata, filtra, eventa vai sesijas maiņas.
+- Pilna izmēra piekļuve tiek iegūta no Worker ar atkārtotu tiesību pārbaudi.
+- Viesu galerija izmanto to pašu kontrolēto Worker API gan R2, gan vecajiem Supabase failiem.
 
-Vecie uploaded foto bez thumbnail netiek automātiski pārkodēti. Tie joprojām ir organizatora galerijā/ZIP; viesu galerijā tie nav redzami līdz atsevišķai thumbnail atjaunošanai. Automātiska veco foto pārlāde nav ieslēgta, lai neradītu neplānotu egress.
+## ZIP
 
-## Vadība un datumi
+- ZIP atlasa visus eventa `uploaded` media ierakstus ar lapošanu, neatkarīgi no redzamā viesa filtra.
+- Eventa ID, lietotāja ID un faila nosaukums tiek fiksēti procesa sākumā.
+- Vienlaikus darbojas viens ZIP process.
+- Gatavais Blob paliek atvērtās lapas atmiņā; `Save ZIP again` neielādē foto vēlreiz.
+- Logout vai konta maiņa atbrīvo sagatavoto arhīvu un kešus.
+- Pēc lapas aizvēršanas Blob pazūd; servera pusē arhīvs netiek glabāts.
+- Ļoti lielu arhīvu ierobežo pārlūka atmiņa. Produkta lielākam apjomam vajadzīgs servera fona eksports.
 
-Edit Event atver nosaukuma/datumu formu. Guest Design ir atsevišķa poga. Nākotnes un manuāli pauzētiem, vēl nebeigušiem eventiem organizators var sagatavot QR, saiti un dizainu. Upload joprojām atļauts tikai aktīvā periodā. Pēc perioda beigām šīs pogas paslēpj.
+## Dzesana un arhivēšana
 
-Datumu salīdzināšana un arhivēšanas robeža frontend izmanto Europe/Riga tāpat kā SQL. Precīzs sākuma/beigu pulksteņa laiks šajā labojumā nav ieviests; tā ir atsevišķa saskaņojama migrācija.
+Atsevišķa foto dzēšana ir autorizēta Worker pusē un attiecas uz originalu un thumbnail. Eventa `Delete` galvenajā sarakstā nozīmē arhivēšanu, tāpēc nejauša darbība uzreiz fiziski neiznīcina visu pasākuma saturu.
 
-Galerijai ir Refresh ar keša apiešanu. Pilna izmēra signed URL tiek atjaunots pirms termiņa beigām. Nav polling/realtime; astoņu minūšu kešs saglabājas parastai atkārtotai atvēršanai, Refresh parāda jaunāko sarakstu.
+Nepabeigtu un bāreņu objektu pilnīga automātiska tīrīšana fonā nav MVP sastāvdaļa. Tas ir dokumentēts atlikušais produkta risks.
 
-## Uzstādīšana un testi
+## Eventa laiks
 
-1. npm ci
-2. npx playwright install chromium
-3. npm test
+Organizators ievada precīzu sākuma un beigu pulksteņa laiku. Pārlūks automātiski pievieno IANA laika zonu. Datubāze ģenerē UTC `starts_at` un `ends_at`, validē laika zonu un DST robežas.
 
-npm test ietver JS sintaksi, Auth un uzticamības regresijas, abus SQL testus un viesu/organizatora pārlūka testus. Atkarību versijas ir package.json un package-lock.json. Testi neizmanto production kontus vai privātos foto. SQL testiem ir vienkāršota lokāla datubāzes vide, nevis pilns Supabase serviss.
+Upload ir atļauts tikai:
 
-Lokālais preview: npm start, noklusētā adrese http://127.0.0.1:5604. Backend joprojām ir konfigurētais Supabase projekts; preview izmantošana pati par sevi nav izolēts datu tests.
+```text
+starts_at <= now < ends_at
+```
 
-## Publicēšanas kārtība
+Pēc precīza beigu brīža kļūst pieejamas pēc-pasākuma darbības. Viesis periodu redz savas ierīces lokālajā laikā.
 
-Esošā projektā vispirms palaist supabase/migrations/20260912_media_reliability.sql SQL Editorā. Jaunā projektā secība: schema.sql, 20260911_guest_gallery.sql, 20260912_media_reliability.sql. Pēc tam publicēt frontend. guest-gallery Edge Function šajā izmaiņā nav jāmaina. Vecā schema.sql atkārtota palaišana atjauno vecās policies, tāpēc pēc tās jāatkārto migrācijas.
+## Build un deploy drošība
 
-Production manuāli pārbaudīt: 10 secīgi foto; thumbnail kļūme un Retry upload; savienojuma zudums; dzēšana un Refresh; nākotnes eventa datumu/dizaina rediģēšana; ZIP ar ieslēgtu viesa filtru un pārslēgšanos uz citu eventu; Save ZIP again bez papildu foto tīkla pieprasījumiem. Testēt Android un iPhone. Testa rezultātus fiksēt atsevišķi no lokālajiem testiem.
+`npm run build` izveido kontrolētu `dist/` direktoriju. Build skripts noraida neparedzētus publicēšanas failus. Netlify publicē tikai `dist`, nevis repozitorija sakni ar servera kodu un dokumentāciju.
+
+Cloudflare Worker noslēpumi tiek glabāti ar Wrangler secrets. `wrangler.toml` satur tikai neslepenas vērtības. R2 bucket publiska piekļuve ir izslēgta.
+
+## Testēšana
+
+```bash
+npm ci
+npm test
+npm run build
+npm run test:r2
+```
+
+Testi pārbauda build, JavaScript sintaksi, Auth sesiju, upload retry/finalize, SQL atļaujas un laika robežas, Worker CORS/parakstus/dzēšanu un galvenos responsive UI stāvokļus.
+
+Production manuāli jāpārbauda:
+
+- register, e-pasta apstiprināšana, login un paroles atjaunošana;
+- eventa izveide ar precīzu laiku;
+- QR un viesa saite;
+- vairāki secīgi camera upload Android un iPhone;
+- galerijas thumbnails, preview, filtri un Refresh;
+- foto dzēšana;
+- viesu galerijas ieslēgšana/izslēgšana;
+- ZIP pēc eventa beigām;
+- otra organizatora piekļuves liegums.
+
+12.09.2026. `test.retake.photo` pamatplūsma izdevās iPhone 13 Pro un Samsung Galaxy S23. Production pierādījumi ir indeksēti [evidence/practice](evidence/practice/README.md).
+
+## Zināmās robežas
+
+- Nav servera puses ZIP darba un ilgstoši glabāta eksporta.
+- Nav pilnībā automatizēta R2 bāreņu objektu tīrītāja.
+- Nav staging vides, kas būtu pilnīgi nodalīta no production servisiem.
+- Lokālais `npm start` var izmantot konfigurēto īsto backend, tāpēc testu eventiem jābūt skaidri nodalītiem.
+- Reproducējams tests nepierāda Cloudflare, Supabase vai Netlify paneļa faktiskos iestatījumus; tie jāpārbauda atsevišķi.

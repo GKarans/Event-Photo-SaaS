@@ -8,16 +8,21 @@ Stundu apjoms pēc plāna: **4 h**.
   privātajam mediju servisam paredzētais bucket `app-images`, production CORS origin.
 - SQL piekļuves noteikumi pārbaudīti lokālajos SQL testos.
 - Publiskais Worker preflight atgrieza 204 un production origin.
-## Nepārbaudāmais no publiskas lapas
-Supabase Auth URL allowlist, bucket Public Access, reālais RLS stāvoklis un
-Netlify konta deploy iestatījumi jāapstiprina vadības panelī.
-Koda konfigurācija nav pierādījums konta faktiskajai konfigurācijai.
-Nedrīkst pievienot atslēgu vai paroļu ekrānattēlus.
+## Vadības paneļu pārbaude
+- R2 `app-images` panelī Public Access ir `Disabled`, un redzama lasāmā
+  organizators/event/viesis hierarhija ar originala/thumbnail WebP pāri.
+- Cloudflare Worker `event-photo-media` ir publicēts; pārskata ekrānā kļūdu skaits ir 0.
+- Supabase production projekts pārskata brīdī ir `Healthy`.
+- Netlify publicē production no GitHub `main`; automātiskā publicēšana ir
+  bloķēta, tāpēc deploy tiek apstiprināts manuāli.
+- SQL migrācijas ir izpildītas SQL Editor un R2 rezultāts pārbaudīts ar reālu upload.
+
+Koda konfigurācija viena pati nav pierādījums konta iestatījumiem, tāpēc auditam
+pievienoti paneļu un gala plūsmas pierādījumi. Atslēgu un paroļu vērtības nav publicētas.
 ## Pierādījumi
 [Publiskās pārbaudes JSON](../evidence/20260915/public-smoke.json).
-Vadības paneļu ekrānattēli: vēl jāpievieno.
+[Prakses ekrānattēlu indekss](../evidence/practice/README.md).
 ## Dienasgrāmatas teksts
 Salīdzināta lokālā Netlify, Supabase un R2 konfigurācija ar lietotnes darbības
 prasībām. Pārbaudīti publicēšanas parametri un publiskā Worker CORS atbilde.
-Nodalīti tie iestatījumi, kas papildus jāapstiprina servisu vadības paneļos.
-
+Salīdzināti arī servisu vadības paneļi un production upload rezultāts, neatklājot secrets.

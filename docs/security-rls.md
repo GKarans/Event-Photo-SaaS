@@ -315,8 +315,8 @@ Pirms 28.08 praktiskā testa jāpārbauda:
 
 ## Secinājums
 
-Event Photo SaaS MVP drošība balstās uz Supabase Auth, RLS un Storage policies. Frontend validācija palīdz lietotājam, bet galvenā drošības kontrole atrodas datubāzes un Storage līmenī.
+Event Photo SaaS MVP drošība balstās uz Supabase Auth, RLS, servera RPC un Cloudflare Worker autorizāciju. Frontend validācija palīdz lietotājam, bet galvenā drošības kontrole atrodas datubāzes un servera līmenī.
 
 Pašreizējā MVP drošības arhitektūra atbilst praktiskā testa vajadzībām: organizatori ir izolēti viens no otra, viesi var pievienot foto bez konta tikai konkrētā aktīvā eventā, un foto faili nav publiski atvērti. Production versijai vēl jāpapildina rate limiting, audit logging, SMTP un storage limitu pārvaldība.
-Papildinājums: anon viesu galerijas piekļuvi nodrošina tikai pārbaudes Edge Function un service-role-only RPC; tieša media/Storage lasīšana viesiem netiek piešķirta. Pilnas robežas un ierobežojumi: [Viesu galerija](guest-gallery.md).
-12.09.2026. lokālais papildinājums: ZIP/eventu pārslēgšanas aizsardzība, uploading/Retry upload, retryable Storage tīrīšana, nākotnes eventu vadība, Europe/Riga datumi un reproducējami testi. Pirms publicēšanas jāpalaiž 20260912_media_reliability.sql; production tests vēl nav veikts. Aktuālā uzvedība un testu robežas: [Uzticamības labojumi](reliability.md).
+Papildinājums: anon viesu galerijas piekļuvi nodrošina service-role-only RPC, ko izsauc publicētais Cloudflare Worker; tieša media/R2 lasīšana viesiem netiek piešķirta. Pilnas robežas un ierobežojumi: [Viesu galerija](guest-gallery.md).
+17.09.2026. statuss: reliability, R2 un eventa laika migrācijas ir iekļautas production plūsmā; pamatplūsma pārbaudīta reālās iPhone un Android ierīcēs. Aktuālā uzvedība: [Uzticamības risinājumi](reliability.md).

@@ -11,7 +11,7 @@ Pilns lietotāja iesniegtais saraksts saglabāts [oriģinālajā teksta dokument
 Šeit atkārtojumi apvienoti darba posmos. Pašreizējās prakses robežas nosaka [MVP scope](mvp-scope.md). Jaunu komerciālu funkciju ieviešana automātiski nepaplašina prakses plānu. Plāns pats par sevi nepievieno nostrādātas stundas.
 
 - Saglabāt Netlify + Supabase, kamēr mērījumi nepamato maiņu; stack maiņu saskaņot atsevišķi.
-- Produkts paliek photo-only. Video, seju atpazīšana, AI redaktors un native apps nav šī plāna palaišanas prasības.
+- Produkts paliek photo-only. Video, seju atpazīšana, sarežģīta foto rediģēšana un native apps nav šī plāna palaišanas prasības.
 - 90 dienu sadalījums avotā ir orientieris pēc prakses, nevis termiņa vai darba apjoma solījums.
 - Publiska pārdošana nav atkarīga no visu iespējamo funkciju pabeigšanas. Obligāti ir zemāk noteiktie konkrētā piedāvājuma palaišanas kritēriji.
 

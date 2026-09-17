@@ -84,7 +84,7 @@ Period	Focus
 Days 1–30	Reliability fixes, tests, monitoring, mobile upload improvements
 Days 31–60	Event setup, QR materials, reliable exports, retention controls
 Days 61–90	Paid pilot, checkout, measured limits, customer feedback
-Postpone video, facial recognition, AI editing, and native apps until customers demonstrate demand.
+Postpone video, facial recognition, advanced photo editing, and native apps until customers demonstrate demand.
 
 Your strongest product promise: “Guests scan once, upload easily, and the organizer gets every photo without chasing anyone.” Build every upgrade around delivering that promise.
 
@@ -639,4 +639,3 @@ Recommended build order
 Reliability fixes → account/event lifecycle → uploads and exports → subscription billing → customer dashboard and usage → notifications/admin tools → monitoring/recovery → paid pilot → public launch.
 
 Your launch standard: a customer can purchase, run an event, receive all their photos, manage their subscription, and resolve ordinary problems without manual intervention from you.
-

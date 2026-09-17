@@ -72,5 +72,5 @@ Reālais rezultāts:
 - dalībniekiem būtiskas lietošanas problēmas netika novērotas;
 - aptuveni četros atkārtotas fotografēšanas mēģinājumos kamera atgriezās pārlūkā bez loading vai rezultāta paziņojuma, un fails netika saglabāts;
 - klusais kameras atgriešanās scenārijs reģistrēts kā P2 kļūda turpmākai labošanai un regresijas testam.
-Viesu galerijas testus veikt ar nelielu testa eventu pēc backend migrācijas un Edge Function izvietošanas. Kvotu pārbaudīt izolēti, netērējot 2000 reālu lejupielāžu. Skatīt [Viesu galeriju](guest-gallery.md).
-12.09.2026. lokālais papildinājums: ZIP/eventu pārslēgšanas aizsardzība, uploading/Retry upload, retryable Storage tīrīšana, nākotnes eventu vadība, Europe/Riga datumi un reproducējami testi. Pirms publicēšanas jāpalaiž 20260912_media_reliability.sql; production tests vēl nav veikts. Aktuālā uzvedība un testu robežas: [Uzticamības labojumi](reliability.md).
+Viesu galerijas testus veikt ar nelielu testa eventu un production Worker. Kvotu pārbaudīt izolēti, netērējot 2000 reālu lejupielāžu. Skatīt [Viesu galeriju](guest-gallery.md).
+17.09.2026. statuss: reliability, R2 un precīzo laiku izmaiņas ir ieviestas; pamatplūsma pārbaudīta iPhone 13 Pro un Samsung Galaxy S23. Nākamajā testā prioritāte ir 10 secīgi foto, lēns tīkls, retry un lielāka galerija. Aktuālā uzvedība: [Uzticamības risinājumi](reliability.md).

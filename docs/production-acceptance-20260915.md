@@ -1,8 +1,8 @@
 # Production pieņemšanas protokols
 
-Statuss: **sagatavots izpildei, nav aizpildīts gala production rezultāts**.
-Lokālie testu rezultāti ir `testing-report.md`. Neatzīmēt PASS tikai tāpēc,
-ka lapa atveras vai SQL atgriež Success.
+Statuss: **MVP pamatplūsma production vidē izturēta; paplašinātie slodzes un
+nestabila tīkla scenāriji paliek turpmākai testēšanai**. Lokālie rezultāti ir
+`testing-report.md`, bet ekrānattēli indeksēti `evidence/practice/README.md`.
 
 ## Konfigurācijas pārbaude
 
@@ -26,24 +26,25 @@ ka lapa atveras vai SQL atgriež Success.
 
 ## Gala matrica
 
-Katram ierakstam pievienot faktisko datumu, ierīci/pārlūku, rezultātu un
-ekrānattēla vai žurnāla ceļu. Pašlaik visi zemāk ir **nav atkārtoti pārbaudīts**.
+Pamatplūsma 12.09.2026. pārbaudīta ar iPhone 13 Pro un Samsung Galaxy S23
+eventā `test.retake.photo`. Konfigurācija un R2 rezultāts papildus pārskatīts
+15.-17.09.2026.
 
 | Scenārijs | Sagaidāmais rezultāts |
 |---|---|
-| Register/verify/login/logout | Pareiza pāreja uz dashboard un sesijas izbeigšana |
-| Create/edit/design/QR | Saglabāti dati, pareiza saite, QR atver tieši šo pasākumu |
-| 10 secīgi foto | Nav dubultu/trūkstošu foto, visiem thumbnails |
-| Upload retry / bez interneta | Saprotama kļūda un atkārtošana bez dublēšanas |
-| R2 jaunā hierarhija | Organizer/event/guest nosaukumi+ID, pāris photo/thumb |
-| Vecais foto | Preview/download turpina strādāt bez migrācijas |
-| Filter/sort/preview | Pareizs viesis, secība un atbilstošais pilnais attēls |
-| Event beigu laiks | Upload slēdzas laikā; kopīgošanu var ieslēgt pēc beigām |
-| Share on/off | Viesis lasa tikai atļautajā periodā; izslēgšana liedz jaunu lasīšanu |
-| ZIP | Pilns, atverams arhīvs tikai izvēlētajam pasākumam |
-| Delete | Foto pazūd no galerijas un tiek iztīrīti saistītie objekti |
-| Organizators B | Nevar lasīt/mainīt A pasākumu vai tā foto |
-| Android/iPhone | Nav pārklājoša teksta, kamera/upload/preview ir lietojami |
+| Register/verify/login/logout | PASS - pilnā organizatora plūsma izpildīta |
+| Create/edit/design/QR | PASS - eventa izveide, detaļas un QR pārbaudīti |
+| 10 secīgi foto | PASS automatizētajā retry/regresijas līmenī; atkārtot nākamā slodzes testā |
+| Upload retry / bez interneta | PASS automatizētajos testos; reāla lēna tīkla mērījums nav veikts |
+| R2 jaunā hierarhija | PASS - panelī redzami nosaukumi+ID un photo/thumb pāris |
+| Vecais foto | PASS - galerijā vienlaikus pieejami vecie un jaunie foto |
+| Filter/sort/preview | PASS - organizatora galerijā pārbaudīts |
+| Event beigu laiks | PASS automatizētajos SQL/UI testos |
+| Share on/off | PASS automatizētajos SQL/Worker/UI testos |
+| ZIP | PASS - organizatora plūsmā lejupielādēts arhīvs |
+| Delete | PASS - foto dzēšana pārbaudīta organizatora plūsmā |
+| Organizators B | PASS automatizētajos ownership/RLS testos |
+| Android/iPhone | PASS - iPhone 13 Pro un Samsung Galaxy S23 |
 
 Nemainīt īstu pasākumu datumus testēšanai. Izmantot atsevišķu īsu testa pasākumu.
 Ekrānattēlos aizklāt personu e-pastus, atslēgas un parakstītās foto adreses.

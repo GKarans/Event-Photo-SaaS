@@ -178,4 +178,4 @@ Pēc Tartu praktiskā testa turpmākajos mobile testos papildus jāpārbauda:
 
 Pieņemšanas kritērijs: katrs apstiprinātais foto sāk upload plūsmu un beidzas ar redzamu success vai error rezultātu; nedrīkst būt kluss stāvoklis bez lietotāja atgriezeniskās saites.
 Papildināt nākamo production regresiju ar sharing ieslēgšanu/izslēgšanu, sveša īpašnieka noraidīšanu, guest filtriem, preview/download un esošā upload saglabāšanu. Precīzi scenāriji: [Viesu galerija](guest-gallery.md).
-12.09.2026. lokālais papildinājums: ZIP/eventu pārslēgšanas aizsardzība, uploading/Retry upload, retryable Storage tīrīšana, nākotnes eventu vadība, Europe/Riga datumi un reproducējami testi. Pirms publicēšanas jāpalaiž 20260912_media_reliability.sql; production tests vēl nav veikts. Aktuālā uzvedība un testu robežas: [Uzticamības labojumi](reliability.md).
+17.09.2026. statuss: ZIP/eventu pārslēgšanas aizsardzība, upload retry, R2, precīzie eventu laiki un reproducējamie testi ir ieviesti. 12.09.2026. pamatplūsma pārbaudīta iPhone 13 Pro un Samsung Galaxy S23. Atlikušie riski ir lēns tīkls, slodze un ilgstoša ekspluatācija. Aktuālā uzvedība: [Uzticamības risinājumi](reliability.md).

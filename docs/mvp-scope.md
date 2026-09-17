@@ -22,7 +22,7 @@ MVP ir uzskatāms par veiksmīgu, ja pilnībā darbojas šī ķēde:
 4. Viesis bez konta atver QR/linku.
 5. Viesis ievada vārdu un uzvārdu.
 6. Viesis uzņem vai izvēlas foto telefonā.
-7. Foto tiek optimizēts un augšupielādēts Supabase Storage.
+7. Foto tiek optimizēts un ar īslaicīgu presigned PUT augšupielādēts privātā Cloudflare R2.
 8. Datubāzē tiek saglabāti foto metadati.
 9. Organizators redz foto savā galerijā.
 10. Organizators var filtrēt, pārskatīt, dzēst un pēc eventa beigām lejupielādēt ZIP.
@@ -110,7 +110,7 @@ MVP iekļauj:
 - 6 MB maksimālo foto limitu;
 - client-side foto optimizāciju;
 - thumbnail ģenerēšanu pirms upload;
-- oriģinālā foto un thumbnail saglabāšanu Supabase Storage;
+- optimizētā originala un thumbnail saglabāšanu privātā Cloudflare R2;
 - `media` ierakstu ar `storage_path`, `thumbnail_path`, file type un file size;
 - bloķēšanu, ja events nav aktīvs vai ir ārpus perioda.
 
@@ -121,7 +121,7 @@ Video nav MVP daļa.
 MVP iekļauj:
 
 - foto ielādi no `media` tabulas;
-- thumbnail signed URLs galerijas gridam;
+- autorizētu thumbnail piegādi caur Cloudflare Worker galerijas gridam;
 - lazy loading;
 - pakāpenisku grid renderēšanu;
 - īslaicīgu browser cache galerijas datiem;
@@ -133,7 +133,7 @@ MVP iekļauj:
 - ZIP lejupielādi tikai pēc eventa beigām;
 - ZIP lejupielādi tikai vienu reizi vienam eventam.
 
-Individuāla foto download poga pašreizējā UI ir paslēpta, lai samazinātu nejaušu Supabase egress patēriņu.
+Individuāla foto download poga organizatora UI ir paslēpta, lai samazinātu nejaušu datu pārraidi.
 
 ### Drošība
 
@@ -143,10 +143,10 @@ MVP iekļauj:
 - RLS visām galvenajām tabulām;
 - organizatoru datu izolāciju;
 - anon guest upload tikai konkrētam aktīvam eventam;
-- Storage upload policy pēc event mapes un event perioda;
-- Storage read/delete tikai event īpašniekam;
-- privātu Storage bucket;
-- signed URLs attēlu rādīšanai;
+- servera RPC validāciju pēc eventa, viesa, ceļa un perioda;
+- Worker read/delete tikai pēc eventa īpašnieka vai viesu galerijas tiesību pārbaudes;
+- privātu R2 bucket un privātu veco failu Supabase Storage bucket;
+- īslaicīgas presigned PUT adreses tikai uploadam;
 - publishable key izmantošanu frontendā;
 - service role key un secrets neiekļaušanu repozitorijā.
 
@@ -226,7 +226,7 @@ MVP ir gatavs demonstrācijai, ja:
 - QR kods un guest links atver pareizo eventu;
 - guest skats ir centrēts iPhone un Android ierīcēs bez horizontālas pārbīdes;
 - viesis bez konta var ievadīt vārdu un augšupielādēt foto;
-- fails tiek optimizēts un saglabāts Supabase Storage;
+- fails tiek optimizēts un saglabāts privātā Cloudflare R2;
 - galerijas grid izmanto thumbnails;
 - organizators redz foto tikai savam eventam;
 - organizators var filtrēt, kārtot, apskatīt un dzēst foto;
@@ -239,7 +239,7 @@ MVP ir gatavs demonstrācijai, ja:
 
 ## Secinājums pēc praktiskā testa
 
-Pēc praktiskā testa ar 12 viesiem un 60 foto un starptautiskā 3 dienu testa Tartu ar 17 dalībniekiem un 57 foto MVP pamatplūsma strādāja. Viesi varēja atvērt QR/linku, ievadīt vārdu, uzņemt foto un augšupielādēt tos Supabase Storage. Organizators varēja atvērt galeriju un pārskatīt augšupielādētos foto.
+Pēc praktiskā testa ar 12 viesiem un 60 foto un starptautiskā 3 dienu testa Tartu ar 17 dalībniekiem un 57 foto MVP pamatplūsma strādāja. Viesi varēja atvērt QR/linku, ievadīt vārdu, uzņemt foto un augšupielādēt tos. Sākotnējie testi izmantoja Supabase Storage; pašreizējā jauno foto plūsma izmanto privātu R2, saglabājot veco failu lasīšanas saderību.
 
 Pēc testa tika pieņemti vairāki arhitektūras lēmumi:
 
