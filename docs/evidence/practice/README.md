@@ -50,7 +50,7 @@ Ekrānattēlos nav publicētas paroles, service role atslēgas, R2 slepenās ats
 
 12.09.2026. production vidē tika pārbaudīts pasākums `test.retake.photo` ar iPhone 13 Pro un Samsung Galaxy S23. Abās ierīcēs izdevās atvērt viesa saiti, ievadīt vārdu, atvērt kameru, pievienot foto un redzēt rezultātu organizatora galerijā. Lietotāji norādīja, ka plūsma bija saprotama.
 
-## Izmantošana atskaitē un prezentācijā
+## Izmantošana atskaitē
 
 Ekrānattēli ir pierādījumi konkrētiem darba posmiem, nevis atsevišķu stundu automātisks apliecinājums. Atskaitei ieteicams izmantot:
 

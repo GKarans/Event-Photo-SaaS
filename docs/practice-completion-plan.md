@@ -29,10 +29,10 @@ sagatavošana vai testa palaišana pati par sevi neapstiprina visu stundu apjomu
 | 12 | Auth URLs, RLS, R2, Netlify konfigurācija | 4 | Konfigurācija un paneļu ekrānattēli apkopoti |
 | 13 | Production deploy un demonstrācijas vide | 4 | Production smoke un demonstrācijas vide pārbaudīta |
 | 14 | Testētāju atsauksmju apkopošana | 4 | iPhone/Android atsauksme un rezultāti apkopoti |
-| 15 | Demonstrācijas scenāriji | 4 | Scenārijs un prezentācija sagatavota |
+| 15 | MVP gala plūsmas scenāriji | 4 | Scenārijs un pārbaudes secība sagatavota |
 | 16 | Darbināšanas vides dokumentēšana | 4 | R2 migrācijas pamācība sagatavota; pārējā konfigurācija jāpārbauda |
 | 17 | Android/iPhone production vizuālā pārbaude | 4 | 12.09. iPhone 13 Pro un Samsung S23 pārbaude izdevās |
-| 18 | Aizstāvēšanas sagatavošana | 4 | Jautājumi, tehniskais ceļvedis un prezentācija sagatavota |
+| 18 | MVP tehniskās dokumentācijas audits | 4 | Arhitektūra, drošība un testēšanas robežas aktualizētas |
 | 19 | Atskaite: ievads un prakses vieta | 2 | Atskaitei sagatavots saturs |
 | 20 | Atskaite: darbi, problēmas, risinājumi | 2 | Atskaitei sagatavots tehniskais apraksts |
 | 21 | Secinājumi un pielikumi | 1 | Secinājumi un pierādījumu indekss sagatavots |
@@ -61,19 +61,6 @@ norādīja, ka plūsma bija saprotama. Precīzas OS/pārlūku versijas nav fiks�
 9. Ar otru organizatoru pārbauda pirmā konta pasākuma nepieejamību.
 
 Izmantot tikai testa pasākumu un testa foto; nedzēst īstu viesu materiālus.
-
-## Aizstāvēšanas jautājumi
-
-- Kāpēc R2? Foto datu glabāšana ir nodalīta no Supabase Auth un PostgreSQL.
-- Kas ir RLS? Datubāzes rindu piekļuves politikas; frontend paslēpta poga nav autorizācija.
-- Kāpēc nosaukumam pievienots ID? Vienādi vārdi nekonfliktē; tiesības balstās uz ID.
-- Kāpēc privāts bucket? Publiska adrese ļautu apiet galerijas atslēgšanu.
-- Kas ir presigned PUT? Īslaicīga atļauja augšupielādēt konkrētu objektu, neizpaužot atslēgas.
-- Kāpēc thumbnail? Galerijas režģis nelādē visus pilnos attēlus.
-- Vai R2 nozīmē nulles izmaksas? Nē; joprojām ir storage, operāciju, Worker un citu servisu izmaksas.
-- Kā darbojas neveiksmīgs upload? Rezervācija, atkārtošana un finalize nodala nepabeigtu failu no gatava foto.
-- Vai tests garantē drošību? Nē; lokālām pārbaudēm papildus vajag reālo konfigurāciju un production testus.
-- Kāpēc nav video? Photo-only MVP samazina apstrādi, izmaksas un testēšanas apjomu.
 
 ## Dienasgrāmatas ieraksta sagatave
 

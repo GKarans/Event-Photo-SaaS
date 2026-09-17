@@ -236,7 +236,6 @@ Viesim nav organizatora konta un nav pieejams dashboard.
 - [Lietotaju plusmas](docs/user-flows.md)
 - [Darbināšanas vide](docs/deployment-environment.md)
 - [Prakses pieradijumi](docs/evidence/practice/README.md)
-- [Aizstavesanas tehniskais celvedis](docs/practice/technical-defense-guide.md)
 
 ## MVP robezas
 

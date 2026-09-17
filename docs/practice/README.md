@@ -11,10 +11,10 @@ teksta atbilstību faktiski paveiktajam; laiks nav automātiski apliecināts.
 | 12 | [Konfigurācija](12-configuration-audit.md) | 4 | Kods, CORS un production paneļu pierādījumi apkopoti |
 | 13 | [Production un demo](13-production-demo.md) | 4 | Production publicēts, smoke un demonstrācijas vide pārbaudīta |
 | 14 | [Atsauksmes](14-feedback.md) | 4 | Saņemtā atsauksme apkopota |
-| 15 | [Demonstrācija](15-demonstration.md) | 4 | Scenārijs un aizstāvēšanas materiāls sagatavots |
+| 15 | [MVP gala plūsmas scenārijs](15-mvp-demonstration.md) | 4 | Scenārijs un pārbaudes secība sagatavota |
 | 16 | [Darbināšanas vide](../deployment-environment.md) | 4 | Aktualizēta |
 | 17 | [Mobilās ierīces](17-mobile.md) | 4 | 12.09. iPhone 13 Pro un Samsung S23 pamatplūsma veiksmīga |
-| 18 | [Aizstāvēšana](18-defense.md) | 4 | Jautājumi, tehniskais ceļvedis un prezentācija sagatavota |
+| 18 | [MVP tehniskā dokumentācija](../architecture.md) | 4 | Arhitektūra, drošība un testēšanas robežas aktualizētas |
 | 19 | [Ievads](19-report-introduction.md) | 2 | Atskaitei sagatavots saturs |
 | 20 | [Darbu apraksts](20-report-work.md) | 2 | Atskaitei sagatavots tehnisko darbu apraksts |
 | 21 | [Secinājumi](21-report-conclusions.md) | 1 | Atskaitei sagatavoti secinājumi un pašvērtējuma pamats |
@@ -23,8 +23,6 @@ teksta atbilstību faktiski paveiktajam; laiks nav automātiski apliecināts.
 
 - [Prakses ekrānattēlu indekss](../evidence/practice/README.md)
 - [Production pieņemšanas protokols](../production-acceptance-20260915.md)
-- [Tehniskais aizstāvēšanas ceļvedis](technical-defense-guide.md)
-- `Event-Photo-SaaS-MVP-prakses-prezentacija-v2.pptx` repozitorija `docs/practice/` mapē
 
 Pirms iesniegšanas praktikants dienasgrāmatā ievada faktiskos datumus un sev
 atbilstošo stundu uzskaiti. Dokumenti un ekrānattēli pierāda paveiktā darba

@@ -1,4 +1,4 @@
-# 15. Aizstāvēšanas demonstrācijas plāns
+# 15. MVP gala plūsmas demonstrācijas scenārijs
 Stundu apjoms pēc plāna: **4 h**. Demonstrācija: aptuveni 10–15 minūtes.
 ## Sagatavošana
 Izmantot testa datus, nevis privātus pasākumus. Divi organizatora konti,
@@ -21,10 +21,9 @@ Pirms uzstāšanās pārbaudīt pasākuma sākuma/beigu laiku; reālus datumus n
 Ja ārējais serviss nav sasniedzams, demonstrēt iepriekš saglabātos pierādījumus
 un lokālos testus, skaidri pasakot, ka tā nav dzīva production demonstrācija.
 Nerādīt tukšu vai neveiksmīgu darbību kā veiksmīgu.
-## Vērtēšanas pašpārbaude
-Praktikants bez koda lasīšanas izskaidro visu ceļu no QR līdz R2 un PostgreSQL,
-atšķir autentifikāciju no autorizācijas un paskaidro thumbnail nepieciešamību.
+## Rezultāta pašpārbaude
+Pēc scenārija izpildes jāpārbauda viss ceļš no QR līdz R2 un PostgreSQL,
+organizatora un viesa piekļuves atšķirība un thumbnail izmantošana galerijā.
 ## Dienasgrāmatas teksts
 Sagatavota organizatora un viesa scenāriju demonstrācijas secība, testa datu
 prasības, sagaidāmie rezultāti un rezerves demonstrācijas plāns.
-
