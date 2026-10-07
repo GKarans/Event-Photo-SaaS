@@ -5,6 +5,14 @@ publish = "dist"
 [build.environment]
 NODE_VERSION = "22"
 
+# Send the old QR code / link for this event to the lumiq event.
+# Must stay ABOVE the "/event/*" rule — Netlify uses the first rule that matches.
+[[redirects]]
+from = "/event/h-s-o6zk42"
+to = "https://lumiq.cam/event/fece9523366969d224d3d008b6d94568"
+status = 302
+force = true
+
 [[redirects]]
 from = "/event/*"
 to = "/index.html"
